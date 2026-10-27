@@ -1,0 +1,61 @@
+{
+  "skattAksjegevinst": {
+    "verdi": 37.84,
+    "aar": 2026,
+    "beskrivelse": "Skatt på gevinst og utbytte fra aksjer og aksjefond (22 % ganget med oppjusteringsfaktoren 1,72)",
+    "kilde": "Skatteetaten, Faktor for oppjustering av gevinst/tap eller utbytte på aksjar",
+    "url": "https://www.skatteetaten.no/nn/tabellar-og-satsar/faktor-for-oppjustering-av-gevinsttap-eller-utbytte-pa-aksjar/",
+    "kontrollert": "2026-10-27",
+    "faktor": 1.72
+  },
+  "skattKapital": {
+    "verdi": 22,
+    "aar": 2026,
+    "beskrivelse": "Skatt på andre kapitalinntekter, som renter på sparekonto",
+    "kilde": "Skatteetaten, Faktor for oppjustering av gevinst/tap eller utbytte på aksjar",
+    "url": "https://www.skatteetaten.no/nn/tabellar-og-satsar/faktor-for-oppjustering-av-gevinsttap-eller-utbytte-pa-aksjar/",
+    "kontrollert": "2026-10-27"
+  },
+  "inflasjonsmaal": {
+    "verdi": 2,
+    "aar": 2026,
+    "beskrivelse": "Norges Banks mål: en årsvekst i konsumprisene som over tid er nær 2 prosent",
+    "kilde": "Norges Bank, Mandat og oppgaver for pengepolitikken",
+    "url": "https://www.norges-bank.no/tema/pengepolitikk/mandat-oppgaver-pengepolitikk/",
+    "kontrollert": "2026-10-27"
+  },
+  "realavkastningAksjer": {
+    "verdi": 4.5,
+    "svingning": 16,
+    "aar": 2026,
+    "beskrivelse": "Forventet realavkastning for aksjer (geometrisk) og forventet årlig svingning, standard for prognoser i pensjonsbransjen",
+    "kilde": "Finans Norge, Avtale om avkastningsprognoser, revidert 4. februar 2026, tabell 1",
+    "url": "https://www.finansnorge.no/siteassets/dokumenter/avtaler/avtale-om-avkastningsprognoser_revidert-04.02.2026_ikrafttredelse-11.02.2026.pdf",
+    "kontrollert": "2026-10-27"
+  },
+  "realavkastningPengemarked": {
+    "verdi": 1,
+    "svingning": 2,
+    "aar": 2026,
+    "beskrivelse": "Forventet realavkastning for pengemarkedet (geometrisk), standard for prognoser i pensjonsbransjen",
+    "kilde": "Finans Norge, Avtale om avkastningsprognoser, revidert 4. februar 2026, tabell 1",
+    "url": "https://www.finansnorge.no/siteassets/dokumenter/avtaler/avtale-om-avkastningsprognoser_revidert-04.02.2026_ikrafttredelse-11.02.2026.pdf",
+    "kontrollert": "2026-10-27"
+  },
+  "kostnadIndeksfond": {
+    "verdi": 0.3,
+    "aar": 2024,
+    "beskrivelse": "Medianen av prisene for indeksfond solgt til forbrukere per 1. november 2024, alle fond og distributører i undersøkelsen (egen beregning)",
+    "kilde": "Finanstilsynet, Prisundersøkelse av fond som tilbys forbrukere, november 2024",
+    "url": "https://finanstilsynet.no/analyser-og-statistikk/prisundersokelse-av-fond-som-tilbys-forbrukere/2024/november-2024/prisundersokelse-av-fond-som-tilbys-forbrukere-november-2024",
+    "kontrollert": "2026-10-27"
+  },
+  "kostnadAktiveAksjefond": {
+    "verdi": 1.26,
+    "aar": 2021,
+    "beskrivelse": "Gjennomsnittlig årlig pris for aktive aksjefond per 30. september 2021, mot 0,27 % for indeksfond",
+    "kilde": "Finanstilsynet, Utviklingen i prisene for verdipapirfond (2022)",
+    "url": "https://www.finanstilsynet.no/contentassets/487a121fa4704b119e9aa44d3bfcbbe6/rapport-om-utviklingen-i-prisene-for-verdipapirfond.pdf",
+    "kontrollert": "2026-10-27"
+  }
+}

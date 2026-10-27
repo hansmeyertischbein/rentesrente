@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>{% if tittel and page.url != "/" %}{{ tittel }} | {{ site.navn }}{% else %}{{ site.navn }}: {{ site.beskrivelse | truncate(60, true, "") }}{% endif %}</title>
+  <meta name="description" content="{{ beskrivelse or site.beskrivelse }}">
+  <link rel="canonical" href="{{ site.url }}{{ page.url }}">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F6F7F3">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111914">
+  <meta name="color-scheme" content="light dark">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="nb_NO">
+  <meta property="og:site_name" content="{{ site.navn }}">
+  <meta property="og:title" content="{{ tittel or site.navn }}">
+  <meta property="og:description" content="{{ beskrivelse or site.beskrivelse }}">
+  <meta property="og:url" content="{{ site.url }}{{ page.url }}">
+  <link rel="icon" href="/assets/ikon.svg" type="image/svg+xml">
+  <link rel="preload" href="/assets/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/assets/css/tokens.css?v={{ '/assets/css/tokens.css' | versjon }}">
+  <link rel="stylesheet" href="/assets/css/main.css?v={{ '/assets/css/main.css' | versjon }}">
+  {%- if skript %}
+  <script type="module" src="{{ skript }}?v={{ skript | versjon }}"></script>
+  {%- endif %}
+</head>
+<body class="{{ sideklasse }}">
+  <a class="hopp" href="#innhold">Hopp til innholdet</a>
+  <header class="topp">
+    <div class="topp-indre">
+      <a class="merke" href="/" {% if page.url == "/" %}aria-current="page"{% endif %}>Rentesrente</a>
+      <nav aria-label="Hovedmeny">
+        <ul>
+          <li><a href="/kalkulatorer/" {% if page.url.startsWith("/kalkulatorer/") %}aria-current="page"{% endif %}>Kalkulatorer</a></li>
+          <li><a href="/forklart/" {% if page.url.startsWith("/forklart/") %}aria-current="page"{% endif %}>Forklart</a></li>
+          <li><a href="/om/" {% if page.url == "/om/" %}aria-current="page"{% endif %}>Om</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="innhold">
+    {{ content | safe }}
+  </main>
+
+  <footer class="bunn">
+    <div class="bunn-indre">
+      <p class="bunn-merke">Rentesrente</p>
+      <p class="bunn-tekst">Kalkulatorer og forklaringer om sparing, lån og investering. Generell informasjon med kilder, ikke personlig rådgivning.</p>
+      <ul class="bunn-lenker">
+        <li><a href="/om/">Om Rentesrente</a></li>
+        <li><a href="/ikke-radgivning/">Ikke personlig rådgivning</a></li>
+        <li><a href="/personvern/">Personvern</a></li>
+      </ul>
+    </div>
+  </footer>
+</body>
+</html>

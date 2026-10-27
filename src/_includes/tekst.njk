@@ -1,0 +1,17 @@
+---
+layout: base.njk
+---
+<article class="tekstside">
+  <header class="sidehode">
+    <h1>{{ tittel }}</h1>
+    {%- if ingress %}
+    <p class="ingress">{{ ingress }}</p>
+    {%- endif %}
+    {%- if oppdatert %}
+    <p class="meta">Sist oppdatert {{ oppdatert | dato }}</p>
+    {%- endif %}
+  </header>
+  <div class="brodtekst">
+    {{ content | safe }}
+  </div>
+</article>

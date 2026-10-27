@@ -1,0 +1,190 @@
+---
+layout: base.njk
+tittel: Hvor mye blir sparingen din verdt?
+beskrivelse: Regn ut hva startbeløp og månedlig sparing kan bli med renters rente, etter kostnader, skatt og inflasjon. Med kilder til hver forutsetning.
+permalink: /kalkulatorer/renters-rente/
+skript: /assets/js/renters-rente.js
+sideklasse: side-kalkulator
+---
+{%- set p = kalk.p -%}
+{%- set t = kalk.tekst -%}
+{%- set aksje = kalk.forvalg.aksjefond -%}
+{%- set spare = kalk.forvalg.sparekonto -%}
+<div class="kalkulator">
+  <header class="sidehode">
+    <h1>Hvor mye blir sparingen din verdt?</h1>
+    <p class="ingress">Skriv inn det du har og det du kan spare. Kalkulatoren regner med renters rente, kostnader, skatt og inflasjon.</p>
+  </header>
+
+  <form class="kalk" id="kalkulator" novalidate>
+    <section class="kalk-setning" aria-labelledby="setning-tittel">
+      <h2 id="setning-tittel" class="skjult">Sparingen din</h2>
+      <p class="setning">
+        Jeg starter med
+        <span class="felt-inline"><input id="start" name="start" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="next" value="{{ p.start | tall }}" aria-label="Startbeløp i kroner" aria-describedby="start-feil" data-heltall></span>&nbsp;kr
+        og sparer
+        <span class="felt-inline"><input id="mnd" name="mnd" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="next" value="{{ p.mnd | tall }}" aria-label="Månedlig sparing i kroner" aria-describedby="mnd-feil" data-heltall></span>&nbsp;kr
+        i måneden i
+        <span class="felt-inline felt-kort"><input id="ar" name="ar" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done" value="{{ p.ar }}" aria-label="Antall år" aria-describedby="ar-feil" data-heltall></span>&nbsp;år.
+      </p>
+      <div class="feilliste">
+        <p class="feil" id="start-feil" hidden></p>
+        <p class="feil" id="mnd-feil" hidden></p>
+        <p class="feil" id="ar-feil" hidden></p>
+      </div>
+    </section>
+
+    <section class="kalk-resultat" id="resultat" aria-labelledby="resultat-tittel">
+      <div class="res-hoved" aria-live="polite" aria-atomic="true">
+        <h2 id="resultat-tittel" class="res-inn">Om <span data-ut="ar">{{ t.ar }}</span> år har du omtrent</h2>
+        <p class="res-tall" data-ut="verdi">{{ t.verdi }}</p>
+        <p class="res-idag" data-ut="idag-setning">{{ t["idag-setning"] }}</p>
+      </div>
+      <p class="res-skatt" data-ut="skatt-setning">{{ t["skatt-setning"] }}</p>
+
+      <div class="fordeling" aria-hidden="true">
+        <span class="fordeling-del fordeling-innskudd" data-andel="innskudd" style="flex-grow: {{ kalk.andel.innskudd }}"></span>
+        <span class="fordeling-del fordeling-avkastning" data-andel="avkastning" style="flex-grow: {{ kalk.andel.avkastning }}"></span>
+      </div>
+      <dl class="oppstilling">
+        <div><dt><span class="nokkel nokkel-fjord" aria-hidden="true"></span>Du har satt inn</dt><dd data-ut="innskudd">{{ t.innskudd }}</dd></div>
+        <div><dt><span class="nokkel nokkel-multe" aria-hidden="true"></span><span data-ut="avkastning-tekst">{{ t["avkastning-tekst"] }}</span></dt><dd data-ut="avkastning">{{ t.avkastning }}</dd></div>
+        <div><dt>Kostnadene har tatt</dt><dd data-ut="kostnader">{{ t.kostnader }}</dd></div>
+        <div><dt data-ut="skatt-tekst">{{ t["skatt-tekst"] }}</dt><dd data-ut="skatt">{{ t.skatt }}</dd></div>
+      </dl>
+      <p class="usikkerhet" data-ut="usikkerhet">{{ t.usikkerhet }}</p>
+      <div class="handlinger">
+        <button type="button" class="knapp" id="kopier" hidden>Kopier lenken til utregningen</button>
+        <span class="kopiert" id="kopiert" role="status"></span>
+      </div>
+      <p class="forbehold">Regneeksempel med forutsetningene under, ikke personlig rådgivning. <a href="/ikke-radgivning/">Les mer om hva det betyr</a>.</p>
+      <p class="feil-samlet" id="feil-samlet" role="status" hidden>Rett feilen i feltet, så regner vi videre.</p>
+    </section>
+
+    <section class="kalk-forutsetninger" aria-labelledby="forut-tittel">
+      <h2 id="forut-tittel">Forutsetninger</h2>
+      <fieldset class="valg">
+        <legend>Hva sparer du i?</legend>
+        <div class="segment">
+          <label><input type="radio" name="type" value="aksjefond" checked><span>Aksjefond</span></label>
+          <label><input type="radio" name="type" value="sparekonto"><span>Sparekonto</span></label>
+          <label><input type="radio" name="type" value="egne"><span>Egne tall</span></label>
+        </div>
+      </fieldset>
+
+      <div class="forut-felt">
+        <div class="rad">
+          <label for="avk">Avkastning per år</label>
+          <span class="felt-enhet"><input id="avk" name="avk" type="text" inputmode="decimal" autocomplete="off" value="{{ p.avk | desimal }}" aria-describedby="avk-hjelp avk-feil"><span aria-hidden="true">%</span></span>
+          <p class="hjelp" id="avk-hjelp">Det typiske utfallet før kostnader. Pensjonsbransjen regner med {{ satser.realavkastningAksjer.verdi | prosent }} over inflasjon for aksjer og {{ satser.realavkastningPengemarked.verdi | prosent }} for pengemarkedet (Finans Norge, {{ satser.realavkastningAksjer.aar }}). Med {{ satser.inflasjonsmaal.verdi | prosent }} inflasjon blir det omtrent {{ aksje.avk | prosent }} og {{ spare.avk | prosent }}.</p>
+          <p class="feil" id="avk-feil" hidden></p>
+        </div>
+        <div class="rad">
+          <label for="kost">Årlig kostnad</label>
+          <span class="felt-enhet"><input id="kost" name="kost" type="text" inputmode="decimal" autocomplete="off" value="{{ p.kost | desimal }}" aria-describedby="kost-hjelp kost-feil"><span aria-hidden="true">%</span></span>
+          <p class="hjelp" id="kost-hjelp">Indeksfond kostet typisk {{ satser.kostnadIndeksfond.verdi | prosent }} i året i {{ satser.kostnadIndeksfond.aar }}. Aktive aksjefond kostet i snitt {{ satser.kostnadAktiveAksjefond.verdi | prosent }} i {{ satser.kostnadAktiveAksjefond.aar }} (Finanstilsynet).</p>
+          <p class="feil" id="kost-feil" hidden></p>
+        </div>
+        <div class="rad">
+          <label for="infl">Inflasjon per år</label>
+          <span class="felt-enhet"><input id="infl" name="infl" type="text" inputmode="decimal" autocomplete="off" value="{{ p.infl | desimal }}" aria-describedby="infl-hjelp infl-feil"><span aria-hidden="true">%</span></span>
+          <p class="hjelp" id="infl-hjelp">Norges Bank skal holde prisveksten nær {{ satser.inflasjonsmaal.verdi | prosent }} over tid. Brukes til å regne om til dagens kroner.</p>
+          <p class="feil" id="infl-feil" hidden></p>
+        </div>
+        <div class="rad">
+          <label for="sving">Svingning per år</label>
+          <span class="felt-enhet"><input id="sving" name="sving" type="text" inputmode="decimal" autocomplete="off" value="{{ p.sving | desimal }}" aria-describedby="sving-hjelp sving-feil"><span aria-hidden="true">%</span></span>
+          <p class="hjelp" id="sving-hjelp">Hvor mye avkastningen varierer fra år til år (standardavvik). Aksjer: {{ satser.realavkastningAksjer.svingning | prosent }} (Finans Norge). Sparekonto: 0&nbsp;%.</p>
+          <p class="feil" id="sving-feil" hidden></p>
+        </div>
+        <div class="rad">
+          <label for="skatt">Skatt</label>
+          <span class="felt-velg">
+            <select id="skatt" name="skatt" aria-describedby="skatt-hjelp">
+              <option value="salg" selected>På gevinsten når du selger ({{ satser.skattAksjegevinst.verdi | prosent }})</option>
+              <option value="aar">På avkastningen hvert år ({{ satser.skattKapital.verdi | prosent }})</option>
+              <option value="ingen">Ikke regn med skatt</option>
+            </select>
+          </span>
+          <p class="hjelp" id="skatt-hjelp">Aksjer og aksjefond skattes når du selger. Renter på sparekonto skattes hvert år. Satser for {{ satser.skattAksjegevinst.aar }} fra Skatteetaten.</p>
+        </div>
+      </div>
+      <p class="meta">Satsene ble sist kontrollert {{ satser.skattAksjegevinst.kontrollert | dato }}. Kildene står under <a href="#slik-regner-vi">Slik regner vi</a>.</p>
+    </section>
+  </form>
+
+  <section class="kalk-graf" aria-labelledby="graf-tittel">
+    <div class="graf-hode">
+      <h2 id="graf-tittel" data-ut="graf-tittel">{{ t["graf-tittel"] }}</h2>
+      <label class="bryter" hidden><input type="checkbox" id="idag"><span>Vis i dagens kroner</span></label>
+    </div>
+    <ul class="forklaring" aria-label="Forklaring til grafen">
+      <li><span class="strek strek-multe" aria-hidden="true"></span>Verdien av sparingen</li>
+      <li><span class="strek strek-fjord" aria-hidden="true"></span>Det du har satt inn</li>
+      <li><span class="flate flate-multe" aria-hidden="true"></span>Avkastningen</li>
+      <li data-vis="band"><span class="strek strek-tynn" aria-hidden="true"></span>8 av 10 forløp havner mellom disse</li>
+    </ul>
+    <div class="graf" id="graf" tabindex="0" role="img" aria-label="Graf over verdien av sparingen år for år. Bruk piltastene for å se hvert år. Tallene står også i tabellen under."></div>
+    <details class="tabell-visning">
+      <summary>Vis tallene år for år</summary>
+      <div class="tabell-rull">
+        <table class="talltabell">
+          <caption class="skjult">Satt inn og verdi ved slutten av hvert år</caption>
+          <thead><tr><th scope="col">År</th><th scope="col">Satt inn</th><th scope="col">Verdi</th><th scope="col" data-vis="band">8 av 10 forløp</th></tr></thead>
+          <tbody id="tabell">
+            {%- for s in kalk.r.serie %}{% if loop.index0&nbsp;% 5 == 0 or loop.last %}
+            <tr><td>{{ s.ar }}</td><td>{{ s.innskudd | kr }}</td><td>{{ s.verdi | omtrentKr }}</td><td data-vis="band">{{ kalk.sim.serie[s.ar].lav | omtrentKr }} til {{ kalk.sim.serie[s.ar].hoy | omtrentKr }}</td></tr>
+            {%- endif %}{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+
+  <section class="slik-regner-vi brodtekst" id="slik-regner-vi" aria-labelledby="srv-tittel">
+    <h2 id="srv-tittel">Slik regner vi</h2>
+    <p>Kalkulatoren regner måned for måned. Startbeløpet står fra første dag, og den månedlige sparingen settes inn på slutten av hver måned.</p>
+    <h3>Avkastning og kostnad</h3>
+    <p>Kostnaden trekkes fra avkastningen, og resten fordeles jevnt over årets tolv måneder. Med {{ aksje.avk | prosent }} avkastning og {{ aksje.kost | prosent }} kostnad vokser sparingen med {{ (aksje.avk - aksje.kost) | prosent }} i året.</p>
+    <p>Avkastningen er det typiske utfallet over tid, ikke et gjennomsnitt av enkeltår. Et år med 20&nbsp;% fall og et år med 20&nbsp;% oppgang gir ikke null: 100&nbsp;kr blir 80&nbsp;kr og så 96&nbsp;kr. Derfor bruker vi geometrisk avkastning, slik Finans Norges standard for prognoser gjør.</p>
+    <h3>Skatt</h3>
+    <p>Velger du skatt når du selger, regner vi skatten av gevinsten, altså verdien minus det du har satt inn, med {{ satser.skattAksjegevinst.verdi | prosent }}. Det er satsen for aksjer og aksjefond i {{ satser.skattAksjegevinst.aar }}: {{ satser.skattKapital.verdi | prosent }} ganget med {{ satser.skattAksjegevinst.faktor | desimal }}. Vi ser bort fra skjermingsfradraget, som kan gi litt lavere skatt, så tallet er heller for høyt enn for lavt. Har du tap, blir skatten null.</p>
+    <p>Velger du skatt hvert år, trekker vi {{ satser.skattKapital.verdi | prosent }} av avkastningen hvert år, slik renter på sparekonto skattes.</p>
+    <h3>Dagens kroner</h3>
+    <p>Beløp i dagens kroner er beløpet delt på (1 + inflasjonen) opphøyd i antall år. Med 2&nbsp;% inflasjon i 30&nbsp;år deler vi på 1,02<sup>30</sup>, som er omtrent 1,81. Det viser hva pengene kan kjøpe, målt i dagens priser.</p>
+    <h3>Svingninger</h3>
+    <p>Det store tallet øverst er det typiske utfallet. For å vise hvor mye det kan avvike, simulerer vi 1&nbsp;000 mulige forløp der avkastningen svinger tilfeldig fra år til år med svingningen du har valgt. Spennet «8 av 10 forløp» viser hvor de midterste 800 havner. Det er et regneeksempel, ikke en spådom: virkelige markeder kan svinge mer, og gode og dårlige år kan komme etter hverandre.</p>
+    <h3>Dette er ikke med</h3>
+    <p>Kalkulatoren tar ikke med formuesskatt, skjermingsfradrag, endringer i skattereglene, gebyrer ved kjøp og salg, eller at du kan endre sparebeløpet underveis.</p>
+    <h3>Kilder</h3>
+    <div class="tabell-rull">
+      <table class="kildetabell">
+        <thead><tr><th scope="col">Forutsetning</th><th scope="col">Verdi</th><th scope="col">Kilde</th><th scope="col">Sist kontrollert</th></tr></thead>
+        <tbody>
+          {%- for nokkel, s in satser %}
+          <tr>
+            <td>{{ s.beskrivelse }}</td>
+            <td class="tall">{{ s.verdi | prosent }}{% if s.svingning %}, svingning {{ s.svingning | prosent }}{% endif %}</td>
+            <td><a href="{{ s.url }}">{{ s.kilde }}</a> ({{ s.aar }})</td>
+            <td>{{ s.kontrollert | dato }}</td>
+          </tr>
+          {%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <aside class="les-ogsa" aria-labelledby="les-tittel">
+    <h2 id="les-tittel">Les også</h2>
+    <ul>
+      <li><a href="/forklart/renters-rente/">Hva er renters rente?</a> Hvorfor tiden betyr mer enn beløpet.</li>
+      <li><a href="/ikke-radgivning/">Generell informasjon, ikke personlig rådgivning</a></li>
+    </ul>
+  </aside>
+</div>
+
+<div class="flytende" id="flytende" hidden>
+  <a href="#resultat"><span data-ut="flyt-inn">{{ t["flyt-inn"] }}</span> <strong data-ut="flyt-verdi">{{ t["flyt-verdi"] }}</strong></a>
+</div>
+
+<script type="application/json" id="satser">{{ satser | dump | safe }}</script>

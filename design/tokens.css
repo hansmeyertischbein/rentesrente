@@ -1,0 +1,75 @@
+/* Rentesrente designsystem: farger, typografi og mål.
+   Kilde for alle sider. Kopieres uendret til /assets/css/tokens.css ved bygging.
+   Se design/README.md for hva hver verdi betyr og når den brukes. */
+
+@font-face {
+  font-family: "Archivo";
+  src: url("/assets/fonts/archivo.woff2") format("woff2-variations"),
+       url("/assets/fonts/archivo.woff2") format("woff2");
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light dark;
+
+  /* Flater */
+  --paper: #F6F7F3;      /* bjørkenever: sidebakgrunn */
+  --field: #FFFFFF;      /* inndatafelt og grafflate */
+  --ink: #17251E;        /* gran: tekst og kontroller */
+  --ink-2: #33433A;      /* sekundær tekst */
+  --muted: #5A665F;      /* hjelpetekst, akser, kanter på felt (5,6:1 mot papir) */
+  --rule: #D7DDD5;       /* skillelinjer og rutenett, bare pynt */
+
+  /* Betydningsfarger. Brukes bare med betydningen de har. */
+  --multe: #B07600;      /* det pengene har tjent: avkastning, renters rente */
+  --multe-wash: rgb(176 118 0 / 0.14);
+  --fjord: #2A6FA8;      /* det du har satt inn selv */
+  --error: #A8321F;      /* feilmeldinger, alltid med tekst */
+
+  /* Typografi: én familie, bredden bærer uttrykket */
+  --font: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --wide: 118%;          /* overskrifter */
+  --widest: 125%;        /* store resultattall */
+
+  /* Skala (The Elements of Typographic Style: 12 14 16 18 21 24 36 48 60 72) */
+  --t-small: 0.875rem;   /* 14 */
+  --t-ui: 1rem;          /* 16, minste størrelse i felt */
+  --t-body: 1.0625rem;   /* 17 på mobil, 18 på stor skjerm */
+  --t-lead: 1.3125rem;   /* 21 */
+  --t-h3: 1.3125rem;     /* 21 */
+  --t-h2: 1.5rem;        /* 24 */
+  --t-h1: 2.25rem;       /* 36 på mobil, 48 på stor skjerm */
+  --t-hero: 3rem;        /* 48 på mobil, 72 på stor skjerm */
+
+  /* Mål */
+  --measure: 38rem;      /* tekstbredde, under 80 tegn */
+  --gutter: max(1rem, env(safe-area-inset-left, 0px));
+  --radius: 6px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@media (min-width: 60rem) {
+  :root {
+    --t-body: 1.125rem;
+    --t-h1: 3rem;
+    --t-hero: 4.5rem;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #111914;
+    --field: #19231D;
+    --ink: #E6ECE7;
+    --ink-2: #C3CDC6;
+    --muted: #9AA79F;
+    --rule: #2A372F;
+    --multe: #BF8517;
+    --multe-wash: rgb(191 133 23 / 0.18);
+    --fjord: #4E8DD6;
+    --error: #F08A73;
+  }
+}

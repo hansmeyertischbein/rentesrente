@@ -1,0 +1,64 @@
+---
+layout: base.njk
+tittel: Rentesrente
+beskrivelse: Kalkulatorer og forklaringer som viser hva sparing, lån og investering betyr for deg, med kilder til hvert tall.
+skript: /assets/js/forside.js
+sideklasse: side-forside
+---
+{%- set e = eksempler -%}
+{%- set s = e.sparing -%}
+<section class="helt" aria-labelledby="helt-tittel">
+  <h1 id="helt-tittel">Se hva pengene dine kan bli</h1>
+  <form class="helt-kalk" id="helt" novalidate>
+    <p class="setning">
+      Sparer du
+      <span class="felt-inline"><input id="h-mnd" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="next" value="{{ s.mnd | tall }}" aria-label="Månedlig sparing i kroner"></span>&nbsp;kr
+      i måneden i
+      <span class="felt-inline felt-kort"><input id="h-ar" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done" value="30" aria-label="Antall år"></span>&nbsp;år
+      i et aksjefond, kan du ende med omtrent
+    </p>
+    <div aria-live="polite" aria-atomic="true">
+      <p class="res-tall" data-ut="verdi">{{ e.kort.verdi | omtrentKr }}</p>
+      <p class="res-idag" data-ut="idag">Det er omtrent {{ e.kort.verdiIDag | omtrentKr }} i dagens kroner.</p>
+    </div>
+    <div class="fordeling" aria-hidden="true">
+      <span class="fordeling-del fordeling-innskudd" data-andel="innskudd" style="flex-grow: {{ e.kort.innskudd / e.kort.verdi * 100 }}"></span>
+      <span class="fordeling-del fordeling-avkastning" data-andel="avkastning" style="flex-grow: {{ e.kort.avkastning / e.kort.verdi * 100 }}"></span>
+    </div>
+    <p class="fordeling-tekst">
+      <span><span class="nokkel nokkel-fjord" aria-hidden="true"></span><strong data-ut="innskudd">{{ e.kort.innskudd | kr }}</strong> satt inn</span>
+      <span><span class="nokkel nokkel-multe" aria-hidden="true"></span><strong data-ut="avkastning">{{ e.kort.avkastning | omtrentKr }}</strong> i renters rente</span>
+    </p>
+    <p class="helt-forut">Typisk utfall med {{ s.avk | prosent }} avkastning og {{ s.kost | prosent }} kostnad i året, før skatt. Det kan bli mer eller mindre.</p>
+    <p class="feil" id="h-feil" hidden></p>
+    <a class="knapp knapp-hoved" id="h-lenke" href="/kalkulatorer/renters-rente/#start=0&amp;mnd={{ s.mnd }}&amp;ar=30&amp;avk={{ s.avk }}&amp;kost={{ s.kost }}&amp;infl={{ s.infl }}&amp;sving={{ kalk.forvalg.aksjefond.sving }}&amp;skatt=salg&amp;type=aksjefond">Se hele regnestykket med skatt og usikkerhet</a>
+  </form>
+</section>
+
+<section class="forside-del" aria-labelledby="kalk-tittel">
+  <h2 id="kalk-tittel">Kalkulatorer</h2>
+  <ul class="innholdsliste">
+    <li>
+      <a href="/kalkulatorer/renters-rente/">Hvor mye blir sparingen din verdt?</a>
+      <p>Renters rente med kostnader, skatt, inflasjon og hvor mye utfallet kan svinge.</p>
+    </li>
+  </ul>
+  <p class="kommer">Kommer snart: hvor mye du må spare for å nå et mål, annuitetslån mot serielån, og hva fondskostnader betyr over tid.</p>
+</section>
+
+<section class="forside-del" aria-labelledby="forklart-tittel">
+  <h2 id="forklart-tittel">Forklart</h2>
+  <ul class="innholdsliste">
+    <li>
+      <a href="/forklart/renters-rente/">Hva er renters rente?</a>
+      <p>Hvorfor tiden betyr mer enn beløpet, og hvorfor kostnader også vokser.</p>
+    </li>
+  </ul>
+</section>
+
+<section class="forside-del forside-prinsipp" aria-labelledby="prinsipp-tittel">
+  <h2 id="prinsipp-tittel">Hvert tall har en kilde</h2>
+  <p>Satser og standardverdier kommer fra Skatteetaten, Norges Bank, Finanstilsynet og Finans Norge, med år og dato for når vi sist kontrollerte dem. Rentesrente anbefaler ingen produkter og har ingen reklame. <a href="/om/">Les mer om Rentesrente</a>.</p>
+</section>
+
+<script type="application/json" id="satser">{{ satser | dump | safe }}</script>
