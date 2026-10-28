@@ -24,6 +24,8 @@ Verdiene ligger i [tokens.css](tokens.css). Endre dem der, ikke i sidene.
 | `--rule` | #D7DDD5 | #2A372F | Skillelinjer og rutenett |
 | `--multe` | #B07600 | #BF8517 | Det pengene har tjent |
 | `--fjord` | #2A6FA8 | #4E8DD6 | Det du har satt inn |
+| `--opp` | #16A05A | #2FD27A | Forsidegrafikken: kurs som stiger. Bare pynt, aldri om penger i en utregning |
+| `--ned` | #DC4A3D | #FF6B5E | Forsidegrafikken: kurs som faller. Bare pynt |
 | `--error` | #A8321F | #F08A73 | Feilmeldinger, alltid med tekst |
 
 Kontrast mot `--paper` (WCAG): tekst 14,8:1 lys og 14,9:1 mørk, hjelpetekst 5,6:1 og 7,2:1. Multe og fjord er grafikkfarger og brukes ikke som brødtekst.

@@ -27,6 +27,10 @@
   --multe: #B07600;      /* det pengene har tjent: avkastning, renters rente */
   --multe-wash: rgb(176 118 0 / 0.14);
   --fjord: #2A6FA8;      /* det du har satt inn selv */
+  --fjord-wash: rgb(42 111 168 / 0.10);
+  --multe-glod: rgb(176 118 0 / 0.35);  /* glød rundt avkastningslinjen og -punktet */
+  --opp: #16A05A;        /* forsidegrafikken: kurs som stiger. Bare pynt, ingen betydning om penger */
+  --ned: #DC4A3D;        /* forsidegrafikken: kurs som faller */
   --error: #A8321F;      /* feilmeldinger, alltid med tekst */
 
   /* Typografi: én familie, bredden bærer uttrykket */
@@ -70,6 +74,10 @@
     --multe: #BF8517;
     --multe-wash: rgb(191 133 23 / 0.18);
     --fjord: #4E8DD6;
+    --fjord-wash: rgb(78 141 214 / 0.14);
+    --multe-glod: rgb(214 152 40 / 0.45);
+    --opp: #2FD27A;
+    --ned: #FF6B5E;
     --error: #F08A73;
   }
 }

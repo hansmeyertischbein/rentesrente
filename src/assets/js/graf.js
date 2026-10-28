@@ -1,7 +1,8 @@
 // Linjegraf for sparing over tid, tegnet som inline SVG.
 // Punktene er ett per år: { ar, innskudd, verdi, lav?, hoy? }.
 
-import { aksetekst, omtrentKr, formaterKr } from "/lib/format.js";
+import { aksetekst, omtrentKr, formaterKr } from "../../lib/format.js";
+import { glattSti, flateSti, gradient, reduserBevegelse } from "./kurve.js";
 
 const NS = "http://www.w3.org/2000/svg";
 
@@ -22,7 +23,14 @@ export function finTrinn(maks, antall = 4) {
 }
 
 function linje(punkter, x, y, felt) {
-  return punkter.map((p, i) => `${i ? "L" : "M"}${x(p.ar).toFixed(1)},${y(p[felt]).toFixed(1)}`).join("");
+  return glattSti(punkter.map((p) => [x(p.ar), y(p[felt])]));
+}
+
+function flate(punkter, x, y, ovre, nedre) {
+  return flateSti(
+    punkter.map((p) => [x(p.ar), y(typeof ovre === "function" ? ovre(p) : p[ovre])]),
+    punkter.map((p) => [x(p.ar), y(typeof nedre === "function" ? nedre(p) : p[nedre])]),
+  );
 }
 
 export function lagGraf(beholder) {
@@ -31,6 +39,7 @@ export function lagGraf(beholder) {
   let eksakteInnskudd = true;
   let valgt = null;
   let geometri = null;
+  let forsteTegning = true;
 
   const tips = document.createElement("div");
   tips.className = "graf-tips";
@@ -63,6 +72,11 @@ export function lagGraf(beholder) {
     geometri = { x, y, m, bredde, hoyde, sisteAr };
 
     const svg = el("svg", { viewBox: `0 0 ${bredde} ${hoyde}`, width: bredde, height: hoyde, "aria-hidden": "true", focusable: "false" });
+    if (forsteTegning && !reduserBevegelse()) svg.classList.add("tegn-inn");
+    forsteTegning = false;
+    const defs = el("defs", {}, svg);
+    gradient(defs, "g-avk", [["0", "stopp-multe-sterk"], ["1", "stopp-multe-svak"]]);
+    gradient(defs, "g-inn", [["0", "stopp-fjord-sterk"], ["1", "stopp-fjord-svak"]]);
 
     // Rutenett og y-akse: tekst over hver linje, så hele bredden kan brukes til data.
     const rutenett = el("g", { class: "rutenett" }, svg);
@@ -86,22 +100,24 @@ export function lagGraf(beholder) {
       t.textContent = a === sisteAr ? `${a} år` : String(a);
     }
 
-    // Avkastningen: flaten mellom innskudd og verdi.
+    // Flater: det du har satt inn nederst, avkastningen oppå.
+    const bunn = () => 0;
+    el("path", { d: flate(punkter, x, y, "innskudd", bunn), class: "flate-innskudd", fill: "url(#g-inn)" }, svg);
     if (punkter.some((p) => p.verdi > p.innskudd)) {
-      const ovre = punkter.map((p) => `${x(p.ar).toFixed(1)},${y(Math.max(p.verdi, p.innskudd)).toFixed(1)}`);
-      const nedre = [...punkter].reverse().map((p) => `${x(p.ar).toFixed(1)},${y(p.innskudd).toFixed(1)}`);
-      el("polygon", { points: [...ovre, ...nedre].join(" "), class: "flate-avkastning" }, svg);
+      el("path", { d: flate(punkter, x, y, (p) => Math.max(p.verdi, p.innskudd), "innskudd"), class: "flate-avkastning", fill: "url(#g-avk)" }, svg);
     }
 
-    if (visBand) {
+    if (visBand && punkter.every((p) => Number.isFinite(p.lav))) {
+      el("path", { d: flate(punkter, x, y, "hoy", "lav"), class: "flate-band" }, svg);
       el("path", { d: linje(punkter, x, y, "lav"), class: "linje-band" }, svg);
       el("path", { d: linje(punkter, x, y, "hoy"), class: "linje-band" }, svg);
     }
-    el("path", { d: linje(punkter, x, y, "innskudd"), class: "linje-innskudd" }, svg);
-    el("path", { d: linje(punkter, x, y, "verdi"), class: "linje-verdi" }, svg);
+    el("path", { d: linje(punkter, x, y, "innskudd"), class: "linje-innskudd", pathLength: 1 }, svg);
+    el("path", { d: linje(punkter, x, y, "verdi"), class: "linje-verdi", pathLength: 1 }, svg);
 
     const siste = punkter[punkter.length - 1];
-    el("circle", { cx: x(siste.ar), cy: y(siste.verdi), r: 4, class: "punkt-verdi" }, svg);
+    el("circle", { cx: x(siste.ar), cy: y(siste.verdi), r: 10, class: "punkt-glod" }, svg);
+    el("circle", { cx: x(siste.ar), cy: y(siste.verdi), r: 4.5, class: "punkt-verdi punkt-slutt" }, svg);
 
     // Trådkors som følger året nærmest pekeren.
     const kors = el("g", { class: "kors", visibility: "hidden" }, svg);

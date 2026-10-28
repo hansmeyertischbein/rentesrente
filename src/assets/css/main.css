@@ -66,6 +66,12 @@ p { margin: 0; }
 .merke {
   font-size: 1.125rem; font-weight: 750; font-stretch: var(--widest); letter-spacing: -0.02em;
   text-decoration: none; padding: 0.5rem 0;
+  display: inline-flex; align-items: center; gap: 0.55rem;
+}
+.merke-ikon {
+  width: 1.35rem; height: 1.35rem; border-radius: 7px; flex: none;
+  background: url("/assets/ikon.svg") center / cover;
+  box-shadow: 0 2px 8px -2px var(--multe-glod);
 }
 .topp nav ul { display: flex; gap: 0.25rem 1rem; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
 .topp nav a { font-size: 0.9375rem; }
@@ -110,15 +116,17 @@ p { margin: 0; }
   display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
   min-height: 2.75rem; padding: 0.6rem 1.1rem;
   font: 600 1rem/1.2 var(--font); color: var(--ink); text-decoration: none;
-  background: transparent; border: 1.5px solid var(--ink); border-radius: var(--radius);
+  background: transparent; border: 1.5px solid var(--ink); border-radius: 999px;
   cursor: pointer;
-  transition: transform 120ms var(--ease-out), background-color 120ms var(--ease-out);
+  transition: transform 160ms var(--ease-out), background-color 160ms var(--ease-out), box-shadow 200ms var(--ease-out);
 }
 .knapp:active { transform: scale(0.97); }
-.knapp-hoved { background: var(--ink); color: var(--paper); }
+.knapp-hoved { background: var(--ink); color: var(--paper); padding-inline: 1.35rem; }
+.knapp [aria-hidden] { display: inline-block; transition: transform 200ms var(--ease-out); }
 @media (hover: hover) and (pointer: fine) {
   .knapp:hover { background: var(--field); }
-  .knapp-hoved:hover { background: var(--ink-2); }
+  .knapp-hoved:hover { background: var(--ink-2); box-shadow: 0 6px 20px -6px var(--multe-glod); }
+  .knapp-hoved:hover [aria-hidden] { transform: translateX(3px); }
 }
 
 /* ---------- Setningskalkulator ---------- */
@@ -157,10 +165,10 @@ input[aria-invalid="true"] { border-color: var(--error) !important; }
 .res-idag { font-size: var(--t-lead); color: var(--ink-2); line-height: 1.4; }
 .res-skatt { margin-top: 0.6rem; color: var(--ink-2); }
 
-.fordeling { display: flex; gap: 2px; height: 0.75rem; margin: 1.5rem 0 0.25rem; }
-.fordeling-del { flex: 0 1 0; min-width: 0; border-radius: 4px; transition: flex-grow 240ms var(--ease-out); }
+.fordeling { display: flex; gap: 3px; height: 0.625rem; margin: 1.5rem 0 0.25rem; }
+.fordeling-del { flex: 0 1 0; min-width: 0; border-radius: 999px; transition: flex-grow 420ms var(--ease-out); }
 .fordeling-innskudd { background: var(--fjord); }
-.fordeling-avkastning { background: var(--multe); }
+.fordeling-avkastning { background: linear-gradient(90deg, var(--multe), color-mix(in srgb, var(--multe) 70%, #fff)); box-shadow: 0 2px 10px -2px var(--multe-glod); }
 @media (prefers-reduced-motion: reduce) { .fordeling-del { transition: none; } }
 
 .oppstilling { margin: 0.75rem 0 0; }
@@ -168,7 +176,7 @@ input[aria-invalid="true"] { border-color: var(--error) !important; }
 .oppstilling > div:last-child { border-bottom: 1px solid var(--rule); }
 .oppstilling dt { display: flex; align-items: baseline; gap: 0.5rem; color: var(--ink-2); }
 .oppstilling dd { margin: 0 0 0 auto; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-.nokkel { flex: none; width: 0.7rem; height: 0.7rem; border-radius: 2px; align-self: center; }
+.nokkel { flex: none; width: 0.6rem; height: 0.6rem; border-radius: 50%; align-self: center; }
 .nokkel-fjord { background: var(--fjord); }
 .nokkel-multe { background: var(--multe); }
 
@@ -249,23 +257,44 @@ input[aria-invalid="true"] { border-color: var(--error) !important; }
 .graf { position: relative; touch-action: pan-y; border-radius: 2px; }
 .graf-tom { padding: 2rem 0; color: var(--muted); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
 .graf svg { display: block; width: 100%; height: auto; overflow: visible; }
-.graf .rutenett line { stroke: var(--rule); stroke-width: 1; shape-rendering: crispEdges; }
-.graf .akse { fill: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
-.graf .flate-avkastning { fill: var(--multe-wash); }
+.graf .rutenett line { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 2 4; shape-rendering: crispEdges; }
+.graf .akse { fill: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
 .graf .linje-verdi, .graf .linje-innskudd, .graf .linje-band { fill: none; stroke-linejoin: round; stroke-linecap: round; }
-.graf .linje-verdi { stroke: var(--multe); stroke-width: 2; }
+.graf .linje-verdi { stroke: var(--multe); stroke-width: 2.75; filter: drop-shadow(0 4px 8px var(--multe-glod)); }
 .graf .linje-innskudd { stroke: var(--fjord); stroke-width: 2; }
-.graf .linje-band { stroke: var(--multe); stroke-width: 1; opacity: 0.7; }
-.graf .punkt-verdi { fill: var(--multe); stroke: var(--paper); stroke-width: 2; }
-.graf .punkt-innskudd { fill: var(--fjord); stroke: var(--paper); stroke-width: 2; }
-.graf .kors-linje { stroke: var(--ink); stroke-width: 1; opacity: 0.45; }
+.graf .flate-band { fill: var(--multe-wash); opacity: 0.55; }
+.graf .linje-band { stroke: var(--multe); stroke-width: 1; stroke-dasharray: 3 4; opacity: 0.6; }
+.graf .punkt-verdi { fill: var(--multe); stroke: var(--field); stroke-width: 2.5; }
+.graf .punkt-innskudd { fill: var(--fjord); stroke: var(--field); stroke-width: 2.5; }
+.graf .kors-linje { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.4; }
+
+/* Gradienter i grafene. Stoppfargene settes her så de følger lys og mørk modus. */
+.stopp-multe-sterk { stop-color: var(--multe); stop-opacity: 0.38; }
+.stopp-multe-svak { stop-color: var(--multe); stop-opacity: 0.04; }
+.stopp-fjord-sterk { stop-color: var(--fjord); stop-opacity: 0.22; }
+.stopp-fjord-svak { stop-color: var(--fjord); stop-opacity: 0.03; }
+
+.punkt-glod { fill: var(--multe); opacity: 0.18; transform-box: fill-box; transform-origin: center; }
+@media (prefers-reduced-motion: no-preference) {
+  .punkt-glod { animation: puls 2.4s var(--ease-out) infinite; }
+  .tegn-inn .linje-verdi, .tegn-inn .linje-innskudd { stroke-dasharray: 1; stroke-dashoffset: 1; animation: tegn 1.4s var(--ease-out) forwards; }
+  .tegn-inn .linje-innskudd { animation-delay: 120ms; }
+  .tegn-inn .flate-avkastning, .tegn-inn .flate-innskudd, .tegn-inn .flate-band { opacity: 0; animation: tone 900ms var(--ease-out) 500ms forwards; }
+  .tegn-inn .punkt-slutt { opacity: 0; animation: tone 400ms var(--ease-out) 1.2s forwards; }
+  .tegn-inn .punkt-glod { opacity: 0; animation: puls 2.4s var(--ease-out) 1.4s infinite; }
+}
+@keyframes tegn { to { stroke-dashoffset: 0; } }
+@keyframes tone { to { opacity: 1; } }
+@keyframes puls { 0% { transform: scale(0.6); opacity: 0.35; } 70%, 100% { transform: scale(1.8); opacity: 0; } }
 
 .graf-tips {
   position: absolute; top: 0; left: 0; z-index: 2;
   min-width: 11.5rem; padding: 0.55rem 0.7rem;
-  background: var(--field); color: var(--ink);
-  border: 1px solid var(--rule); border-radius: var(--radius);
-  box-shadow: 0 4px 14px rgb(0 0 0 / 0.08);
+  background: color-mix(in srgb, var(--field) 82%, transparent); color: var(--ink);
+  -webkit-backdrop-filter: blur(10px) saturate(1.4); backdrop-filter: blur(10px) saturate(1.4);
+  border: 1px solid var(--rule); border-radius: 12px;
+  box-shadow: 0 10px 30px -10px rgb(0 0 0 / 0.18);
+  transition: transform 90ms linear;
   font-size: var(--t-small); line-height: 1.45;
   pointer-events: none;
 }
@@ -305,20 +334,46 @@ input[aria-invalid="true"] { border-color: var(--error) !important; }
 @media (min-width: 60rem) { .flytende { display: none !important; } }
 
 /* ---------- Forside ---------- */
-.helt { padding: 3rem 0 3.5rem; border-bottom: 1px solid var(--rule); }
-.helt h1 { max-width: 40rem; }
-.helt-kalk { margin-top: 1.75rem; }
-.helt .res-tall { margin-top: 0.4rem; }
-.helt .fordeling { max-width: 40rem; }
-.fordeling-tekst { display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; color: var(--ink-2); }
-.fordeling-tekst > span { display: inline-flex; align-items: baseline; gap: 0.45rem; }
-.fordeling-tekst strong { color: var(--ink); font-weight: 650; }
-.helt-forut { margin-top: 1rem; font-size: var(--t-small); color: var(--muted); max-width: var(--measure); }
-.helt .knapp { margin-top: 1.5rem; }
-@media (min-width: 60rem) {
-  .helt { padding: 4.5rem 0 5rem; }
-  .helt .res-tall { font-size: 6rem; }
+body.side-forside { overflow-x: clip; }
+@media (max-width: 39.99rem) {
+  .topp-indre { flex-wrap: nowrap; }
+  .merke { font-size: 1.0625rem; }
+  .merke-ikon { display: none; }
+  .topp nav ul { column-gap: 0.9rem; flex-wrap: nowrap; }
+  .topp nav a { font-size: 0.875rem; }
 }
+.side-forside .topp { border-bottom: 0; }
+.helt {
+  position: relative;
+  min-height: calc(100svh - 3.75rem);
+  display: grid; grid-template-rows: auto 1fr;
+  padding-top: clamp(3rem, 12vh, 8rem);
+}
+.helt-tekst { position: relative; z-index: 1; max-width: 44rem; }
+.helt h1 {
+  font-size: clamp(2.75rem, 1.2rem + 6.5vw, 6.5rem);
+  font-weight: 750; letter-spacing: -0.04em; line-height: 0.98;
+}
+.helt-ingress { margin-top: 1.5rem; max-width: 30rem; font-size: var(--t-lead); line-height: 1.45; color: var(--muted); }
+.helt-knapper { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2.25rem; }
+.knapp-stille { border-color: var(--rule); }
+@media (hover: hover) and (pointer: fine) { .knapp-stille:hover { border-color: var(--ink); background: transparent; } }
+
+/* Grafikken går fra kant til kant og tones inn fra venstre. */
+.helt-graf {
+  position: relative;
+  width: 100vw; margin-left: calc(50% - 50vw);
+  min-height: 16rem; margin-top: 2rem;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 18%, #000 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 18%, #000 100%);
+}
+.helt-graf canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+.side-forside .bunn { margin-top: 0; }
+.side-forside .bunn-indre { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 1rem 2rem; }
+.side-forside .bunn-merke { display: none; }
+.side-forside .bunn-tekst { margin: 0; }
+.side-forside .bunn-lenker { margin: 0; }
 
 .forside-del, .listeside { margin-top: 3rem; max-width: 46rem; }
 .listeside { margin-top: 0; }
