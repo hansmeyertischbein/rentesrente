@@ -14,7 +14,31 @@ sideklasse: side-forside
       <a class="knapp knapp-stille" href="/forklart/renters-rente/">Hva er renters rente?</a>
     </div>
   </div>
-  <div class="helt-graf" aria-hidden="true">
-    <canvas id="kurs"></canvas>
+  <div class="helt-graf">
+    <canvas id="stabel" role="img" aria-label="Myntstabler som vokser år for år. Blå mynter er det du har satt inn, gule mynter er det pengene har tjent."></canvas>
+    <p class="stabel-hint" aria-hidden="true"><span class="hint-mynt hint-blaa"></span>Satt inn <span class="hint-mynt hint-gul"></span>Tjent <span class="hint-trykk">· Trykk for å spare mer</span></p>
+  </div>
+</section>
+
+<section class="fortelling" aria-labelledby="fortelling-tittel">
+  <div class="fortelling-scene" aria-hidden="true"><canvas></canvas></div>
+  <div class="fortelling-tekst">
+    <h2 id="fortelling-tittel" class="fortelling-overskrift">Slik vokser pengene</h2>
+    <article class="fortelling-steg" data-steg="0">
+      <p class="steg-nr" aria-hidden="true">1</p>
+      <h3>Du setter inn.</h3>
+      <p>Hver krone du sparer, legges i bunken. Det er den blå delen, og den er din.</p>
+    </article>
+    <article class="fortelling-steg" data-steg="1">
+      <p class="steg-nr" aria-hidden="true">2</p>
+      <h3>Pengene tjener penger.</h3>
+      <p>Avkastningen legger seg oppå det du har satt inn. Det er den gule delen.</p>
+    </article>
+    <article class="fortelling-steg" data-steg="2">
+      <p class="steg-nr" aria-hidden="true">3</p>
+      <h3>Og det de har tjent, tjener også.</h3>
+      <p>Etter hvert vokser den gule delen raskere enn den blå. Det er renters rente, og tid er det som gjør mest.</p>
+      <a class="knapp knapp-hoved" href="/kalkulatorer/renters-rente/">Regn på dine egne tall <span aria-hidden="true">→</span></a>
+    </article>
   </div>
 </section>

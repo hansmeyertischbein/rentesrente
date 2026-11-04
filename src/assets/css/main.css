@@ -367,7 +367,64 @@ body.side-forside { overflow-x: clip; }
   -webkit-mask-image: linear-gradient(to right, transparent 0, #000 18%, #000 100%);
   mask-image: linear-gradient(to right, transparent 0, #000 18%, #000 100%);
 }
-.helt-graf canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.helt-graf canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; cursor: pointer; }
+@media (max-width: 59.99rem) { .helt-graf { min-height: max(16rem, 44svh); } }
+/* På store skjermer fyller stablene hele helten bak teksten og vokser høyt til høyre. */
+@media (min-width: 60rem) {
+  .helt { grid-template-rows: auto; }
+  .helt-graf {
+    position: absolute; top: 0; bottom: 0; left: 50%; width: 100vw; margin: 0; translate: -50% 0; min-height: 0;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, transparent 22%, #000 62%);
+    mask-image: linear-gradient(to right, transparent 0, transparent 22%, #000 62%);
+  }
+}
+.stabel-hint {
+  position: absolute; right: var(--gutter); bottom: 0.75rem; margin: 0;
+  display: flex; align-items: center; gap: 0.4rem; font-size: 0.8125rem; color: var(--muted);
+  background: color-mix(in srgb, var(--paper) 80%, transparent); padding: 0.25rem 0.6rem; border-radius: 999px;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.hint-mynt { display: inline-block; width: 0.9rem; height: 0.4rem; border-radius: 2px; margin-left: 0.35rem; }
+.hint-blaa { background: var(--fjord); } .hint-gul { background: var(--multe); }
+.hint-trykk { transition: opacity 400ms var(--ease-out); }
+.stabel-hint.brukt .hint-trykk { opacity: 0; }
+
+/* Tittelen vokser fra smal til full bredde, bokstav for bokstav: tall og tekst som blir bredere. */
+.helt h1 .ord { display: inline-block; white-space: nowrap; }
+.helt h1 .bokstav { display: inline-block; transition: font-variation-settings 260ms var(--ease-out); }
+@media (prefers-reduced-motion: no-preference) {
+  .helt h1.vokser .bokstav { animation: bokstav-inn 900ms var(--ease-out) both; }
+  .helt h1.klar .bokstav { animation: none; }
+  .helt-ingress, .helt-knapper { animation: tone-inn 800ms var(--ease-out) both; }
+  .helt-ingress { animation-delay: 700ms; } .helt-knapper { animation-delay: 850ms; }
+  .helt-knapper .knapp { transition: translate 300ms var(--ease-out), background 150ms, border-color 150ms; }
+}
+@keyframes bokstav-inn {
+  from { opacity: 0; font-variation-settings: "wdth" 62, "wght" 300; transform: translateY(0.18em); }
+  to { opacity: 1; font-variation-settings: "wdth" 100, "wght" 750; transform: none; }
+}
+@keyframes tone-inn { from { opacity: 0; transform: translateY(0.6rem); } }
+
+/* Fortellingen: scenen står fast mens tre korte steg scroller forbi. */
+.fortelling { position: relative; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 2rem 4rem; margin-top: clamp(3rem, 10vh, 6rem); }
+.fortelling-scene { position: sticky; top: 12vh; height: 70vh; align-self: start; }
+.fortelling-scene canvas { width: 100%; height: 100%; display: block; }
+.fortelling-overskrift { font-size: var(--t-h2); font-stretch: var(--wide); margin: 0 0 1rem; color: var(--muted); font-weight: 600; }
+.fortelling-steg { min-height: 72vh; display: flex; flex-direction: column; justify-content: center; max-width: 26rem; opacity: 0.28; transition: opacity 500ms var(--ease-out), translate 500ms var(--ease-out); translate: 0 1rem; }
+.fortelling-steg.aktiv { opacity: 1; translate: 0 0; }
+.fortelling-steg h3 { font-size: clamp(1.75rem, 1rem + 2.6vw, 2.75rem); font-stretch: var(--wide); font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; margin: 0 0 0.75rem; }
+.fortelling-steg p { font-size: var(--t-lead); color: var(--ink-2); margin: 0; }
+.fortelling-steg .knapp { margin-top: 1.75rem; align-self: flex-start; }
+.steg-nr { font-size: 0.875rem !important; font-weight: 700; font-stretch: var(--widest); color: var(--muted) !important; margin-bottom: 0.75rem !important; }
+.fortelling-steg:last-child { min-height: 80vh; }
+@media (max-width: 47.99rem) {
+  .fortelling { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .fortelling-scene { top: 3.5rem; height: 42vh; z-index: 0; }
+  .fortelling-tekst { position: relative; z-index: 1; }
+  .fortelling-steg { min-height: 60vh; justify-content: flex-end; padding-bottom: 8vh; }
+  .fortelling-steg > * { background: color-mix(in srgb, var(--paper) 86%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .fortelling-steg { opacity: 1; translate: none; transition: none; } }
 
 .side-forside .bunn { margin-top: 0; }
 .side-forside .bunn-indre { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 1rem 2rem; }
@@ -387,3 +444,13 @@ body.side-forside { overflow-x: clip; }
 .kommer { margin-top: 1rem; font-size: var(--t-small); color: var(--muted); }
 .forside-prinsipp p { margin-top: 0.75rem; max-width: var(--measure); color: var(--ink-2); }
 .listeside > p { margin-top: 1.5rem; }
+
+/* ---------- Sideoverganger ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+  .topp { view-transition-name: topp; }
+  ::view-transition-old(root) { animation: 180ms var(--ease-out) both side-ut; }
+  ::view-transition-new(root) { animation: 320ms var(--ease-out) both side-inn; }
+}
+@keyframes side-ut { to { opacity: 0; transform: translateY(-0.5rem); } }
+@keyframes side-inn { from { opacity: 0; transform: translateY(0.75rem); } }
