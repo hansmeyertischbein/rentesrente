@@ -380,9 +380,14 @@ body.side-forside { overflow-x: clip; }
 }
 .stabel-hint {
   position: absolute; right: var(--gutter); bottom: 0.75rem; margin: 0;
-  display: flex; align-items: center; gap: 0.4rem; font-size: 0.8125rem; color: var(--muted);
-  background: color-mix(in srgb, var(--paper) 80%, transparent); padding: 0.25rem 0.6rem; border-radius: 999px;
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem; font-size: 0.8125rem; color: var(--ink-2);
+  background: var(--paper); border: 1px solid var(--rule); padding: 0.3rem 0.75rem; border-radius: 999px;
+}
+@media (max-width: 59.99rem) {
+  /* På mobil står forklaringen under stablene, ikke oppå dem. */
+  .helt-graf { padding-bottom: 2.75rem; }
+  .helt-graf canvas { inset: 0 0 auto 0; height: calc(100% - 2.75rem); }
+  .stabel-hint { left: var(--gutter); right: auto; bottom: 0.4rem; }
 }
 .hint-mynt { display: inline-block; width: 0.9rem; height: 0.4rem; border-radius: 2px; margin-left: 0.35rem; }
 .hint-blaa { background: var(--fjord); } .hint-gul { background: var(--multe); }
@@ -405,26 +410,42 @@ body.side-forside { overflow-x: clip; }
 }
 @keyframes tone-inn { from { opacity: 0; transform: translateY(0.6rem); } }
 
-/* Fortellingen: scenen står fast mens tre korte steg scroller forbi. */
-.fortelling { position: relative; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 2rem 4rem; margin-top: clamp(3rem, 10vh, 6rem); }
-.fortelling-scene { position: sticky; top: 12vh; height: 70vh; align-self: start; }
-.fortelling-scene canvas { width: 100%; height: 100%; display: block; }
-.fortelling-overskrift { font-size: var(--t-h2); font-stretch: var(--wide); margin: 0 0 1rem; color: var(--muted); font-weight: 600; }
-.fortelling-steg { min-height: 72vh; display: flex; flex-direction: column; justify-content: center; max-width: 26rem; opacity: 0.28; transition: opacity 500ms var(--ease-out), translate 500ms var(--ease-out); translate: 0 1rem; }
-.fortelling-steg.aktiv { opacity: 1; translate: 0 0; }
-.fortelling-steg h3 { font-size: clamp(1.75rem, 1rem + 2.6vw, 2.75rem); font-stretch: var(--wide); font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; margin: 0 0 0.75rem; }
-.fortelling-steg p { font-size: var(--t-lead); color: var(--ink-2); margin: 0; }
-.fortelling-steg .knapp { margin-top: 1.75rem; align-self: flex-start; }
-.steg-nr { font-size: 0.875rem !important; font-weight: 700; font-stretch: var(--widest); color: var(--muted) !important; margin-bottom: 0.75rem !important; }
-.fortelling-steg:last-child { min-height: 80vh; }
-@media (max-width: 47.99rem) {
-  .fortelling { grid-template-columns: minmax(0, 1fr); gap: 0; }
-  .fortelling-scene { top: 3.5rem; height: 42vh; z-index: 0; }
-  .fortelling-tekst { position: relative; z-index: 1; }
-  .fortelling-steg { min-height: 60vh; justify-content: flex-end; padding-bottom: 8vh; }
-  .fortelling-steg > * { background: color-mix(in srgb, var(--paper) 86%, transparent); }
+/* Fortellingen: én scene som står fast, og ett kort steg om gangen som tones inn på samme sted. */
+.fortelling { position: relative; height: 330svh; margin-top: clamp(2rem, 8vh, 5rem); }
+.fortelling-scene-ramme {
+  position: sticky; top: 0; height: 100svh;
+  display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: center; gap: 2rem 5rem;
 }
-@media (prefers-reduced-motion: reduce) { .fortelling-steg { opacity: 1; translate: none; transition: none; } }
+.fortelling-scene { height: min(62svh, 34rem); }
+.fortelling-scene canvas { width: 100%; height: 100%; display: block; }
+.fortelling-tekst { display: grid; }
+.fortelling-steg {
+  grid-area: 1 / 1; align-self: center;
+  opacity: 0; visibility: hidden; translate: 0 1.25rem;
+  transition: opacity 600ms var(--ease-out), translate 600ms var(--ease-out), visibility 0s linear 600ms;
+}
+.fortelling-steg.aktiv { opacity: 1; visibility: visible; translate: 0 0; transition-delay: 0s; }
+.fortelling-steg h3 {
+  font-size: clamp(2.5rem, 1.4rem + 4vw, 4.5rem); font-stretch: var(--wide); font-weight: 750;
+  letter-spacing: -0.035em; line-height: 0.98; margin: 0;
+}
+.fortelling-steg p { font-size: var(--t-body); color: var(--muted); margin: 1rem 0 0; }
+.fortelling-steg .knapp { margin-top: 2rem; }
+.fortelling-prikker { display: flex; gap: 0.5rem; margin-top: 2.5rem; grid-area: 2 / 1; }
+.fortelling-prikker i { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--rule); transition: background 300ms, width 300ms var(--ease-out); }
+.fortelling-prikker i.aktiv { background: var(--ink); width: 1.5rem; border-radius: 999px; }
+@media (max-width: 47.99rem) {
+  .fortelling-scene-ramme { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; align-content: center; gap: 1.75rem; padding-top: 3.5rem; }
+  .fortelling-scene { height: 44svh; }
+  .fortelling-prikker { margin-top: 1.5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fortelling { height: auto; }
+  .fortelling-scene-ramme { position: static; height: auto; }
+  .fortelling-tekst { gap: 2.5rem; }
+  .fortelling-steg { grid-area: auto; opacity: 1; visibility: visible; translate: none; transition: none; }
+  .fortelling-prikker { display: none; }
+}
 
 .side-forside .bunn { margin-top: 0; }
 .side-forside .bunn-indre { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 1rem 2rem; }

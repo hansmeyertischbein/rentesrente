@@ -21,24 +21,24 @@ sideklasse: side-forside
 </section>
 
 <section class="fortelling" aria-labelledby="fortelling-tittel">
-  <div class="fortelling-scene" aria-hidden="true"><canvas></canvas></div>
-  <div class="fortelling-tekst">
-    <h2 id="fortelling-tittel" class="fortelling-overskrift">Slik vokser pengene</h2>
-    <article class="fortelling-steg" data-steg="0">
-      <p class="steg-nr" aria-hidden="true">1</p>
-      <h3>Du setter inn.</h3>
-      <p>Hver krone du sparer, legges i bunken. Det er den blå delen, og den er din.</p>
-    </article>
-    <article class="fortelling-steg" data-steg="1">
-      <p class="steg-nr" aria-hidden="true">2</p>
-      <h3>Pengene tjener penger.</h3>
-      <p>Avkastningen legger seg oppå det du har satt inn. Det er den gule delen.</p>
-    </article>
-    <article class="fortelling-steg" data-steg="2">
-      <p class="steg-nr" aria-hidden="true">3</p>
-      <h3>Og det de har tjent, tjener også.</h3>
-      <p>Etter hvert vokser den gule delen raskere enn den blå. Det er renters rente, og tid er det som gjør mest.</p>
-      <a class="knapp knapp-hoved" href="/kalkulatorer/renters-rente/">Regn på dine egne tall <span aria-hidden="true">→</span></a>
-    </article>
+  <div class="fortelling-scene-ramme">
+    <h2 id="fortelling-tittel" class="skjult">Slik vokser pengene</h2>
+    <div class="fortelling-scene" aria-hidden="true"><canvas></canvas></div>
+    <div class="fortelling-tekst">
+      <article class="fortelling-steg aktiv" data-steg="0">
+        <h3>Du sparer.</h3>
+        <p>Det blå er det du setter inn.</p>
+      </article>
+      <article class="fortelling-steg" data-steg="1">
+        <h3>Pengene vokser.</h3>
+        <p>Det gule er avkastningen.</p>
+      </article>
+      <article class="fortelling-steg" data-steg="2">
+        <h3>Veksten vokser.</h3>
+        <p>Det er renters rente.</p>
+        <a class="knapp knapp-hoved" href="/kalkulatorer/renters-rente/">Regn på dine tall <span aria-hidden="true">→</span></a>
+      </article>
+      <div class="fortelling-prikker" aria-hidden="true"><i class="aktiv"></i><i></i><i></i></div>
+    </div>
   </div>
 </section>

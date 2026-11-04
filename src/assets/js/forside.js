@@ -346,7 +346,7 @@ function lagFortelling(seksjon) {
     const b = kolB * 0.74, h = myntH * 0.86;
     const nb = blaa / 0.5, ng = gul / 0.5;
     for (let i = 0; i < Math.ceil(nb + ng); i++) {
-      const farge = i < Math.floor(nb) ? "fjord" : "multe";
+      const farge = i < nb ? "fjord" : "multe";
       const del = i < nb + ng - 1 ? 1 : (nb + ng) - i;
       ctx.globalAlpha = klem(del, 0, 1);
       ctx.drawImage(sprites[farge], x - b / 2, hoyde - 4 - (i + 1) * myntH, b, h);
@@ -363,34 +363,29 @@ function lagFortelling(seksjon) {
     const p = vist; // 0–3
     rader.forEach((r, t) => {
       const x = (t + 1) * kolB;
-      const synligAar = klem(p * AAR - t, 0, 1); // steg 1: stablene vokser fram år for år
+      const synligAar = klem((p / 0.7) * AAR - t, 0, 1); // steg 1: stablene vokser fram år for år
       const blaa = r.inn * lett(synligAar);
       // Hvert steg holder bildet en stund før det neste begynner, så teksten og bildet følges.
-      const g1 = klem((p - 1.35) / 0.6, 0, 1), g2 = klem((p - 2.35) / 0.6, 0, 1);
+      const g1 = klem((p - 1) / 0.6, 0, 1), g2 = klem((p - 2) / 0.6, 0, 1);
       const gul = r.enkel * lett(g1) + (r.sammensatt - r.enkel) * lett(g2);
       stabel(x, blaa, gul * lett(synligAar), g2, tid);
     });
   }
-  // Framdriften følger stegene: 0–1 mens steg 1 kommer inn mot midten av skjermen, 1–2 fram til steg 2 står midt på, 2–3 fram til steg 3.
+  // Framdriften følger hvor langt scenen har scrollet: 0–3 over hele seksjonen, ett steg per tredjedel.
+  const prikker = [...seksjon.querySelectorAll(".fortelling-prikker i")];
   function maalFramdrift() {
-    const midt = innerHeight * 0.5;
-    const c = steg.map((s) => { const r = s.getBoundingClientRect(); return r.top + r.height / 2; });
-    const forrige = (i) => (i === 0 ? c[0] + innerHeight * 0.6 : c[i - 1]);
-    framdrift = 0;
-    for (let i = 0; i < c.length; i++) {
-      const fra = forrige(i), til = c[i];
-      framdrift = i + klem((fra - midt) / (fra - til), 0, 1);
-      if (til > midt) break;
-    }
-    const aktiv = framdrift < 1.35 ? 0 : framdrift < 2.35 ? 1 : 2;
+    const r = seksjon.getBoundingClientRect();
+    framdrift = klem((-r.top / Math.max(1, r.height - innerHeight)) * 3, 0, 3);
+    const aktiv = Math.min(2, Math.floor(framdrift));
     steg.forEach((s, i) => s.classList.toggle("aktiv", i === aktiv));
+    prikker.forEach((p, i) => p.classList.toggle("aktiv", i === aktiv));
   }
   function loop(tid) {
     vist += (framdrift - vist) * 0.12;
     tegn(tid);
     ramme = Math.abs(framdrift - vist) > 0.002 || vist > 2 ? requestAnimationFrame(loop) : 0;
   }
-  const paScroll = () => { maalFramdrift(); if (rolig.matches) { vist = framdrift; tegn(0); } else if (!ramme) ramme = requestAnimationFrame(loop); };
+  const paScroll = () => { maalFramdrift(); if (rolig.matches) { vist = 3; tegn(0); } else if (!ramme) ramme = requestAnimationFrame(loop); };
   addEventListener("scroll", paScroll, { passive: true });
   addEventListener("resize", paScroll);
   new ResizeObserver(tilpass).observe(lerret);
