@@ -1,6 +1,6 @@
 ---
 layout: tekst.njk
-tittel: Slik tjener Rentesrente penger
+tittel: Slik tjener vi penger
 beskrivelse: Hvordan Rentesrente finansieres, hvordan reklame merkes, og reglene som hindrer at betaling påvirker tall, tekst og rekkefølge.
 ingress: Rentesrente har ingen inntekter i dag. Her står reglene som gjelder hvis det endrer seg.
 ingressReklame: Rentesrente tjener penger på annonselenker. De er alltid merket, og de påvirker aldri tall, tekst eller rekkefølge.
