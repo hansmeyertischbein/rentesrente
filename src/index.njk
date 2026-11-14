@@ -8,7 +8,7 @@ sideklasse: side-forside
 <section class="helt" aria-labelledby="helt-tittel">
   <div class="helt-tekst">
     <h1 id="helt-tittel">Se hva pengene dine kan bli.</h1>
-    <p class="helt-ingress">Enkle kalkulatorer for sparing og investering. Med kilder, uten reklame.</p>
+    <p class="helt-ingress">Enkle kalkulatorer for sparing og investering. {% if reklame.harReklame %}Med kilder til hvert tall.{% else %}Med kilder, uten reklame.{% endif %}</p>
     <div class="helt-knapper">
       <a class="knapp knapp-hoved" href="/kalkulatorer/renters-rente/">Prøv kalkulatoren <span aria-hidden="true">→</span></a>
       <a class="knapp knapp-stille" href="/forklart/renters-rente/">Hva er renters rente?</a>

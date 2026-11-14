@@ -15,7 +15,12 @@ Mange store pengevalg tas tidlig i voksenlivet: den første sparingen, BSU, stud
 - Hver sats og standardverdi har en kilde og en dato for når den sist ble kontrollert. Satsene kontrolleres minst én gang i året.
 - Kalkulatorene viser forutsetningene sine og tar med kostnader, skatt og inflasjon der de finnes.
 - Vi anbefaler ingen bestemte fond, aksjer eller banker. Innholdet er [generell informasjon, ikke personlig rådgivning](/ikke-radgivning/).
-- Siden har ingen reklame og sporer deg ikke. Les mer om [personvern](/personvern/).
+{%- if reklame.harReklame %}
+- Reklame er alltid merket, og betaling påvirker aldri tall, tekst eller rekkefølge. Les [slik tjener vi penger](/uavhengighet/).
+- Siden sporer deg ikke. Les mer om [personvern](/personvern/).
+{%- else %}
+- Siden har ingen reklame og sporer deg ikke. Les mer om [personvern](/personvern/) og om [hvordan siden finansieres](/uavhengighet/).
+{%- endif %}
 - Kalkulatorene og tekstene lages med hjelp av KI-verktøy. En person kontrollerer tall, kilder og tekst før noe publiseres.
 
 ## Hvem står bak

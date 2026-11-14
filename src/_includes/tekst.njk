@@ -5,7 +5,7 @@ layout: base.njk
   <header class="sidehode">
     <h1>{{ tittel }}</h1>
     {%- if ingress %}
-    <p class="ingress">{{ ingress }}</p>
+    <p class="ingress">{% if ingressReklame and reklame.harReklame %}{{ ingressReklame }}{% else %}{{ ingress }}{% endif %}</p>
     {%- endif %}
     {%- if oppdatert %}
     <p class="meta">Sist oppdatert {{ oppdatert | dato }}</p>

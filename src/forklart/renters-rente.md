@@ -38,3 +38,5 @@ Prisene stiger også med renters rente. Med {{ satser.inflasjonsmaal.verdi | pro
 [Hvor mye blir sparingen din verdt?](/kalkulatorer/renters-rente/) regner renters rente med dine egne tall, og tar med kostnader, skatt, inflasjon og hvor mye utfallet kan svinge.
 
 <p class="forbehold">Regneeksemplene er generell informasjon, ikke personlig rådgivning. <a href="/ikke-radgivning/">Les mer om hva det betyr</a>.</p>
+
+{% set partnerKategori = "aksjesparekonto" %}{% include "partnere.njk" %}

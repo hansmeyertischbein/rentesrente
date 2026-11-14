@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { formaterKr, formaterProsent, formaterTall, omtrentKr } from "./src/lib/format.js";
 import { beregnSparing, lagForhandsvalg, simuler, skattesatsFor } from "./src/lib/sparing.js";
 import { andeler, lagTekster } from "./src/lib/tekster.js";
+import { feilIAktive, reklameoversikt } from "./src/lib/partnere.js";
 
 const datoFormat = new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Oslo" });
 const satser = JSON.parse(readFileSync(new URL("./src/_data/satser.json", import.meta.url)));
@@ -52,6 +53,14 @@ export default function (eleventyConfig) {
 
   eleventyConfig.addGlobalData("kalk", standardKalkulator);
   eleventyConfig.addGlobalData("eksempler", regneeksempler);
+
+  // Annonselenker: en partner som er slått på, men mangler merking, tillatelse eller gyldig avtale, stopper byggingen.
+  eleventyConfig.addGlobalData("reklame", () => {
+    const partnere = JSON.parse(readFileSync(new URL("./src/_data/partnere.json", import.meta.url)));
+    const feil = feilIAktive(partnere);
+    if (feil.length) throw new Error("Ugyldig annonselenke i src/_data/partnere.json:\n" + feil.join("\n"));
+    return reklameoversikt(partnere);
+  });
 
   // Hash av filinnholdet, slik at nettleseren henter ny CSS og JS når filen endres.
   eleventyConfig.addFilter("versjon", (sti) => {
