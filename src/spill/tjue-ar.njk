@@ -1,0 +1,177 @@
+---
+layout: base.njk
+tittel: "Tjue år: et spill om buffer, fond og regninger"
+beskrivelse: Du får penger til overs hvert år i tjue år. Fordel dem mellom konto og fond, tål regningene, og se om du ender med mer enn tre roboter på samme marked.
+permalink: /spill/tjue-ar/
+skript: /assets/js/spill.js
+sideklasse: side-spill
+---
+{%- set r = spilldata.regler -%}
+{%- set st = spilldata.statistikk -%}
+<div class="spillside">
+  <header class="sidehode">
+    <h1>Tjue år</h1>
+    <p class="ingress">Hvert år får du {{ r.tilOvers | kr }} til overs. Fordel dem mellom konto og fond, tål regningene, og se om du ender med mer enn tre roboter som møter nøyaktig samme marked.</p>
+  </header>
+
+  <section class="spill" id="spill" aria-labelledby="spill-tittel">
+    <h2 id="spill-tittel" class="skjult">Spillet</h2>
+    <noscript><p class="forbehold">Spillet trenger JavaScript. Reglene og teorien står lenger ned på siden.</p></noscript>
+
+    <div class="spill-hode">
+      <p class="spill-aar"><span id="aar-naa">År 1</span> <span class="spill-av">av {{ r.aar }}</span></p>
+      <p class="spill-fro" id="fro-tekst">Dagens marked</p>
+      <ol class="tidslinje" id="tidslinje" aria-hidden="true">{% for i in range(0, r.aar) %}<li></li>{% endfor %}</ol>
+      <p class="brett-nokkel" aria-hidden="true"><span class="hint-mynt hint-blaa"></span>Satt inn <span class="hint-mynt hint-gul"></span>Tjent <span class="nokkel-mynt">· Én mynt er {{ r.mynt | kr }}</span></p>
+    </div>
+
+    <div class="spill-brett">
+      <div class="brett-flate">
+        <canvas id="brett" role="img" aria-label="Myntstabler for konto og fond. Blå mynter er penger du har satt inn, gule er det pengene har tjent. Beløpene står under."></canvas>
+      </div>
+      <dl class="brett-tall">
+        <div class="tall-konto">
+          <dt>Konto</dt>
+          <dd class="tall" id="tall-konto">{{ r.tilOvers | kr }}</dd>
+          <dd class="tall-under" id="under-konto">{{ satser.realavkastningPengemarked.verdi | prosent }} rente</dd>
+        </div>
+        <div class="tall-fond">
+          <dt>Fond</dt>
+          <dd class="tall" id="tall-fond">0 kr</dd>
+          <dd class="tall-under" id="under-fond">Svinger med markedet</dd>
+        </div>
+      </dl>
+
+      <div class="utfall">
+        <p class="utfall-tekst" id="utfall-tekst">Fondet trekker ett av disse tjue utfallene hvert år, i prosent.</p>
+        <ol class="utfall-rad" id="utfall" aria-hidden="true">
+          {%- for u in r.utfall %}
+          <li data-prosent="{{ u }}"{% if u < 0 %} class="minus"{% endif %}>{% if u > 0 %}+{% elif u < 0 %}−{% endif %}{{ u | abs }}</li>
+          {%- endfor %}
+        </ol>
+        <p class="skjult">Utfallene er: to på pluss 30, fire på pluss 20, seks på pluss 10, fire på null, to på minus 10 og to på minus 30 prosent.</p>
+      </div>
+    </div>
+
+    <div class="spill-panel" id="panel">
+      <section class="utsyn" aria-labelledby="utsyn-tittel">
+        <h3 id="utsyn-tittel">Du ser tre år fram</h3>
+        <ul id="utsyn"></ul>
+      </section>
+
+      <form id="valg" class="valg" novalidate>
+        <div class="kurs" id="kurs-boks" hidden>
+          <label class="kurs-valg"><input type="checkbox" id="kurs"><span id="kurs-tekst"></span></label>
+          <p class="valg-hjelp" id="kurs-regn"></p>
+        </div>
+
+        <div class="flytt">
+          <label for="flytt" class="flytt-etikett">Flytt penger</label>
+          <div class="flytt-rad">
+            <span class="flytt-ende" aria-hidden="true">Konto</span>
+            <input type="range" id="flytt" min="0" max="60" step="5" value="0" aria-describedby="flytt-tekst">
+            <span class="flytt-ende" aria-hidden="true">Fond</span>
+          </div>
+          <p class="flytt-tekst" id="flytt-tekst"></p>
+          <p class="valg-hjelp valg-varsel" id="flytt-varsel" hidden></p>
+          <div class="flytt-knapper">
+            <button type="button" class="knapp knapp-liten" id="minus-ti" aria-label="Ti tusen kroner mindre i fondet">− 10 000</button>
+            <button type="button" class="knapp knapp-liten" id="pluss-ti" aria-label="Ti tusen kroner mer i fondet">+ 10 000</button>
+            <button type="button" class="knapp knapp-liten" id="alt-fond">Alt i fond</button>
+            <button type="button" class="knapp knapp-liten" id="null-flytt">Ingenting</button>
+          </div>
+        </div>
+
+        <button type="submit" class="knapp knapp-hoved kjor" id="kjor">Kjør år 1</button>
+      </form>
+      <p class="aarstekst" id="aarstekst" role="status" aria-live="polite"></p>
+    </div>
+
+    <section class="slutt" id="slutt" hidden aria-labelledby="slutt-tittel" tabindex="-1">
+      <h3 id="slutt-tittel">Etter tjue år har du</h3>
+      <p class="slutt-tall" id="slutt-sum"></p>
+      <p class="slutt-setning" id="slutt-setning"></p>
+      <p class="stjerner" id="stjerner" role="img"></p>
+      <p class="slutt-dom" id="slutt-dom"></p>
+      <ul class="sammenlign" id="sammenlign"></ul>
+      <p class="slutt-laering" id="slutt-laering"></p>
+      <div class="handlinger">
+        <button type="button" class="knapp knapp-hoved" id="igjen">Spill samme marked igjen</button>
+        <button type="button" class="knapp" id="nytt-slutt">Nytt marked</button>
+        <button type="button" class="knapp" id="kopier">Kopier lenken til dette markedet</button>
+        <span class="kopiert" id="kopiert" role="status"></span>
+      </div>
+    </section>
+
+    <div class="spill-fot">
+      <details class="tabell-visning" id="logg-boks" hidden>
+        <summary>Årene så langt</summary>
+        <div class="tabell-rull">
+          <table class="talltabell">
+            <thead><tr><th scope="col">År</th><th scope="col">Flyttet til fond</th><th scope="col">Fondet</th><th scope="col">Regning og kurs</th><th scope="col">Konto etter</th><th scope="col">Fond etter</th></tr></thead>
+            <tbody id="logg"></tbody>
+          </table>
+        </div>
+      </details>
+      <p class="spill-omstart">
+        <button type="button" class="lenkeknapp" id="omstart">Start på nytt</button>
+        <button type="button" class="lenkeknapp" id="nytt">Nytt marked</button>
+      </p>
+      <p class="forbehold">Et spill med forenklede regler, ikke en prognose og ikke personlig rådgivning. <a href="/ikke-radgivning/">Les mer om hva det betyr</a>.</p>
+    </div>
+  </section>
+
+  <section class="brodtekst spill-tekst" aria-labelledby="regler-tittel">
+    <h2 id="regler-tittel">Slik virker spillet</h2>
+    <ul>
+      <li>Spillet varer i {{ r.aar }} år. Hvert år kommer {{ r.tilOvers | kr }} inn på konto. Alle beløp er i dagens kroner.</li>
+      <li>Du gjør ett valg i året: hvor mye som skal stå på konto, og hvor mye som skal i fondet. Du kan også selge fra fondet.</li>
+      <li>Kontoen gir {{ satser.realavkastningPengemarked.verdi | prosent }} rente. Fondet trekker ett av tjue utfall, fra pluss 30 til minus 30 prosent. Du ser alle utfallene hele tiden.</li>
+      <li>Regninger kommer uten at du kan velge dem bort. Du ser hva slags regning som kommer i år og de to neste årene, men ikke det nøyaktige beløpet.</li>
+      <li>Har du ikke nok på konto, går kontoen i minus. Minus koster {{ r.minusrente | prosent }} i året, og du kan ikke kjøpe fond før kontoen er over null.</li>
+      <li>Selger du fra fondet med gevinst, tar skatten {{ satser.skattAksjegevinst.verdi | prosent }} av gevinsten. Gevinsten som står igjen til slutt, skattes på samme måte.</li>
+      <li>Tre ganger får du tilbud om et kurs. Det koster penger nå og gir mer til overs hvert år resten av spillet.</li>
+      <li>Til slutt sammenlignes du med tre roboter som har spilt samme marked med samme regninger: Madrassen, Autopiloten og Planleggeren. Du får én stjerne for hver robot du slår.</li>
+    </ul>
+
+    <h2>Teorien bak</h2>
+    <p>Spillet er bygget på to slags teori: hva som gjør et spill verdt å spille, og hva finansfaget sier om sparing.</p>
+    <h3>Fra spilldesign</h3>
+    <ul>
+      <li><strong>Valg som koster noe.</strong> Et valg er bare interessant når hvert alternativ har en pris. Penger på konto er trygge, men vokser sakte. Penger i fondet vokser mer i snitt, men kan være lite verdt den dagen regningen kommer.</li>
+      <li><strong>Åpen tilfeldighet.</strong> Du ser alle tjue utfallene fondet kan gi, og du ser regningene komme. Da kan du planlegge, og et dårlig år er uflaks du visste om, ikke en overraskelse fra spillet.</li>
+      <li><strong>Lik flaks for alle.</strong> Robotene møter samme marked og samme regninger som deg. Forskjellen mellom deg og dem er valgene, ikke terningen.</li>
+      <li><strong>Korte runder.</strong> Tjue valg tar noen minutter. Det er kort nok til å prøve en annen plan på samme marked og se hva som endrer seg.</li>
+    </ul>
+    <h3>Fra finans</h3>
+    <ul>
+      <li><strong>Renters rente.</strong> Det du setter inn tidlig, rekker å vokse flest ganger. <a href="/forklart/renters-rente/">Les forklaringen</a>, eller <a href="/kalkulatorer/renters-rente/">regn på egne tall</a>.</li>
+      <li><strong>Bufferen er en avveining.</strong> For liten buffer gir minusrente eller salg med skatt. For stor buffer står og venter til {{ satser.realavkastningPengemarked.verdi | prosent }}. I faget kalles avveiningen avisselgerproblemet: hvor mye skal du ha klart når du ikke vet hvor mye som trengs?</li>
+      <li><strong>Rekkefølgen på årene betyr noe.</strong> Et fall på 30 prosent i år 2 rammer lite, fordi lite står i fondet. Det samme fallet i år 19 rammer mange ganger så mye i kroner.</li>
+      <li><strong>Kunnskap er også kapital.</strong> Et kurs som gir mer til overs hvert år, er verdt mest tidlig. Det samme kurset fem år før slutt kan koste mer enn det gir.</li>
+      <li><strong>Skatt er friksjon.</strong> Hver gang du selger med gevinst, forsvinner en del av det som ellers ville fortsatt å vokse.</li>
+      <li><strong>Årene henger ikke sammen.</strong> Et dårlig år gjør ikke det neste bedre. Hvert år trekkes fra de samme tjue utfallene.</li>
+    </ul>
+
+    <h2>Forutsetninger og forenklinger</h2>
+    <p>Utfallene i fondet er vårt eget regnestykke. De tjue utfallene har et snitt på {{ st.snitt | prosent }} i året, og over tid gir de omtrent {{ st.geometrisk | tall(1) }}&nbsp;% i året med en svingning på {{ st.standardavvik | tall(0) }}&nbsp;%. Det ligger nær pensjonsbransjens forutsetning for aksjer: {{ satser.realavkastningAksjer.verdi | prosent }} over inflasjon og {{ satser.realavkastningAksjer.svingning | prosent }} svingning (<a href="{{ satser.realavkastningAksjer.url }}">Finans Norge</a>, {{ satser.realavkastningAksjer.aar }}, sist kontrollert {{ satser.realavkastningAksjer.kontrollert | dato }}). Renten på konto er bransjens forutsetning for pengemarkedet over inflasjon. Skattesatsen er fra <a href="{{ satser.skattAksjegevinst.url }}">Skatteetaten</a> for {{ satser.skattAksjegevinst.aar }}, sist kontrollert {{ satser.skattAksjegevinst.kontrollert | dato }}.</p>
+    <p>Dette er forenklet:</p>
+    <ul>
+      <li>Fondet har ingen kostnader, og virkelige markeder følger ikke tjue faste utfall.</li>
+      <li>Skatten regnes uten skjermingsfradrag, tap gir ikke fradrag, og renter på konto skattes ikke.</li>
+      <li>Minusrenten på {{ r.minusrente | prosent }} er en spilleregel, ikke en sats fra en bank.</li>
+      <li>Regningene, kursene og beløpene er laget for spillet. Hvor ofte de kommer, er ikke hentet fra statistikk.</li>
+    </ul>
+    <p>Dagens marked er likt for alle som spiller samme dag. Lenken til et marked inneholder bare et tall som bestemmer trekningen. Ingenting om valgene dine lagres eller sendes.</p>
+  </section>
+
+  <aside class="les-ogsa" aria-labelledby="les-tittel">
+    <h2 id="les-tittel">Les også</h2>
+    <ul>
+      <li><a href="/kalkulatorer/renters-rente/">Hvor mye blir sparingen din verdt?</a> Regn med egne beløp, kostnader, skatt og inflasjon.</li>
+      <li><a href="/forklart/renters-rente/">Hva er renters rente?</a> Hvorfor tiden betyr mer enn beløpet.</li>
+      <li><a href="/ikke-radgivning/">Generell informasjon, ikke personlig rådgivning</a></li>
+    </ul>
+  </aside>
+</div>
+<script type="application/json" id="satser">{{ satser | dump | safe }}</script>

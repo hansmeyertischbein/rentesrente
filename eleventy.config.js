@@ -4,6 +4,7 @@ import { formaterKr, formaterProsent, formaterTall, omtrentKr } from "./src/lib/
 import { beregnSparing, lagForhandsvalg, simuler, skattesatsFor } from "./src/lib/sparing.js";
 import { andeler, lagTekster } from "./src/lib/tekster.js";
 import { feilIAktive, reklameoversikt } from "./src/lib/partnere.js";
+import { REGLER, utfallStatistikk } from "./src/lib/spill.js";
 
 const datoFormat = new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Oslo" });
 const satser = JSON.parse(readFileSync(new URL("./src/_data/satser.json", import.meta.url)));
@@ -53,6 +54,8 @@ export default function (eleventyConfig) {
 
   eleventyConfig.addGlobalData("kalk", standardKalkulator);
   eleventyConfig.addGlobalData("eksempler", regneeksempler);
+  // Reglene i spillet «Tjue år», så teksten på siden bruker de samme tallene som motoren.
+  eleventyConfig.addGlobalData("spilldata", () => ({ regler: REGLER, statistikk: utfallStatistikk() }));
 
   // Annonselenker: en partner som er slått på, men mangler merking, tillatelse eller gyldig avtale, stopper byggingen.
   eleventyConfig.addGlobalData("reklame", () => {

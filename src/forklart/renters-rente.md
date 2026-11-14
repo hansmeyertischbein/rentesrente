@@ -37,6 +37,8 @@ Prisene stiger også med renters rente. Med {{ satser.inflasjonsmaal.verdi | pro
 
 [Hvor mye blir sparingen din verdt?](/kalkulatorer/renters-rente/) regner renters rente med dine egne tall, og tar med kostnader, skatt, inflasjon og hvor mye utfallet kan svinge.
 
+Vil du kjenne på hvordan det er å la pengene stå gjennom dårlige år, kan du spille [Tjue år](/spill/tjue-ar/). Der fordeler du penger mellom konto og fond i tjue år, med regninger underveis.
+
 <p class="forbehold">Regneeksemplene er generell informasjon, ikke personlig rådgivning. <a href="/ikke-radgivning/">Les mer om hva det betyr</a>.</p>
 
 {% set partnerKategori = "aksjesparekonto" %}{% include "partnere.njk" %}

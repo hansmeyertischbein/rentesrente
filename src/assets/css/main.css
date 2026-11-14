@@ -480,6 +480,137 @@ body.side-forside { overflow-x: clip; }
 .forside-prinsipp p { margin-top: 0.75rem; max-width: var(--measure); color: var(--ink-2); }
 .listeside > p { margin-top: 1.5rem; }
 
+/* ---------- Spillet «Tjue år» ---------- */
+/* Myntene bærer fargene: blått er satt inn, gult er tjent. Alt annet er blekk og tynne linjer. */
+.spill { display: grid; gap: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--rule); }
+.spill-hode { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 0.5rem 1rem; }
+.spill-hode p { margin: 0; }
+.spill-aar { font-size: var(--t-h2); font-weight: 750; font-stretch: var(--wide); line-height: 1.15; font-variant-numeric: tabular-nums; }
+.spill-av { font-size: var(--t-ui); font-weight: 500; font-stretch: 100%; color: var(--muted); }
+.spill-fro, .brett-nokkel { font-size: var(--t-small); color: var(--muted); }
+.tidslinje { grid-column: 1 / -1; list-style: none; display: flex; gap: 3px; margin: 0; padding: 0; }
+.tidslinje li { flex: 1; height: 4px; border-radius: 2px; background: var(--rule); transition: background-color 200ms var(--ease-out); }
+.tidslinje .ferdig { background: var(--muted); }
+.tidslinje .naa { background: var(--ink); }
+.brett-nokkel { grid-column: 1 / -1; }
+.brett-nokkel .hint-mynt:first-child { margin-left: 0; }
+
+.spill-brett { min-width: 0; background: var(--paper); }
+.brett-flate { position: relative; height: 7.25rem; }
+.brett-flate canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.brett-tall { display: grid; grid-template-columns: 34% minmax(0, 1fr); margin: 0.4rem 0 0; }
+.brett-tall dt { font-size: var(--t-small); color: var(--muted); }
+.brett-tall dd { margin: 0; }
+.brett-tall .tall { font-size: 1.1875rem; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.brett-tall .tall.minus { color: var(--error); }
+.brett-tall .tall-under { font-size: 0.8125rem; line-height: 1.35; color: var(--muted); min-height: 2.7em; padding-right: 0.5rem; }
+
+.utfall { margin-top: 0.35rem; }
+.utfall-tekst { margin: 0; font-size: var(--t-small); line-height: 1.35; color: var(--ink-2); min-height: 2.7em; }
+.utfall-rad { list-style: none; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; margin: 0.35rem 0 0; padding: 0; }
+.utfall-rad li {
+  padding: 0.2rem 0; text-align: center; font-size: 0.75rem; line-height: 1.3; font-weight: 600; font-variant-numeric: tabular-nums;
+  color: var(--ink-2); border: 1px solid var(--rule); border-radius: 4px;
+  transition: transform 200ms var(--ease-out);
+}
+.utfall-rad .minus { border-style: dashed; border-color: var(--muted); }
+.utfall-rad .aktiv { background: var(--ink-2); border-color: var(--ink-2); border-style: solid; color: var(--paper); }
+.utfall-rad .valgt { background: var(--ink); border-color: var(--ink); border-style: solid; color: var(--paper); transform: scale(1.12); }
+
+.spill-panel, .slutt { min-width: 0; }
+.aarstekst { margin: 1rem 0 0; font-size: 0.9375rem; line-height: 1.45; color: var(--ink-2); }
+.aarstekst:empty { display: none; }
+.utsyn h3, .slutt h3 { font-size: var(--t-ui); font-weight: 650; }
+.utsyn ul { list-style: none; margin: 0.4rem 0 0; padding: 0; }
+.utsyn li { display: grid; grid-template-columns: 5.25rem minmax(0, 1fr); gap: 0.75rem; padding: 0.45rem 0; border-top: 1px solid var(--rule); font-size: 0.9375rem; line-height: 1.4; }
+.utsyn li:first-child { font-weight: 600; }
+.utsyn-naar { color: var(--muted); }
+.utsyn-hva { display: grid; }
+.utsyn-ingen { color: var(--muted); font-weight: 400; }
+.utsyn-tilbud { color: var(--ink-2); font-weight: 400; }
+
+.valg { border-top: 1px solid var(--rule); }
+.kurs { padding: 0.35rem 0 0.75rem; border-bottom: 1px solid var(--rule); }
+.kurs-valg { display: flex; align-items: center; gap: 0.6rem; min-height: 2.75rem; font-weight: 600; cursor: pointer; }
+.kurs-valg input { flex: none; width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--ink); }
+.valg-hjelp { margin: 0; font-size: var(--t-small); line-height: 1.4; color: var(--ink-2); }
+.valg-varsel { margin-top: 0.5rem; padding-left: 0.6rem; border-left: 2px solid var(--ink); }
+.flytt { padding-top: 0.75rem; }
+.flytt-etikett { display: block; font-weight: 650; }
+.flytt-rad { display: flex; align-items: center; gap: 0.75rem; }
+.flytt-ende { flex: none; font-size: var(--t-small); color: var(--muted); }
+.flytt-rad input { flex: 1; min-width: 0; height: 2.75rem; margin: 0; padding: 0; border: 0; background: none; accent-color: var(--ink); touch-action: pan-y; cursor: pointer; }
+.flytt-rad input:disabled { cursor: default; opacity: 0.5; }
+.flytt-tekst { margin: 0.3rem 0 0; font-size: 0.9375rem; line-height: 1.4; min-height: 2.8em; font-variant-numeric: tabular-nums; }
+.flytt-knapper { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.75rem; }
+.knapp-liten { flex: 1 1 auto; padding: 0.4rem 0.55rem; font-size: var(--t-small); border-color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.knapp:disabled { opacity: 0.45; cursor: default; }
+.kjor { width: 100%; margin-top: 1rem; min-height: 3.25rem; font-size: 1.0625rem; }
+.lenkeknapp {
+  min-height: 2.75rem; padding: 0.5rem 0; margin-right: 1.25rem; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: var(--t-small); color: var(--ink-2); text-decoration: underline; text-underline-offset: 0.2em;
+}
+.spill-omstart { margin: 0.5rem 0 0; }
+
+.slutt:focus { outline: none; }
+.slutt-tall { margin: 0.15rem 0 0; font-size: clamp(2.5rem, 11vw, 3.75rem); font-weight: 750; font-stretch: var(--widest); line-height: 1.05; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.slutt-setning, .slutt-dom, .slutt-laering { margin: 0.75rem 0 0; max-width: var(--measure); }
+.slutt-setning .hint-mynt { margin: 0 0.35rem 0.1rem 0; }
+.slutt-laering { font-size: 0.9375rem; color: var(--ink-2); }
+.stjerner { margin: 1.25rem 0 0; font-size: 1.75rem; line-height: 1; letter-spacing: 0.12em; }
+.stjerner span { display: inline-block; opacity: 0; transform: scale(0.9); transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out); }
+.stjerner.inne span { opacity: 1; transform: none; }
+.stjerner .av { color: var(--muted); }
+.slutt-dom { font-weight: 600; }
+.sammenlign { list-style: none; margin: 1.25rem 0 0; padding: 0; border-bottom: 1px solid var(--rule); }
+.sammenlign li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.2rem 1rem; padding: 0.65rem 0; border-top: 1px solid var(--rule); }
+.sammenlign-navn { font-weight: 600; }
+.sammenlign-verdi { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sammenlign-strek, .sammenlign-regel { grid-column: 1 / -1; }
+.sammenlign-strek { height: 6px; }
+.sammenlign-strek i { display: block; height: 100%; width: calc(var(--andel, 0) * 100%); min-width: 4px; border-radius: 0 3px 3px 0; background: var(--muted); transform: scaleX(0); transform-origin: left; transition: transform 500ms var(--ease-out); }
+.sammenlign.inne i { transform: none; }
+.sammenlign .du i { background: var(--ink); }
+.sammenlign-regel { font-size: var(--t-small); color: var(--muted); }
+
+.spill-fot { min-width: 0; }
+.spill-fot .tabell-visning { margin-top: 0; }
+.spill-tekst { margin-top: 3rem; }
+
+/* På mobil står brettet fast øverst, så du ser myntene mens du velger lenger ned. */
+@media (max-width: 59.99rem) and (min-height: 37rem) {
+  .spill-brett { position: sticky; top: 0; z-index: 2; padding: calc(0.35rem + env(safe-area-inset-top, 0px)) 0 0.6rem; border-bottom: 1px solid var(--rule); }
+  html:has(.side-spill) { scroll-padding-top: 20rem; }
+  /* Når spillet er ferdig, skal resultatet ha plassen. */
+  .spill:has(.slutt:not([hidden])) .spill-brett { position: static; }
+  html:has(.slutt:not([hidden])) { scroll-padding-top: 0; }
+}
+@media (min-width: 40rem) {
+  .utfall-rad { grid-template-columns: repeat(20, minmax(0, 1fr)); }
+  .utfall-tekst, .brett-tall .tall-under { min-height: 1.35em; }
+  .brett-flate { height: 11rem; }
+  .knapp-liten { flex: 0 1 auto; padding-inline: 0.85rem; }
+}
+@media (min-width: 60rem) {
+  .spill { grid-template-columns: minmax(0, 1.35fr) minmax(19rem, 1fr); grid-template-areas: "hode hode" "brett panel" "fot fot"; column-gap: 3.5rem; row-gap: 1.5rem; }
+  .spill-hode { grid-area: hode; }
+  .spill-brett { grid-area: brett; align-self: start; position: sticky; top: 1rem; }
+  .spill-panel, .slutt { grid-area: panel; }
+  .spill-fot { grid-area: fot; }
+  .brett-flate { height: 16rem; }
+  .brett-tall .tall { font-size: 1.5rem; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .lenkeknapp:hover { color: var(--ink); }
+  .knapp-liten:hover:not(:disabled) { border-color: var(--ink); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .utfall-rad li, .tidslinje li { transition: none; }
+  .utfall-rad .valgt { transform: none; }
+  .stjerner span { transform: none; transition: opacity 150ms linear; }
+  .sammenlign-strek i { transform: none; transition: none; }
+}
+
 /* ---------- Sideoverganger ---------- */
 @media (prefers-reduced-motion: no-preference) {
   @view-transition { navigation: auto; }
