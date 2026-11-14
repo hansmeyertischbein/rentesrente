@@ -26,6 +26,12 @@ Rentesrente ligger på GitHub Pages, en tjeneste fra GitHub. Når du besøker si
 
 Kildene vi lenker til, som Skatteetaten, Norges Bank og Finanstilsynet, har egne regler for personvern som gjelder når du besøker dem.
 
+{% if reklame.harReklame -%}
+## Annonselenker
+
+Noen lenker er merket «Annonselenke». Rentesrente får betalt hvis du blir kunde gjennom dem. Vi sender ingen opplysninger om deg med lenken. Når du trykker, kommer du til selskapet eller annonsenettverket, som kan bruke informasjonskapsler på sine egne sider for å registrere at du kom fra oss. Deres regler for personvern gjelder der. Les [slik tjener vi penger](/uavhengighet/).
+
+{% endif -%}
 ## Ansvarlig
 
 Hans Meyer Tischbein er ansvarlig for Rentesrente. Endrer vi hvordan siden behandler opplysninger, oppdaterer vi denne siden og datoen øverst.

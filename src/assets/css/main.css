@@ -318,6 +318,20 @@ input[aria-invalid="true"] { border-color: var(--error) !important; }
 .slik-regner-vi { margin-top: 4rem; }
 .slik-regner-vi .tabell-rull { max-width: none; }
 @media (min-width: 60rem) { .slik-regner-vi { max-width: 46rem; } }
+/* Annonselenker. Rolig og tydelig merket: ingen farge fra pengene (multe og fjord), bare tekst og linjer. */
+.partnere { margin-top: 3.5rem; max-width: var(--measure); }
+.brodtekst .partnere { margin-top: 2.5rem; }
+.reklame-merke, .annonselenke { font-size: var(--t-small); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); }
+.reklame-merke { display: inline-block; margin: 0 0 0.6rem; padding: 0.15rem 0.5rem; border: 1px solid var(--muted); border-radius: 0.3rem; }
+.partnere h2 { margin-top: 0; }
+.partnere-om { margin-top: 0.5rem; font-size: var(--t-small); color: var(--ink-2); }
+.partnere-om a { color: inherit; }
+.partnere ul { list-style: none; padding: 0; margin: 1rem 0 0; }
+.partnere li { display: grid; grid-template-columns: 1fr auto; gap: 0.15rem 1rem; align-items: baseline; padding: 0.75rem 0; border-top: 1px solid var(--rule); }
+.partnere li:last-child { border-bottom: 1px solid var(--rule); }
+.partnere li a { font-weight: 600; min-height: 1.75rem; }
+.partner-om { grid-column: 1 / -1; font-size: var(--t-small); color: var(--ink-2); }
+
 .les-ogsa { margin-top: 3.5rem; max-width: var(--measure); }
 .les-ogsa ul { list-style: none; padding: 0; margin: 0.75rem 0 0; }
 .les-ogsa li { padding: 0.6rem 0; border-top: 1px solid var(--rule); }

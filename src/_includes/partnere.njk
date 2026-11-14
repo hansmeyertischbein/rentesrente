@@ -1,0 +1,18 @@
+{#- Liste med annonselenker for én kategori. Sett partnerKategori før malen tas inn. Uten aktive avtaler vises ingenting. -#}
+{%- set partnerliste = reklame.perKategori[partnerKategori] -%}
+{%- if partnerliste and partnerliste.length %}
+<aside class="partnere" aria-labelledby="partnere-{{ partnerKategori }}">
+  <p class="reklame-merke">Reklame</p>
+  <h2 id="partnere-{{ partnerKategori }}">{{ reklame.kategorier[partnerKategori] }}</h2>
+  <p class="partnere-om">Rentesrente får betalt hvis du blir kunde gjennom lenkene under. Listen viser bare selskaper vi har avtale med, i alfabetisk rekkefølge. Den er ikke en anbefaling. <a href="/uavhengighet/">Slik tjener vi penger</a>.</p>
+  <ul>
+    {%- for p in partnerliste %}
+    <li>
+      <a href="{{ p.url }}" rel="sponsored nofollow noopener" data-partner="{{ p.id }}">{{ p.navn }}</a>
+      <span class="annonselenke">Annonselenke</span>
+      <span class="partner-om">{{ p.beskrivelse }}</span>
+    </li>
+    {%- endfor %}
+  </ul>
+</aside>
+{%- endif %}
