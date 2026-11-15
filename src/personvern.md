@@ -4,7 +4,7 @@ tittel: Personvern
 beskrivelse: Rentesrente bruker ingen informasjonskapsler og ingen sporing. Tallene du skriver i kalkulatorene, blir i nettleseren din.
 ingress: Rentesrente samler ikke inn personopplysninger om deg. Her er det som skjer når du bruker siden.
 permalink: /personvern/
-oppdatert: 2026-10-27
+oppdatert: 2026-11-15
 ---
 ## Ingen informasjonskapsler og ingen sporing
 
@@ -13,6 +13,10 @@ Siden bruker ingen informasjonskapsler og ingen verktøy for statistikk, annonse
 ## Tallene dine blir hos deg
 
 Kalkulatorene regner i nettleseren din. Tallene du skriver inn, sendes ikke til oss eller andre. De lagres bare i lenken, etter #-tegnet, slik at du kan dele eller åpne utregningen igjen. Den delen av lenken sendes ikke til serveren når siden lastes.
+
+## Spill som kan huskes
+
+Spillet [Overfør](/spill/overfor/) kan huske hvor langt du har kommet. Det skjer bare hvis du selv krysser av for «Husk spillet på denne enheten». Da lagres saldoen og kjøpene dine i nettleserens lager på enheten din. Det som lagres, sier ingenting om hvem du er, og det sendes ikke til oss eller andre. Fjerner du krysset, slettes det. Spillet [Tjue år](/spill/tjue-ar/) lagrer ingenting.
 
 ## Skrift og innhold
 

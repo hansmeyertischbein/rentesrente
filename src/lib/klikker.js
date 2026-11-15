@@ -14,6 +14,7 @@ export const REGLER = Object.freeze({
   loftNivaer: Object.freeze([10, 25, 50]),   // nivåene der en hjelper kan få et løft
   loftPris: Object.freeze([12, 150, 4000]),  // prisen på løftet, i ganger hjelperens grunnpris
   utbytteSek: 60,          // et utbytte er verdt så mange sekunder inntekt
+  utbytteVisSek: 12,       // så lenge kan et utbytte hentes
   maksBorteSek: 2 * 3600,  // lengste tid hjelperne tjener mens du er borte
   maksKjop: 1000,          // flest nivåer i ett kjøp
   visFra: 0.5,             // en hjelper vises når du har tjent halve grunnprisen

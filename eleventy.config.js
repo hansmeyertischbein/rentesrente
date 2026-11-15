@@ -5,6 +5,7 @@ import { beregnSparing, lagForhandsvalg, simuler, skattesatsFor } from "./src/li
 import { andeler, lagTekster } from "./src/lib/tekster.js";
 import { feilIAktive, reklameoversikt } from "./src/lib/partnere.js";
 import { REGLER, utfallStatistikk } from "./src/lib/spill.js";
+import { REGLER as KLIKKREGLER, HJELPERE, TRYKKLOFT, formaterOre, formaterTid } from "./src/lib/klikker.js";
 
 const datoFormat = new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Oslo" });
 const satser = JSON.parse(readFileSync(new URL("./src/_data/satser.json", import.meta.url)));
@@ -57,6 +58,9 @@ export default function (eleventyConfig) {
   // Reglene i spillet «Tjue år», så teksten på siden bruker de samme tallene som motoren.
   eleventyConfig.addGlobalData("spilldata", () => ({ regler: REGLER, statistikk: utfallStatistikk() }));
 
+  // Reglene i spillet «Overfør», så teksten på siden bruker de samme tallene som motoren.
+  eleventyConfig.addGlobalData("klikkdata", () => ({ regler: KLIKKREGLER, hjelpere: HJELPERE, trykkloft: TRYKKLOFT }));
+
   // Annonselenker: en partner som er slått på, men mangler merking, tillatelse eller gyldig avtale, stopper byggingen.
   eleventyConfig.addGlobalData("reklame", () => {
     const partnere = JSON.parse(readFileSync(new URL("./src/_data/partnere.json", import.meta.url)));
@@ -78,6 +82,8 @@ export default function (eleventyConfig) {
   eleventyConfig.addFilter("desimal", (tall) => new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 2 }).format(tall));
   eleventyConfig.addFilter("kr", (tall) => formaterKr(tall));
   eleventyConfig.addFilter("omtrentKr", (tall) => omtrentKr(tall));
+  eleventyConfig.addFilter("ore", (ore) => formaterOre(ore));
+  eleventyConfig.addFilter("tid", (sekunder) => formaterTid(sekunder));
 
   return {
     dir: { input: "src", output: "_site", includes: "_includes", data: "_data" },

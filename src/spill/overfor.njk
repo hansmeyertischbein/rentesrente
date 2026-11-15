@@ -1,0 +1,109 @@
+---
+layout: base.njk
+tittel: "Overfør: et trykkespill om hjelp som tjener seg inn"
+beskrivelse: Start med en tom konto og ti øre per trykk. Kjøp hjelp av karikerte næringslivsfolk, og se hvor lang tid hvert kjøp bruker på å tjene seg inn.
+permalink: /spill/overfor/
+skript: /assets/js/klikker.js
+sideklasse: side-klikk
+---
+{%- set r = klikkdata.regler -%}
+<div class="spillside">
+  <header class="sidehode">
+    <h1>Overfør</h1>
+    <p class="ingress">Du starter med en tom konto. Hvert trykk overfører {{ r.trykkStart | ore }}. Kjøp hjelp av karikerte næringslivsfolk, og se hvor lang tid hvert kjøp bruker på å tjene seg inn.</p>
+  </header>
+
+  <section class="klikk" id="klikk" aria-labelledby="klikk-tittel">
+    <h2 id="klikk-tittel" class="skjult">Spillet</h2>
+    <noscript><p class="forbehold">Spillet trenger JavaScript. Reglene står lenger ned på siden.</p></noscript>
+
+    <div class="klikk-konto">
+      <div class="konto-tall">
+        <p class="konto-merke">Sparekonto</p>
+        <p class="konto-saldo" id="saldo">0 øre</p>
+        <p class="konto-rate" id="rate">Ingen hjelpere ennå</p>
+      </div>
+      <div class="mynt-flate" id="mynt-flate">
+        <button type="button" class="mynt" id="overfor"><span class="mynt-navn">Overfør</span><span class="mynt-verdi" id="mynt-verdi">+{{ r.trykkStart | ore }}</span></button>
+      </div>
+      <div class="konto-deling">
+        <div class="fordeling" aria-hidden="true"><span class="fordeling-del fordeling-innskudd" id="andel-blaa"></span><span class="fordeling-del fordeling-avkastning" id="andel-gul"></span></div>
+        <dl class="konto-nokkel">
+          <div><dt><span class="nokkel nokkel-fjord"></span>Overført</dt><dd id="sum-selv">0 øre</dd></div>
+          <div><dt><span class="nokkel nokkel-multe"></span>Tjent</dt><dd id="sum-tjent">0 øre</dd></div>
+        </dl>
+      </div>
+      <div class="konto-melding">
+        <p id="status" role="status"></p>
+        <button type="button" class="knapp utbytte" id="utbytte" hidden>Ta imot utbytte</button>
+      </div>
+    </div>
+
+    <div class="klikk-butikk">
+      <div class="butikk-hode">
+        <h2 id="butikk-tittel">Kjøp hjelp</h2>
+        <fieldset class="butikk-antall">
+          <legend class="skjult">Hvor mange nivåer hvert kjøp gjelder</legend>
+          <div class="segment">
+            <label><input type="radio" name="antall" value="1" checked><span>1</span></label>
+            <label><input type="radio" name="antall" value="10"><span>10</span></label>
+            <label><input type="radio" name="antall" value="maks"><span>Maks</span></label>
+          </div>
+        </fieldset>
+      </div>
+      <ul class="butikk-liste" id="butikk" aria-labelledby="butikk-tittel"></ul>
+
+      <div class="klikk-loft" id="loft" hidden>
+        <h3 id="loft-tittel">Løft</h3>
+        <ul class="loft-liste" id="loft-liste" aria-labelledby="loft-tittel"></ul>
+      </div>
+
+      <p class="klikk-husk"><label><input type="checkbox" id="husk"> <span>Husk spillet på denne enheten</span></label></p>
+      <p class="spill-omstart"><button type="button" class="lenkeknapp" id="omstart">Start på nytt</button></p>
+      <p class="forbehold">Lekepenger og oppdiktede tall. Figurene er karikaturer, og personene har ikke noe med Rentesrente å gjøre. Ikke personlig rådgivning. <a href="/ikke-radgivning/">Les mer om hva det betyr</a>.</p>
+    </div>
+  </section>
+
+  <section class="brodtekst spill-tekst">
+    <h2>Slik virker spillet</h2>
+    <ul>
+      <li><strong>Overfør.</strong> Hvert trykk setter {{ r.trykkStart | ore }} inn på kontoen.</li>
+      <li><strong>Større overføring.</strong> Hvert nivå legger {{ r.trykkSteg | ore }} til trykket, så det gir {{ (r.trykkStart + r.trykkSteg) | ore }}, {{ (r.trykkStart + 2 * r.trykkSteg) | ore }} og så videre. Første nivå koster {{ r.trykkGrunnpris | ore }}, og hvert nivå koster {{ ((r.trykkVekst - 1) * 100) | round }}&nbsp;% mer enn det forrige.</li>
+      <li><strong>Hjelpere.</strong> En hjelper tjener penger hvert sekund. {{ klikkdata.hjelpere[0].navn }} gir {{ klikkdata.hjelpere[0].rate | ore }} i sekundet på nivå 1, {{ (klikkdata.hjelpere[0].rate * 2) | ore }} på nivå 2 og så videre. Hvert nivå koster {{ ((r.prisvekst - 1) * 100) | round }}&nbsp;% mer enn det forrige.</li>
+      <li><strong>Løft.</strong> På nivå {{ r.loftNivaer[0] }}, {{ r.loftNivaer[1] }} og {{ r.loftNivaer[2] }} kan du kjøpe et løft som dobler det hjelperen tjener. Etter {{ klikkdata.trykkloft[0].krav }} trykk kommer det også løft til selve overføringen.</li>
+      <li><strong>Utbytte.</strong> Av og til dukker det opp et utbytte som er verdt {{ r.utbytteSek }} sekunder av det hjelperne tjener. Det må hentes innen {{ r.utbytteVisSek }} sekunder.</li>
+      <li><strong>1, 10 eller Maks.</strong> Velg hvor mange nivåer hvert kjøp gjelder. Maks kjøper så mange du har råd til.</li>
+    </ul>
+
+    <h3>Hjelperne</h3>
+    <ul>
+      {%- for h in klikkdata.hjelpere %}
+      <li><strong>{{ h.navn }}.</strong> {{ h.bransje }}. Tjener {{ h.rate | ore }} i sekundet per nivå. Første nivå koster {{ h.pris | ore }}.</li>
+      {%- endfor %}
+    </ul>
+
+    <h2>Hva spillet viser</h2>
+    <p>Spillet er mest for moro. To ting i det ligner likevel på ekte sparing.</p>
+    <ul>
+      <li><strong>Hvor lang tid et kjøp bruker på å tjene seg inn.</strong> Under hver pris står tiden kjøpet trenger for å tjene inn det det kostet. Hvert nivå koster mer enn det forrige, men gir like mye. Derfor tar hvert nytt nivå lengre tid å tjene inn, helt til et løft eller en ny hjelper lønner seg bedre.</li>
+      <li><strong>Blått og gult.</strong> Stripen under saldoen viser hva du har overført selv i blått, og hva hjelperne har tjent i gult. Først er alt blått. Etter hvert tar det gule over, fordi det hjelperne tjener, kjøper mer hjelp. Det er samme mønster som i <a href="/forklart/renters-rente/">renters rente</a>.</li>
+    </ul>
+    <p>Ingen ekte konto vokser slik. Tallene er laget for at spillet skal gå fort, og ikke hentet fra noe sted. Vil du se hva sparing kan bli med renter, kostnader, skatt og inflasjon, bruker du kalkulatoren <a href="/kalkulatorer/renters-rente/">Hvor mye blir sparingen din verdt?</a></p>
+
+    <h2>Om figurene</h2>
+    <p>Figurene er karikaturer av kjente personer i norsk næringsliv, tegnet for dette spillet. Personene har ikke noe med Rentesrente å gjøre. De har ikke bidratt, og de har ikke godkjent spillet. Navn og bransje er det eneste som er hentet fra virkeligheten. Beløpene og navnene på løftene er oppdiktet.</p>
+
+    <h2>Lagring</h2>
+    <p>Ingenting lagres før du krysser av for «Husk spillet på denne enheten». Da legges spillet i nettleserens lager på enheten din, og det sendes ikke til oss. Fjerner du krysset, slettes det. Mens siden er lukket, tjener hjelperne videre i inntil {{ r.maksBorteSek | tid }}. <a href="/personvern/">Les mer om personvern</a>.</p>
+  </section>
+
+  <aside class="les-ogsa" aria-labelledby="les-tittel">
+    <h2 id="les-tittel">Les også</h2>
+    <ul>
+      <li><a href="/spill/tjue-ar/">Tjue år</a> Et spill om buffer, fond og regninger, der valgene dine teller.</li>
+      <li><a href="/kalkulatorer/renters-rente/">Hvor mye blir sparingen din verdt?</a> Regn med egne beløp, kostnader, skatt og inflasjon.</li>
+      <li><a href="/forklart/renters-rente/">Hva er renters rente?</a> Hvorfor tiden betyr mer enn beløpet.</li>
+      <li><a href="/ikke-radgivning/">Generell informasjon, ikke personlig rådgivning</a></li>
+    </ul>
+  </aside>
+</div>

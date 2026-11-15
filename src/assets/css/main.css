@@ -611,6 +611,148 @@ body.side-forside { overflow-x: clip; }
   .sammenlign-strek i { transform: none; transition: none; }
 }
 
+/* ---------- Spillet «Overfør» ---------- */
+/* Blått er det du har overført selv, gult er det hjelperne har tjent. Knapper og figurer er i blekk. */
+.klikk { display: grid; gap: 1.25rem; }
+.klikk-konto { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "tall mynt" "deling deling" "melding melding"; column-gap: 1rem; align-items: center; background: var(--paper); }
+.konto-tall { grid-area: tall; min-width: 0; }
+.konto-merke { font-size: var(--t-small); font-weight: 600; color: var(--muted); }
+.konto-saldo { font-size: 1.75rem; font-weight: 700; font-stretch: var(--widest); line-height: 1.15; letter-spacing: -0.02em; font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; }
+.konto-saldo.lang { font-size: 1.25rem; line-height: 1.6; }
+.konto-rate { font-size: var(--t-small); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+.mynt-flate { grid-area: mynt; position: relative; }
+.mynt {
+  display: grid; place-content: center; gap: 0.1rem; width: 5.75rem; height: 5.75rem; padding: 0; border: 0; border-radius: 50%;
+  background: var(--ink); color: var(--paper); font: inherit; line-height: 1.15; text-align: center; cursor: pointer;
+  -webkit-touch-callout: none; transition: transform 120ms var(--ease-out);
+}
+.mynt:focus-visible { border-radius: 50%; }
+.mynt:active { transform: scale(0.95); }
+.mynt-navn { font-weight: 700; font-stretch: var(--wide); }
+.mynt-verdi { font-size: 0.75rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pluss {
+  position: absolute; z-index: 3; display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.1rem 0.5rem; border-radius: 999px;
+  background: var(--paper); border: 1px solid var(--rule); color: var(--ink); font-size: var(--t-small); font-weight: 650;
+  font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none; transform: translate(-50%, 0);
+}
+.pluss::before, .utbytte::before { content: ""; flex: none; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--fjord); }
+.utbytte::before { background: var(--multe); }
+
+.konto-deling { grid-area: deling; }
+.konto-deling .fordeling { margin: 0.6rem 0 0.35rem; height: 0.5rem; }
+.konto-nokkel { display: flex; flex-wrap: wrap; gap: 0 1.25rem; margin: 0; font-size: var(--t-small); }
+.konto-nokkel > div { display: flex; align-items: baseline; gap: 0.4rem; min-width: 0; }
+.konto-nokkel dt { display: flex; align-items: baseline; gap: 0.4rem; color: var(--ink-2); }
+.konto-nokkel dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.konto-melding { grid-area: melding; display: flex; align-items: center; min-height: 3rem; font-size: var(--t-small); line-height: 1.3; color: var(--ink-2); }
+.konto-melding:has(.utbytte:not([hidden])) #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.utbytte { gap: 0.5rem; min-height: 2.75rem; padding-block: 0.3rem; font-size: var(--t-small); font-variant-numeric: tabular-nums; }
+
+.butikk-hode { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1rem; }
+.butikk-antall { margin: 0; padding: 0; border: 0; min-width: 0; }
+.butikk-antall .segment span { padding: 0.4rem 0.9rem; min-height: 2.75rem; display: grid; place-content: center; }
+.butikk-liste, .loft-liste { list-style: none; margin: 1rem 0 0; padding: 0; }
+.butikk-liste { border-bottom: 1px solid var(--rule); }
+.rad { border-top: 1px solid var(--rule); }
+.rad-knapp {
+  --fig-bak: var(--paper);
+  position: relative; display: grid; grid-template-columns: 3.5rem minmax(0, 1fr) auto; grid-template-areas: "figur navn pris" "figur info info" "figur kjop kjop";
+  column-gap: 0.85rem; row-gap: 0.1rem; align-items: baseline; width: 100%; padding: 0.85rem 0 0.95rem; border: 0; border-radius: 0; background: none;
+  color: var(--ink); font: inherit; text-align: left;
+}
+button.rad-knapp { cursor: pointer; transition: transform 120ms var(--ease-out); }
+button.rad-knapp:active { transform: scale(0.985); }
+.rad-figur { grid-area: figur; align-self: center; position: relative; width: 3.5rem; height: 3.5rem; color: var(--muted); }
+.rad.eier .rad-figur, .rad[data-id="trykk"] .rad-figur { color: var(--ink); }
+.rad-navn { grid-area: navn; font-weight: 650; font-stretch: var(--wide); line-height: 1.3; }
+.rad-niva { margin-left: 0.25rem; font-size: var(--t-small); font-weight: 500; font-stretch: 100%; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rad-pris { grid-area: pris; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rad-info, .rad-kjop { font-size: var(--t-small); line-height: 1.4; color: var(--ink-2); }
+.rad-info { grid-area: info; }
+.rad-kjop { grid-area: kjop; color: var(--muted); }
+.rad-knapp[aria-disabled="true"] .rad-pris { font-weight: 500; color: var(--muted); }
+.rad-strek { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; overflow: hidden; }
+.rad-strek i { display: block; height: 100%; background: var(--muted); transform: scaleX(0); transform-origin: left; transition: transform 200ms linear; }
+.rad-skygge .rad-knapp { grid-template-areas: "figur navn navn" "figur info info"; align-content: center; color: var(--muted); }
+.rad-skygge .rad-navn { font-weight: 600; }
+.rad-skygge .rad-info { color: var(--muted); }
+
+.fig { display: block; width: 100%; height: 100%; overflow: visible; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.fig .f { fill: var(--fig-bak, var(--paper)); }
+.fig .m { fill: currentColor; }
+.fig .p { fill: currentColor; stroke: none; }
+.fig-skygge path { fill: var(--rule); stroke: none; }
+.fig-oyne, .fig-ting { transform-box: fill-box; }
+.fig-oyne { transform-origin: center; }
+.fig-ting { transform-origin: 50% 100%; }
+.gulmynt { position: absolute; left: 50%; top: 0; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--multe); pointer-events: none; transform: translate(-50%, 0); }
+
+.klikk-loft { margin-top: 1.75rem; }
+.loft-liste { display: grid; gap: 0.6rem; margin-top: 0.75rem; }
+.loft-knapp {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.1rem 1rem; align-items: baseline; width: 100%; min-height: 2.75rem; padding: 0.6rem 0.85rem;
+  border: 1.5px solid var(--ink); border-radius: var(--radius); background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+  transition: transform 120ms var(--ease-out);
+}
+.loft-knapp:focus-visible { border-radius: var(--radius); }
+.loft-knapp:active { transform: scale(0.98); }
+.loft-navn { font-weight: 650; }
+.loft-pris { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.loft-virkning { grid-column: 1 / -1; font-size: var(--t-small); line-height: 1.4; color: var(--ink-2); }
+.loft-knapp[aria-disabled="true"] { border-color: var(--muted); }
+.loft-knapp[aria-disabled="true"] .loft-pris { font-weight: 500; color: var(--muted); }
+
+.klikk-husk { margin-top: 1.75rem; font-size: var(--t-small); }
+.klikk-husk label { display: inline-flex; align-items: center; gap: 0.6rem; min-height: 2.75rem; cursor: pointer; }
+.klikk-husk input { flex: none; width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--ink); }
+.klikk .forbehold { max-width: var(--measure); }
+
+/* På mobil står kontoen fast øverst, så du ser saldoen mens du handler lenger ned. */
+@media (max-width: 59.99rem) and (min-height: 37rem) {
+  .klikk-konto { position: sticky; top: 0; z-index: 2; padding: calc(0.5rem + env(safe-area-inset-top, 0px)) 0 0; border-bottom: 1px solid var(--rule); }
+  html:has(.side-klikk) { scroll-padding-top: 14rem; }
+}
+@media (min-width: 40rem) {
+  .konto-saldo { font-size: 2.25rem; }
+  .konto-saldo.lang { font-size: 1.75rem; line-height: 1.3; }
+  .mynt { width: 6.5rem; height: 6.5rem; }
+}
+@media (min-width: 60rem) {
+  .klikk { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); column-gap: 4rem; align-items: start; }
+  .klikk-konto { position: sticky; top: 1rem; grid-template-columns: minmax(0, 1fr); grid-template-areas: "tall" "deling" "mynt" "melding"; }
+  .konto-saldo { font-size: 3rem; }
+  .konto-saldo.lang { font-size: 2rem; line-height: 1.5; }
+  .konto-rate { font-size: var(--t-ui); }
+  .konto-deling .fordeling { margin-top: 1.25rem; height: 0.625rem; }
+  .mynt-flate { margin-top: 2rem; justify-self: start; }
+  .mynt { width: 9.5rem; height: 9.5rem; }
+  .mynt-navn { font-size: 1.3125rem; }
+  .mynt-verdi { font-size: var(--t-small); }
+  .konto-melding { margin-top: 0.75rem; min-height: 3.5rem; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .mynt:hover { background: var(--ink-2); }
+  button.rad-knapp[aria-disabled="false"]:hover { --fig-bak: var(--field); background: var(--field); }
+  .loft-knapp[aria-disabled="false"]:hover { background: var(--field); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .rad.eier .fig-kropp { animation: fig-vugg 3.2s ease-in-out infinite alternate; }
+  .rad.eier .fig-oyne { animation: fig-blunk 4.6s linear infinite; }
+  .rad.eier .fig-ting { animation: fig-sving 2.6s ease-in-out infinite alternate; }
+  .rad:nth-child(2n) .fig-kropp, .rad:nth-child(2n) .fig-ting { animation-delay: -1.3s; }
+  .rad:nth-child(3n) .fig-kropp, .rad:nth-child(3n) .fig-ting { animation-delay: -2.1s; }
+  .rad:nth-child(2n) .fig-oyne { animation-delay: -1.7s; }
+  .rad:nth-child(3n) .fig-oyne { animation-delay: -3.1s; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mynt, button.rad-knapp, .loft-knapp, .rad-strek i { transition: none; }
+  .mynt:active, button.rad-knapp:active, .loft-knapp:active { transform: none; opacity: 0.85; }
+}
+@keyframes fig-vugg { from { transform: translateY(0); } to { transform: translateY(-1.5px); } }
+@keyframes fig-blunk { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.12); } }
+@keyframes fig-sving { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+
 /* ---------- Sideoverganger ---------- */
 @media (prefers-reduced-motion: no-preference) {
   @view-transition { navigation: auto; }
