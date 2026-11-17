@@ -21,13 +21,14 @@ export const REGLER = Object.freeze({
   fartVekst: 1.11,         // over kneet gir hvert ekstra trykk i sekundet 11 % mer
   fartMaks: 12,            // høyeste fartsboost
   ekstraMaksSek: 10,       // du kan aldri investere mer enn 10 sekunder utbytte i et ekstraordinært utbytte
-  // Tre perioder å velge mellom. Jo lenger du venter, jo mindre betaler du nå, og jo høyere blir avkastningen.
-  // Høyere avkastning gir høyere risiko: sjansen for at investeringen går dårlig.
+  // Tre valg med samme ventetid. Jo mindre du betaler nå, jo høyere blir avkastningen, og jo høyere er risikoen
+  // for at investeringen går dårlig. Risikoen vises bare med ord i spillet.
   ekstraValg: Object.freeze([
-    Object.freeze({ betal: Object.freeze([0.75, 0.8]), vent: Object.freeze([30, 45]), risiko: 0.1 }),
-    Object.freeze({ betal: Object.freeze([0.6, 0.65]), vent: Object.freeze([75, 105]), risiko: 0.2 }),
-    Object.freeze({ betal: Object.freeze([0.42, 0.48]), vent: Object.freeze([150, 210]), risiko: 0.3 }),
+    Object.freeze({ navn: "Tryggest", betal: Object.freeze([0.75, 0.8]), risiko: 0.1 }),
+    Object.freeze({ navn: "Middels", betal: Object.freeze([0.6, 0.65]), risiko: 0.2 }),
+    Object.freeze({ navn: "Mest risikabelt", betal: Object.freeze([0.42, 0.48]), risiko: 0.3 }),
   ]),
+  ekstraVent: Object.freeze([60, 120]),  // sekunder til utbyttet kommer, likt for alle valgene i et tilbud
   ekstraTap: Object.freeze([0, 0.1]),  // går det dårlig, taper du 0 til 10 % av det du betalte
   ekstraVisSek: 15,        // så lenge tilbudet står
   radgiverPris: 1e9,       // 10 mill. kr for å ansette investeringsrådgiveren
@@ -404,22 +405,24 @@ export function startHendelse(t, h) {
 // ---------- Ekstraordinært utbytte ----------
 
 const ekstraMaksAndel = Math.max(...REGLER.ekstraValg.map((v) => v.betal[1]));
-export const EKSTRA_LENGST = Math.max(...REGLER.ekstraValg.map((v) => v.vent[1]));
+export const EKSTRA_LENGST = REGLER.ekstraVent[1];
 
 /**
- * Et tilbud: få summen om en stund, og velg hvor lenge du vil vente. Kort tid koster 75 til 80 % av summen nå,
- * lang tid 42 til 48 %. Du investerer aldri mer enn 10 sekunder utbytte, og aldri mer enn du har råd til.
+ * Et tilbud: få summen om 1 til 2 minutter, like lenge for alle valgene. Det tryggeste koster 75 til 80 % av summen nå,
+ * det mest risikable 42 til 48 %. Du investerer aldri mer enn 10 sekunder utbytte, og aldri mer enn du har råd til.
  * Null når du ikke har utbytte.
  */
 export function ekstraTilbud(t, rng = Math.random) {
   const sum = Math.min((perSekund(t) * REGLER.ekstraMaksSek) / ekstraMaksAndel, Math.floor(t.saldo / ekstraMaksAndel));
   if (!(sum > 0)) return null;
   const risiko = fordelFaktor(t, "risiko");
+  const vent = Math.round(mellom(REGLER.ekstraVent, rng()));
   return {
     sum,
     valg: REGLER.ekstraValg.map((v) => ({
+      navn: v.navn,
       pris: Math.min(Math.ceil(sum * mellom(v.betal, rng())), Math.floor(perSekund(t) * REGLER.ekstraMaksSek)),
-      vent: Math.round(mellom(v.vent, rng())),
+      vent,
       risiko: v.risiko * risiko,
     })),
   };

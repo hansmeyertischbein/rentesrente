@@ -779,10 +779,10 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 }
 .ekstra-knapp:active { transform: scale(0.96); }
 .ekstra-knapp[aria-disabled="true"] { border-color: var(--g-kant); }
-.ekstra-tid { font-weight: 800; }
+.ekstra-tid { font-size: 0.8125rem; font-weight: 800; line-height: 1.2; text-align: center; white-space: normal; }
+.ekstra-knapp:last-child .ekstra-tid { color: var(--g-rod); }
 .ekstra-avk { padding: 0 0.4rem; border-radius: 999px; background: #ffd84a; color: #2b2118; font-size: 0.75rem; font-weight: 800; }
 .ekstra-knapp .pris { font-size: 0.75rem; }
-.ekstra-risiko { font-size: 0.6875rem; font-weight: 700; color: var(--g-rod); }
 .ekstra::after { content: ""; position: absolute; left: 0; bottom: 0; width: 100%; height: 4px; background: var(--multe); transform: scaleX(var(--igjen, 1)); transform-origin: left; }
 /* Investeringer som venter: bobler over grisen med en strek som krymper til pengene kommer. */
 .bobler { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem 0.5rem; max-width: 100%; }

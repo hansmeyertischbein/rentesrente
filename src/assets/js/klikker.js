@@ -537,7 +537,7 @@ function tegnEkstra(naa) {
     }
   }
   if (tilbud) {
-    settTekst(el.ekstraVilkar, `Få ${ore(tilbud.sum)}. Lengre tid gir mer, men høyere risiko. Går det dårlig, får du ${prosent(1 - REGLER.ekstraTap[1])} til ${prosent(1 - REGLER.ekstraTap[0])} av innsatsen tilbake.`);
+    settTekst(el.ekstraVilkar, `Få ${ore(tilbud.sum)} om 1 til 2 minutter. Jo høyere avkastning, jo høyere risiko.`);
     for (const knapp of el.ekstraValg.children) {
       const v = tilbud.valg[Number(knapp.dataset.nr)];
       settAttr(knapp, "aria-disabled", v.pris <= t.saldo ? "false" : "true");
@@ -583,12 +583,11 @@ function lagEkstraValg() {
     knapp.type = "button";
     knapp.className = "ekstra-knapp";
     knapp.dataset.nr = nr;
-    knapp.innerHTML = '<span class="ekstra-tid"></span><span class="ekstra-avk"></span><span class="ekstra-risiko"></span><span class="pris"></span>';
-    knapp.querySelector(".ekstra-risiko").textContent = `Risiko ${prosent(v.risiko)}`;
-    knapp.querySelector(".ekstra-tid").textContent = formaterTid(v.vent);
+    knapp.innerHTML = '<span class="ekstra-tid"></span><span class="ekstra-avk"></span><span class="pris"></span>';
+    knapp.querySelector(".ekstra-tid").textContent = v.navn;
     knapp.querySelector(".ekstra-avk").textContent = `+${prosent(ekstraAvkastning(tilbud, v))}`;
     knapp.querySelector(".pris").textContent = ore(v.pris);
-    knapp.setAttribute("aria-label", `Vent ${formaterTid(v.vent)}: betal ${ore(v.pris)} nå og få ${ore(tilbud.sum)}, ${prosent(ekstraAvkastning(tilbud, v))} avkastning. ${prosent(v.risiko)} risiko for at det går dårlig.`);
+    knapp.setAttribute("aria-label", `${v.navn}: betal ${ore(v.pris)} nå og få ${ore(tilbud.sum)}, ${prosent(ekstraAvkastning(tilbud, v))} avkastning.`);
     knapp.addEventListener("click", () => investerValg(nr));
     return knapp;
   }));
@@ -600,7 +599,7 @@ function investerValg(nr) {
   const for_ = t;
   t = investerEkstra(t, tilbud, nr);
   if (t === for_) { si(`Du mangler ${ore(v.pris - t.saldo)}.`); return; }
-  annonser(`Du investerte ${ore(v.pris)}. Går det bra, kommer ${ore(tilbud.sum)} om ${formaterTid(v.vent)}.`);
+  annonser(`Du investerte ${ore(v.pris)}. Går det bra, kommer ${ore(tilbud.sum)} om 1 til 2 minutter.`);
   tilbud = null;
   el.ekstra.hidden = true;
   tilbudNeste = Date.now() + tilfeldig(45, 90) * 1000;
