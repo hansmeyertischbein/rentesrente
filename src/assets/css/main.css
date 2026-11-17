@@ -897,15 +897,36 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
   .uro-strek { height: 12rem; }
   .mini { display: none; }
 }
-/* På PC er spillet zoomet ut til 75 %, så hele spillet får plass på skjermen. */
-@media (min-width: 60rem) and (hover: hover) and (pointer: fine) {
-  .spillside { zoom: 0.75; }
+/* På PC skalerer klikker.js spillet etter høyden på skjermen. */
+.side-klikk .spillside { padding-top: 1rem; }
+
+/* Om spillet: vises når du kommer første gang, og fra knappen under butikken. */
+.spill-intro {
+  width: min(100% - 2rem, 34rem); max-height: min(100dvh - 2rem, 44rem); padding: 1.5rem 1.5rem 1.25rem; overflow: auto; overscroll-behavior: contain;
+  border: 2px solid var(--g-blekk); border-radius: 1.25rem; background: var(--g-kort); color: var(--ink); box-shadow: 0 6px 0 var(--g-blekk);
+}
+.spill-intro::backdrop { background: rgb(43 33 24 / 0.45); }
+.spill-intro h2 { font-size: var(--t-h2, 1.75rem); font-weight: 750; font-stretch: var(--wide); padding-right: 2.5rem; }
+.spill-intro .ingress { margin-top: 0.5rem; }
+.spill-intro h3 { margin-top: 1.5rem; font-size: 1rem; font-weight: 750; }
+.spill-intro h3 + p, .spill-intro h3 + ul { margin-top: 0.35rem; font-size: var(--t-small); line-height: 1.45; color: var(--ink-2); }
+.intro-lenker { padding-left: 1.1rem; }
+.intro-lenker li + li { margin-top: 0.35rem; }
+.intro-start { margin-top: 1.1rem; }
+.intro-lukk {
+  position: absolute; top: 0.75rem; right: 0.75rem; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; padding: 0;
+  border: 0; border-radius: 50%; background: none; color: var(--ink); font: inherit; font-size: 1.6rem; line-height: 1; cursor: pointer;
+}
+.intro-lukk:active { transform: scale(0.94); }
+@media (prefers-reduced-motion: no-preference) {
+  .spill-intro[open] { animation: intro-inn 220ms var(--ease-out); }
+  @keyframes intro-inn { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
 }
 /* På PC får spillet hele bredden, og scenen blir større. */
 @media (min-width: 75rem) {
   .side-klikk main { max-width: 110rem; }
   .klikk { grid-template-columns: minmax(0, 1fr) minmax(0, 34rem); gap: 2.5rem; padding: 2.5rem; }
-  .klikk-scene { grid-template-columns: 5rem minmax(0, 1fr) 4rem; min-height: 40rem; }
+  .klikk-scene { grid-template-columns: 5rem minmax(0, 1fr) 4rem; }
   .gris { width: min(100%, 21rem); }
   .konto-saldo { font-size: 3.5rem; }
   .spillikon { width: 4.25rem; height: 4.25rem; }

@@ -8,10 +8,7 @@ sideklasse: side-klikk
 ---
 {%- set r = klikkdata.regler -%}
 <div class="spillside">
-  <header class="sidehode">
-    <h1>Overfør</h1>
-    <p class="ingress">Hvert trykk på grisen overfører {{ r.trykkStart | ore }}. Kjøp aksjer som gir utbytte hvert sekund, fra limonadeboden på hjørnet til de store selskapene.</p>
-  </header>
+  <h1 class="skjult">Overfør</h1>
 
   <section class="klikk" id="klikk" aria-labelledby="klikk-tittel">
     <h2 id="klikk-tittel" class="skjult">Spillet</h2>
@@ -81,26 +78,27 @@ sideklasse: side-klikk
       <ul class="butikk-liste" id="butikk" aria-labelledby="butikk-tittel"></ul>
 
       <p class="klikk-husk"><label><input type="checkbox" id="husk"> <span>Husk spillet på denne enheten</span></label></p>
-      <p class="spill-omstart"><button type="button" class="lenkeknapp" id="omstart">Start på nytt</button></p>
+      <p class="spill-omstart"><button type="button" class="lenkeknapp" id="omstart">Start på nytt</button> <button type="button" class="lenkeknapp" id="om-spillet">Om spillet</button></p>
     </div>
 
   </section>
 
-  <section class="brodtekst spill-tekst">
-    <h2>Lagring</h2>
-    <p>Ingenting lagres før du krysser av for «Husk spillet på denne enheten». Da legges spillet i nettleserens lager på enheten din, og det sendes ikke til oss. Fjerner du krysset, slettes det. Mens siden er lukket, gir aksjene utbytte i inntil {{ r.maksBorteSek | tid }}. <a href="/personvern/">Les mer om personvern</a>.</p>
-  </section>
-
-  <aside class="les-ogsa" aria-labelledby="les-tittel">
-    <h2 id="les-tittel">Les også</h2>
-    <ul>
-      <li><a href="/spill/tjue-ar/">Tjue år</a> Et spill om buffer, fond og regninger, der valgene dine teller.</li>
-      <li><a href="/kalkulatorer/renters-rente/">Hvor mye blir sparingen din verdt?</a> Regn med egne beløp, kostnader, skatt og inflasjon.</li>
-      <li><a href="/forklart/renters-rente/">Hva er renters rente?</a> Hvorfor tiden betyr mer enn beløpet.</li>
-      <li><a href="/ikke-radgivning/">Generell informasjon, ikke personlig rådgivning</a></li>
-    </ul>
-  </aside>
 </div>
 
+<dialog class="spill-intro" id="intro" aria-labelledby="intro-tittel">
+  <h2 id="intro-tittel">Overfør</h2>
+  <p class="ingress">Hvert trykk på grisen overfører {{ r.trykkStart | ore }}. Kjøp aksjer som gir utbytte hvert sekund, fra limonadeboden på hjørnet til de store selskapene.</p>
+  <form method="dialog"><button class="knapp knapp-hoved intro-start" value="start">Start å spille</button></form>
+  <h3>Lagring</h3>
+  <p>Ingenting lagres før du krysser av for «Husk spillet på denne enheten». Da legges spillet i nettleserens lager på enheten din, og det sendes ikke til oss. Fjerner du krysset, slettes det. Mens siden er lukket, gir aksjene utbytte i inntil {{ r.maksBorteSek | tid }}. <a href="/personvern/">Les mer om personvern</a>.</p>
+  <h3>Les også</h3>
+  <ul class="intro-lenker">
+    <li><a href="/spill/tjue-ar/">Tjue år</a> Et spill om buffer, fond og regninger, der valgene dine teller.</li>
+    <li><a href="/kalkulatorer/renters-rente/">Hvor mye blir sparingen din verdt?</a> Regn med egne beløp, kostnader, skatt og inflasjon.</li>
+    <li><a href="/forklart/renters-rente/">Hva er renters rente?</a> Hvorfor tiden betyr mer enn beløpet.</li>
+    <li><a href="/ikke-radgivning/">Generell informasjon, ikke personlig rådgivning</a></li>
+  </ul>
+  <form method="dialog"><button class="intro-lukk" value="lukk" aria-label="Lukk">×</button></form>
+</dialog>
 <div class="tips" id="tips" role="tooltip" hidden></div>
 <div class="mini" id="mini" aria-hidden="true"><span>I grisen <b id="mini-saldo">0 øre</b></span><span>Inntekt <b id="mini-rate">0 øre/sek</b></span></div>

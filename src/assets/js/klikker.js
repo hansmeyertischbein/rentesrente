@@ -24,7 +24,8 @@ const el = {
   hendelse: $("hendelse"), ekstra: $("ekstra"), ekstraVilkar: $("ekstra-vilkar"), ekstraValg: $("ekstra-valg"), ventende: $("ventende"), status: $("status"), annonse: $("annonse"),
   butikk: $("butikk"), husk: $("husk"), omstart: $("omstart"),
   mini: $("mini"), miniSaldo: $("mini-saldo"), miniRate: $("mini-rate"),
-  scene: $("scene"), by: $("by"),
+  scene: $("scene"), by: $("by"), side: document.querySelector(".spillside"), meldinger: document.querySelector(".meldinger"),
+  intro: $("intro"), omSpillet: $("om-spillet"),
   radgiver: $("radgiver"), radgiverFigur: $("radgiver-figur"), radgiverInfo: $("radgiver-info"),
   radgiverKnapp: $("radgiver-knapp"), radgiverHandling: $("radgiver-handling"), radgiverPris: $("radgiver-pris"),
 };
@@ -799,6 +800,32 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) lagre
   });
 }
 
+// ---------- Om spillet ----------
+
+function visIntro() {
+  if (typeof el.intro.showModal === "function" && !el.intro.open) el.intro.showModal();
+}
+el.omSpillet.addEventListener("click", visIntro);
+el.intro.addEventListener("click", (e) => { if (e.target === el.intro) el.intro.close(); });  // trykk utenfor lukker
+
+// ---------- Størrelsen på PC ----------
+
+// På PC skaleres spillet så grisen og alt rundt den får plass i høyden på skjermen. Mobilen er som før.
+const pc = matchMedia("(min-width: 60rem) and (hover: hover) and (pointer: fine)");
+let tilpassTid = 0;
+function tilpass() {
+  if (!pc.matches) { el.side.style.zoom = ""; return; }
+  el.side.style.zoom = "1";
+  const topp = el.side.getBoundingClientRect().top + scrollY;
+  const scene = el.scene.offsetHeight - el.meldinger.offsetHeight + 150;   // plass til tilbud og hendelser under grisen
+  const plass = innerHeight - Math.min(topp, 90) - 24;
+  const z = Math.max(0.5, Math.min(1.2, plass / scene));
+  el.side.style.zoom = z.toFixed(3);
+  byNokkel = "";
+}
+addEventListener("resize", () => { clearTimeout(tilpassTid); tilpassTid = setTimeout(tilpass, 150); });
+pc.addEventListener?.("change", tilpass);
+
 // ---------- I gang ----------
 
 try { for (const n of GAMLE_NOKLER) localStorage.removeItem(n); } catch { /* ingenting å slette */ }
@@ -820,6 +847,8 @@ if (lagret) {
 }
 for (const r of rader.values()) r.figur && r.figur.getAnimations().forEach((a) => a.finish());
 document.documentElement.classList.add("klikk-klar");
+tilpass();
+if (!lagret) visIntro();   // har du et lagret spill, kjenner du det fra før
 
 setInterval(() => {
   const naa = Date.now();
