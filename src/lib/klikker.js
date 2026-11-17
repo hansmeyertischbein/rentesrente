@@ -16,12 +16,24 @@ export const REGLER = Object.freeze({
   gfHver: 50,              // generalforsamling for hver 50. aksje i samme selskap
   gfFaktor: 1.5,           // hver generalforsamling gir 1,5 ganger utbytte
   fartFra: 3,              // trykk i sekundet før farten gir ekstra
-  fartSteg: 0.15,          // ekstra per trykk i sekundet over grensen
-  fartMaks: 2.5,           // høyeste fartsboost
+  fartKne: 11,             // trykk i sekundet som gir 2,5 ganger
+  fartLett: 2.5,           // fartsboosten øker jevnt hit
+  fartVekst: 1.11,         // over kneet gir hvert ekstra trykk i sekundet 11 % mer
+  fartMaks: 12,            // høyeste fartsboost
   ekstraSek: 90,           // et ekstraordinært utbytte er verdt så mange sekunder utbytte
-  ekstraBetal: Object.freeze([0.6, 0.7]),  // andel av summen du betaler nå
-  ekstraVent: Object.freeze([40, 60]),     // sekunder til summen kommer
-  ekstraVisSek: 12,        // så lenge tilbudet står
+  // Tre perioder å velge mellom. Jo lenger du venter, jo mindre betaler du nå, og jo høyere blir avkastningen.
+  ekstraValg: Object.freeze([
+    Object.freeze({ betal: Object.freeze([0.75, 0.8]), vent: Object.freeze([30, 45]) }),
+    Object.freeze({ betal: Object.freeze([0.6, 0.65]), vent: Object.freeze([75, 105]) }),
+    Object.freeze({ betal: Object.freeze([0.42, 0.48]), vent: Object.freeze([150, 210]) }),
+  ]),
+  ekstraVisSek: 15,        // så lenge tilbudet står
+  radgiverPris: 1e9,       // 10 mill. kr for å ansette investeringsrådgiveren
+  radgiverStart: 0.3,      // sjansen for at han peker på den rimeligste aksjen
+  radgiverSteg: 0.1,       // hver oppgradering gir 10 prosentpoeng mer
+  radgiverMaks: 0.8,
+  radgiverSek: Object.freeze([300, 600, 1200, 2400, 4800]),  // oppgraderingene koster så mange sekunder utbytte
+  radgiverSpredning: 1.5,  // bommer han, er det oftest på en av de nest beste
   uroSek: 180,             // så lang tid streken bruker på å fylles
   uroFare: 0.004,          // sjanse i sekundet for en hendelse når streken er full, før den er helt full
   verdenFall: Object.freeze([0.2, 0.5]),
@@ -112,6 +124,7 @@ export function nyTilstand() {
     aksjer: Object.fromEntries(AKSJER.map((a) => [a.id, 0])),
     boostere: [],   // id-ene til kjøpte boostere
     ventende: [],   // ekstraordinære utbytter: { sum, igjen }
+    radgiver: 0,    // 0 er ikke ansatt, 1 er 30 % treff, og hvert nivå over gir 10 prosentpoeng mer
     uro: stille(),  // lagres ikke
   };
 }
@@ -171,10 +184,16 @@ export function trykkverdi(t) {
   return grunnTrykk(t.trykkNiva) + trykkAndel(t) * perSekund(t);
 }
 
-/** Fartsboost: trykker du mer enn tre ganger i sekundet, gir hvert trykk mer, opptil 2,5 ganger. */
+/**
+ * Fartsboost: trykker du mer enn tre ganger i sekundet, gir hvert trykk mer. Den øker jevnt til 2,5 ganger ved 11 trykk
+ * i sekundet. Over det gir hvert ekstra trykk i sekundet 11 % mer, opptil 12 ganger, som krever 27 trykk i sekundet.
+ */
 export function fartFaktor(trykkSisteSek) {
-  const over = Math.max(0, (Number.isFinite(trykkSisteSek) ? trykkSisteSek : 0) - REGLER.fartFra);
-  return Math.min(REGLER.fartMaks, 1 + REGLER.fartSteg * over);
+  const n = Number.isFinite(trykkSisteSek) ? trykkSisteSek : 0;
+  const { fartFra, fartKne, fartLett, fartVekst, fartMaks } = REGLER;
+  if (n <= fartFra) return 1;
+  if (n <= fartKne) return 1 + ((fartLett - 1) * (n - fartFra)) / (fartKne - fartFra);
+  return Math.min(fartMaks, fartLett * Math.pow(fartVekst, n - fartKne));
 }
 
 /** Verdien av ett trykk når du har trykket så mange ganger det siste sekundet. */
@@ -351,23 +370,97 @@ export function startHendelse(t, h) {
 
 // ---------- Ekstraordinært utbytte ----------
 
+const ekstraMaksAndel = Math.max(...REGLER.ekstraValg.map((v) => v.betal[1]));
+export const EKSTRA_LENGST = Math.max(...REGLER.ekstraValg.map((v) => v.vent[1]));
+
 /**
- * Et tilbud: betal 60 til 70 % av summen nå, og få hele summen om 40 til 60 sekunder.
- * Summen er verdt 90 sekunder utbytte, men aldri mer enn at du har råd. Null når du ikke har utbytte.
+ * Et tilbud: få summen om en stund, og velg hvor lenge du vil vente. Kort tid koster 75 til 80 % av summen nå,
+ * lang tid 42 til 48 %. Summen er verdt 90 sekunder utbytte, men aldri mer enn at du har råd til alle valgene.
+ * Null når du ikke har utbytte.
  */
 export function ekstraTilbud(t, rng = Math.random) {
-  const sum = Math.min(perSekund(t) * REGLER.ekstraSek, Math.floor(t.saldo / REGLER.ekstraBetal[1]));
+  const sum = Math.min(perSekund(t) * REGLER.ekstraSek, Math.floor(t.saldo / ekstraMaksAndel));
   if (!(sum > 0)) return null;
   return {
     sum,
-    pris: Math.ceil(sum * mellom(REGLER.ekstraBetal, rng())),
-    vent: Math.round(mellom(REGLER.ekstraVent, rng())),
+    valg: REGLER.ekstraValg.map((v) => ({
+      pris: Math.ceil(sum * mellom(v.betal, rng())),
+      vent: Math.round(mellom(v.vent, rng())),
+    })),
   };
 }
 
-export function investerEkstra(t, tilbud) {
-  if (!tilbud || !(tilbud.pris <= t.saldo)) return t;
-  return { ...t, saldo: t.saldo - tilbud.pris, ventende: [...t.ventende, { sum: tilbud.sum, igjen: tilbud.vent }] };
+/** Avkastningen på et valg, for eksempel 0,25 når du betaler 80 og får 100. */
+export function ekstraAvkastning(tilbud, valg) {
+  return valg && valg.pris > 0 ? tilbud.sum / valg.pris - 1 : 0;
+}
+
+export function investerEkstra(t, tilbud, nr = 0) {
+  const valg = tilbud?.valg?.[nr];
+  if (!valg || !(valg.pris <= t.saldo)) return t;
+  return { ...t, saldo: t.saldo - valg.pris, ventende: [...t.ventende, { sum: tilbud.sum, igjen: valg.vent }] };
+}
+
+// ---------- Investeringsrådgiveren ----------
+
+const RADGIVER_NIVAER = Math.round((REGLER.radgiverMaks - REGLER.radgiverStart) / REGLER.radgiverSteg) + 1;
+
+/** Sjansen for at rådgiveren peker på den rimeligste aksjen, eller 0 når han ikke er ansatt. */
+export function radgiverTreff(t) {
+  const n = t.radgiver ?? 0;
+  return n > 0 ? Math.round((REGLER.radgiverStart + REGLER.radgiverSteg * (n - 1)) * 100) / 100 : 0;
+}
+
+/** Prisen for å ansette ham, så for hver oppgradering. Oppgraderingene koster et antall sekunder utbytte. */
+export function prisRadgiver(t) {
+  const n = t.radgiver ?? 0;
+  if (n === 0) return REGLER.radgiverPris;
+  if (n >= RADGIVER_NIVAER) return Infinity;
+  return Math.max(1, Math.ceil(perSekund(t) * REGLER.radgiverSek[n - 1]));
+}
+
+export function kjopRadgiver(t) {
+  const pris = prisRadgiver(t);
+  if (!(pris <= t.saldo)) return t;
+  return { ...t, saldo: t.saldo - pris, radgiver: (t.radgiver ?? 0) + 1 };
+}
+
+/** Om rådgiveren vises: når han er ansatt, eller når du har tjent halve prisen. */
+export function radgiverSynlig(t) {
+  return (t.radgiver ?? 0) > 0 || t.totalt >= REGLER.radgiverPris * REGLER.visFra;
+}
+
+/** Selskapene du kan kjøpe, fra rimeligst til dyrest: mest utbytte per krone for neste aksje først. */
+export function rimeligst(t) {
+  return synlige(t).filter((s) => s.status === "apen")
+    .map(({ id }) => ({ id, verdi: utbyttePerAksje(t, id) / prisAksje(t, id, 1) }))
+    .sort((a, b) => b.verdi - a.verdi)
+    .map((x) => x.id);
+}
+
+/**
+ * Sjansen for at rådgiveren peker på hvert selskap. Den rimeligste får treffsikkerheten hans.
+ * Resten fordeles som en normalfordeling nedover listen, så han oftest bommer med lite.
+ */
+export function radgiverFordeling(t) {
+  const liste = rimeligst(t);
+  const treff = radgiverTreff(t);
+  if (!liste.length || treff === 0) return [];
+  if (liste.length === 1) return [{ id: liste[0], p: 1 }];
+  const vekter = liste.slice(1).map((_, i) => Math.exp(-((i + 1) ** 2) / (2 * REGLER.radgiverSpredning ** 2)));
+  const sum = vekter.reduce((a, b) => a + b, 0);
+  return liste.map((id, i) => ({ id, p: i === 0 ? treff : ((1 - treff) * vekter[i - 1]) / sum }));
+}
+
+/** Selskapet rådgiveren peker på nå, eller null når han ikke er ansatt. */
+export function radgiverPek(t, rng = Math.random) {
+  const fordeling = radgiverFordeling(t);
+  let x = rng();
+  for (const { id, p } of fordeling) {
+    if (x < p) return id;
+    x -= p;
+  }
+  return fordeling.at(-1)?.id ?? null;
 }
 
 /**
@@ -411,10 +504,13 @@ export function fraLagring(obj) {
   }
   if (!Array.isArray(obj.boostere) || !obj.boostere.every((id) => typeof id === "string")) return null;
   t.boostere = [...new Set(obj.boostere.filter((id) => booster(id)))];
+  const radgiver = obj.radgiver ?? 0;
+  if (!heltall(radgiver, RADGIVER_NIVAER)) return null;
+  t.radgiver = radgiver;
   if (!Array.isArray(obj.ventende)) return null;
   for (const v of obj.ventende.slice(0, 20)) {
     if (!v || !tall(v.sum) || !tall(v.igjen)) return null;
-    t.ventende.push({ sum: v.sum, igjen: Math.min(v.igjen, REGLER.ekstraVent[1]) });
+    t.ventende.push({ sum: v.sum, igjen: Math.min(v.igjen, EKSTRA_LENGST) });
   }
   return { tilstand: t, tid };
 }

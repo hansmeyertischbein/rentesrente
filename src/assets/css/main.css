@@ -639,6 +639,15 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
   display: grid; grid-template-columns: 3.5rem minmax(0, 1fr) 3.5rem;
   grid-template-areas: "konto konto konto" "boost gris uro" "oppg oppg oppg" "meld meld meld"; gap: 1rem 0.5rem; align-items: start;
 }
+.klikk-scene { position: relative; }
+.klikk-scene > :not(.by) { position: relative; z-index: 1; }
+/* Byen: én figur for hver aksje du eier, svakt i bakgrunnen og borte bak grisen. */
+.by {
+  position: absolute; z-index: 0; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.4;
+  -webkit-mask-image: radial-gradient(ellipse 44% 36% at 50% 30%, transparent 55%, #000 100%);
+  mask-image: radial-gradient(ellipse 44% 36% at 50% 30%, transparent 55%, #000 100%);
+}
+@media (prefers-color-scheme: dark) { .by { opacity: 0.3; } }
 .gris-konto { grid-area: konto; text-align: center; }
 .konto-merke { font-size: var(--t-small); font-weight: 650; color: var(--g-dempet); }
 .konto-saldo { font-size: 2.25rem; font-weight: 750; font-stretch: var(--widest); line-height: 1.1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; }
@@ -704,7 +713,14 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 @media (prefers-color-scheme: dark) { .gris-merke { color: #2b1018; } }
 .gris-navn { font-weight: 800; font-stretch: var(--wide); }
 .gris-verdi { font-size: 0.8125rem; font-weight: 650; font-variant-numeric: tabular-nums; }
-.gris-mynt { position: absolute; top: 14%; left: 50%; width: 1.3rem; height: 1.3rem; border: 2px solid var(--g-blekk); border-radius: 50%; background: #dfe3ea; pointer-events: none; }
+/* Pengene er gullmynter med «kr» i midten, mørkere ut mot kanten. */
+.gris-mynt, .gulmynt {
+  position: absolute; display: grid; place-items: center; border: 1.5px solid #7a4a06; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 42% 38%, #fff3b0 0 12%, #ffd84a 34%, #e9a91c 66%, #9c6408 100%);
+  box-shadow: inset 0 0 0 2px rgb(255 236 150 / 0.55), 0 1px 0 rgb(43 33 24 / 0.35);
+  color: #6b3f00; font-weight: 900; font-stretch: var(--wide); line-height: 1; letter-spacing: -0.02em; text-shadow: 0 1px 0 rgb(255 240 170 / 0.8);
+}
+.gris-mynt { top: 14%; left: 50%; width: 1.6rem; height: 1.6rem; font-size: 0.6rem; }
 
 .pluss {
   position: absolute; z-index: 3; padding: 0.1rem 0.5rem; border: 2px solid var(--g-blekk); border-radius: 999px; background: var(--g-kort); color: var(--ink);
@@ -714,8 +730,12 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 
 .fart { display: grid; justify-items: center; gap: 0.25rem; font-size: 0.75rem; font-weight: 700; color: var(--g-dempet); font-variant-numeric: tabular-nums; }
 .fart.pa { color: var(--ink); }
+.fart.vill { color: #c2410c; }
+@media (prefers-color-scheme: dark) { .fart.vill { color: #ffab73; } }
 .fart-strek { width: 7rem; height: 0.45rem; overflow: hidden; border: 1.5px solid var(--g-blekk); border-radius: 999px; background: var(--g-kort); }
-.fart-strek i { display: block; width: 100%; height: 100%; transform: scaleX(0); transform-origin: left; background: linear-gradient(90deg, #f29b38, #e8553d); transition: transform 160ms linear; }
+.fart-strek { position: relative; }
+.fart-strek::after { content: ""; position: absolute; top: 0; bottom: 0; left: 60%; width: 1.5px; background: var(--g-blekk); opacity: 0.45; }
+.fart-strek i { display: block; width: 100%; height: 100%; transform: scaleX(0); transform-origin: left; background: linear-gradient(90deg, #f29b38 0 50%, #e8553d 60%, #b5179e); transition: transform 160ms linear; }
 
 .pris {
   padding: 0.15rem 0.55rem; border-radius: 999px; background: var(--g-gronn); color: var(--g-pris-tekst); font-weight: 750;
@@ -746,14 +766,22 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .hendelse.verden { background: var(--g-rod-bak); }
 .hendelse.krakk { background: var(--g-gronn-bak); }
 .ekstra {
-  position: relative; display: grid; gap: 0.1rem; max-width: 24rem; padding: 0.6rem 1rem 0.75rem; overflow: hidden; border: 2px solid var(--g-blekk); border-radius: 1rem;
-  background: var(--g-kort); color: var(--ink); font: inherit; text-align: center; cursor: pointer; box-shadow: 0 3px 0 var(--g-blekk); transition: transform 140ms var(--ease-out);
+  position: relative; display: grid; gap: 0.15rem; width: min(100%, 26rem); padding: 0.65rem 0.75rem 0.85rem; overflow: hidden; border: 2px solid var(--g-blekk); border-radius: 1rem;
+  background: var(--g-kort); color: var(--ink); text-align: center; box-shadow: 0 3px 0 var(--g-blekk);
 }
-.ekstra:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--g-blekk); }
-.ekstra[aria-disabled="true"] { box-shadow: none; }
 .ekstra-navn { display: flex; align-items: center; justify-content: center; gap: 0.45rem; font-weight: 750; }
 .ekstra-navn::before { content: ""; flex: none; width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--multe); }
 .ekstra-vilkar { font-size: var(--t-small); color: var(--g-dempet); font-variant-numeric: tabular-nums; }
+.ekstra-valg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.45rem; margin-top: 0.45rem; }
+.ekstra-knapp {
+  display: grid; justify-items: center; gap: 0.2rem; min-height: 2.75rem; padding: 0.45rem 0.25rem; border: 2px solid var(--g-blekk); border-radius: 0.8rem;
+  background: var(--g-bak); color: var(--ink); font: inherit; font-variant-numeric: tabular-nums; cursor: pointer; transition: transform 140ms var(--ease-out);
+}
+.ekstra-knapp:active { transform: scale(0.96); }
+.ekstra-knapp[aria-disabled="true"] { border-color: var(--g-kant); }
+.ekstra-tid { font-weight: 800; }
+.ekstra-avk { padding: 0 0.4rem; border-radius: 999px; background: #ffd84a; color: #2b2118; font-size: 0.75rem; font-weight: 800; }
+.ekstra-knapp .pris { font-size: 0.75rem; }
 .ekstra::after { content: ""; position: absolute; left: 0; bottom: 0; width: 100%; height: 4px; background: var(--multe); transform: scaleX(var(--igjen, 1)); transform-origin: left; }
 .ventende { list-style: none; margin: 0; padding: 0; font-size: var(--t-small); color: var(--g-dempet); font-variant-numeric: tabular-nums; }
 .status { min-height: 1.35em; font-size: var(--t-small); color: var(--g-dempet); }
@@ -790,8 +818,28 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .radmerke { padding: 0 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
 .merke-krakk { background: var(--g-gronn-bak); color: var(--g-gronn); }
 .merke-verden { background: var(--g-rod-bak); color: var(--g-rod); }
+.merke-rad { background: #efe3fb; color: #5b3a85; }
+@media (prefers-color-scheme: dark) { .merke-rad { background: #3a2d4d; color: #d9c2f5; } }
+.aksjerad.pekt .rad-knapp { box-shadow: 0 0 0 3px var(--g-bak), 0 0 0 5px var(--g-lilla); }
+
+/* Investeringsrådgiveren */
+.radgiver {
+  display: grid; grid-template-columns: 3.25rem minmax(0, 1fr); grid-template-areas: "figur tekst" "knapp knapp"; gap: 0.6rem 0.85rem; align-items: center;
+  margin-bottom: 0.85rem; padding: 0.75rem 0.85rem; border: 2px dashed var(--g-lilla); border-radius: 1.1rem; background: var(--g-kort);
+}
+.radgiver-figur { grid-area: figur; display: block; width: 3.25rem; height: 3.25rem; }
+.radgiver-tekst { grid-area: tekst; min-width: 0; }
+.radgiver-navn { font-weight: 650; line-height: 1.25; }
+.radgiver-navn b { font-weight: 800; font-stretch: var(--wide); }
+.radgiver-info { margin-top: 0.15rem; font-size: 0.8125rem; line-height: 1.35; color: var(--g-dempet); }
+.radgiver-knapp { grid-area: knapp; justify-self: start; }
+.butikk { container-type: inline-size; }
+@container (min-width: 32rem) {
+  .radgiver { grid-template-columns: 3.25rem minmax(0, 1fr) auto; grid-template-areas: "figur tekst knapp"; }
+  .radgiver-knapp { justify-self: end; }
+}
 .aksjerad.rad-skygge .rad-knapp { cursor: default; border-style: dashed; }
-.gulmynt { position: absolute; top: 10%; width: 0.6rem; height: 0.6rem; border: 1.5px solid var(--g-blekk); border-radius: 50%; background: var(--multe); pointer-events: none; }
+.gulmynt { top: 6%; width: 1.15rem; height: 1.15rem; margin-left: -0.575rem; font-size: 0.45rem; border-width: 1px; }
 .klikk-husk { margin-top: 1.25rem; }
 .klikk-husk label { display: inline-flex; align-items: center; gap: 0.6rem; min-height: 2.75rem; cursor: pointer; }
 .klikk-husk input { width: 1.25rem; height: 1.25rem; accent-color: var(--ink); }
@@ -807,7 +855,7 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 @media (hover: hover) and (pointer: fine) {
   .rad-knapp[aria-disabled="false"]:hover { transform: translateY(-2px); }
   .spillikon:hover { transform: translateY(-2px); }
-  .oppgrader[aria-disabled="false"]:hover, .ekstra[aria-disabled="false"]:hover { transform: translateY(-1px); }
+  .oppgrader[aria-disabled="false"]:hover, .ekstra-knapp[aria-disabled="false"]:hover { transform: translateY(-1px); }
 }
 
 @media (min-width: 40rem) {
@@ -823,6 +871,16 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
   .spillikon { width: 3.75rem; height: 3.75rem; }
   .uro-strek { height: 12rem; }
   .mini { display: none; }
+}
+/* På PC får spillet hele bredden, og scenen blir større. */
+@media (min-width: 75rem) {
+  .side-klikk main { max-width: 110rem; }
+  .klikk { grid-template-columns: minmax(0, 1fr) minmax(0, 34rem); gap: 2.5rem; padding: 2.5rem; }
+  .klikk-scene { grid-template-columns: 5rem minmax(0, 1fr) 4rem; min-height: 40rem; }
+  .gris { width: min(100%, 21rem); }
+  .konto-saldo { font-size: 3.5rem; }
+  .spillikon { width: 4.25rem; height: 4.25rem; }
+  .uro-strek { height: 15rem; }
 }
 
 /* Figurene lever når du eier selskapet */

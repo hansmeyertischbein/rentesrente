@@ -154,6 +154,13 @@ export const FIGURER = {
     BRILLER() + OYNE() + KINN + NESE + SMIL,
     '<circle cx="52" cy="50" r="9" fill="#6aa9e0"/><path d="M47 45q4 1 3 5t4 4M55 43q3 3 1 6" fill="none" stroke="#3f8f4a" stroke-width="2.4"/><path d="M44 39.5l19-3.4" fill="none" stroke="#e8553d" stroke-width="2.4"/>'
   ) },
+  // Investeringsrådgiveren Finn Fondsen: skallet med grå tjafser, bart, briller og pekestokk.
+  radgiver: { tile: "#efe3fb", svg: figur(
+    '<path d="M12 64c0-9 9-14 20-14s20 5 20 14z" fill="#3d4a5c"/><path d="M28 50l4 4 4-4" fill="#fff"/><path d="M32 54l-2.5 4 2.5 6 2.5-6z" fill="#f6c945"/>' +
+    ORER() + ANSIKT() + '<path d="M18.5 27q-2-7 3-10M45.5 27q2-7-3-10" fill="none" stroke="#a39a92" stroke-width="3.4"/>' +
+    BRILLER() + OYNE() + KINN + NESE + '<path d="M25.5 37q3.5-2.6 6.5-.4 3-2.2 6.5.4-3 3.4-6.5 1.4-3.5 2-6.5-1.4z" fill="#a39a92"/>',
+    '<path d="M44 62l15-26" fill="none" stroke="#8a5a2b" stroke-width="2.8"/><circle cx="59" cy="35" r="2.6" fill="#e8553d"/>'
+  ) },
   // Trykkboostere: en liten gris med mynt.
   trykk: { tile: "#fde2ea", svg: figur(
     '<path d="M18 50v8M28 52v7M40 52v7M48 50v8" fill="none" stroke-width="4"/><ellipse cx="32" cy="40" rx="22" ry="16" fill="#f7b3c2"/>' +

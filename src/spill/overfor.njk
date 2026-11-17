@@ -17,7 +17,8 @@ sideklasse: side-klikk
     <h2 id="klikk-tittel" class="skjult">Spillet</h2>
     <noscript><p class="forbehold">Spillet trenger JavaScript.</p></noscript>
 
-    <div class="klikk-scene">
+    <div class="klikk-scene" id="scene">
+      <canvas class="by" id="by" aria-hidden="true"></canvas>
       <div class="gris-konto" id="konto">
         <p class="konto-merke">I sparegrisen</p>
         <p class="konto-saldo" id="saldo">0 øre</p>
@@ -46,7 +47,11 @@ sideklasse: side-klikk
 
       <div class="meldinger">
         <p class="hendelse" id="hendelse" hidden></p>
-        <button type="button" class="ekstra" id="ekstra" hidden><span class="ekstra-navn">Invester for ekstraordinært utbytte</span><span class="ekstra-vilkar" id="ekstra-vilkar"></span></button>
+        <div class="ekstra" id="ekstra" role="group" aria-labelledby="ekstra-navn" hidden>
+          <p class="ekstra-navn" id="ekstra-navn">Invester for ekstraordinært utbytte</p>
+          <p class="ekstra-vilkar" id="ekstra-vilkar"></p>
+          <div class="ekstra-valg" id="ekstra-valg"></div>
+        </div>
         <ul class="ventende" id="ventende"></ul>
         <p class="status" id="status" role="status"></p>
         <p class="skjult" id="annonse" role="status"></p>
@@ -64,6 +69,14 @@ sideklasse: side-klikk
             <label><input type="radio" name="antall" value="maks"><span>Maks</span></label>
           </div>
         </fieldset>
+      </div>
+      <div class="radgiver" id="radgiver" hidden>
+        <span class="radgiver-figur" id="radgiver-figur"></span>
+        <div class="radgiver-tekst">
+          <p class="radgiver-navn">Investeringsrådgiver <b>Finn Fondsen</b></p>
+          <p class="radgiver-info" id="radgiver-info"></p>
+        </div>
+        <button type="button" class="oppgrader radgiver-knapp" id="radgiver-knapp"><span class="oppgrader-navn" id="radgiver-handling">Ansett</span><span class="pris" id="radgiver-pris"></span></button>
       </div>
       <ul class="butikk-liste" id="butikk" aria-labelledby="butikk-tittel"></ul>
 

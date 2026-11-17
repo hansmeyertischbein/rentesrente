@@ -2,8 +2,8 @@
 import {
   REGLER, AKSJER, BOOSTERE, nyTilstand, trykk, klikkverdi, grunnTrykk, fartFaktor, perSekund, aksjeRate, utbyttePerAksje,
   prisAksje, maksAksje, kjopAksje, prisTrykk, kjopTrykk, nesteBoostere, andelRad, kjopBooster, generalforsamlinger, gfAntall,
-  tikk, borte, uroFyll, urolig, uroSteg, rabatt, ekstraTilbud, investerEkstra, synlige, tilLagring, fraLagring,
-  formaterOre, formaterTid,
+  tikk, borte, uroFyll, urolig, uroSteg, rabatt, ekstraTilbud, ekstraAvkastning, investerEkstra, synlige, tilLagring, fraLagring,
+  radgiverTreff, prisRadgiver, kjopRadgiver, radgiverSynlig, radgiverPek, formaterOre, formaterTid,
 } from "/lib/klikker.js";
 import { formaterTall } from "/lib/format.js";
 import { FIGURER, GRIS } from "./klikker-figurer.js";
@@ -21,9 +21,12 @@ const el = {
   oppgrader: $("oppgrader"), oppgraderNiva: $("oppgrader-niva"), oppgraderPris: $("oppgrader-pris"),
   boostere: $("booster-liste"), gf: $("gf-liste"), tips: $("tips"),
   uro: $("uro"), uroIkon: $("uro-ikon"), uroFyll: $("uro-fyll"),
-  hendelse: $("hendelse"), ekstra: $("ekstra"), ekstraVilkar: $("ekstra-vilkar"), ventende: $("ventende"), status: $("status"), annonse: $("annonse"),
+  hendelse: $("hendelse"), ekstra: $("ekstra"), ekstraVilkar: $("ekstra-vilkar"), ekstraValg: $("ekstra-valg"), ventende: $("ventende"), status: $("status"), annonse: $("annonse"),
   butikk: $("butikk"), husk: $("husk"), omstart: $("omstart"),
   mini: $("mini"), miniSaldo: $("mini-saldo"), miniRate: $("mini-rate"),
+  scene: $("scene"), by: $("by"),
+  radgiver: $("radgiver"), radgiverFigur: $("radgiver-figur"), radgiverInfo: $("radgiver-info"),
+  radgiverKnapp: $("radgiver-knapp"), radgiverHandling: $("radgiver-handling"), radgiverPris: $("radgiver-pris"),
 };
 
 let t = nyTilstand();
@@ -35,6 +38,8 @@ let tilbud = null, tilbudSlutt = 0, tilbudNeste = 0;
 let boosterNokkel = "", gfNokkel = "", ventNokkel = "";
 let aktivTips = null, pekertype = "mouse";
 let myntNeste = 0;
+let pekt = null, pekNeste = 0;  // aksjen rådgiveren peker på, og når han ser på nytt
+const PEK_SEK = 20;
 const rader = new Map();
 
 const ore = formaterOre;
@@ -88,6 +93,7 @@ function myntInn() {
   if (el.gris.querySelectorAll(".gris-mynt").length > 5) return;
   const m = document.createElement("span");
   m.className = "gris-mynt";
+  m.textContent = "kr";
   el.gris.append(m);
   m.animate([{ transform: "translate(-50%, -2.2rem)", opacity: 1 }, { transform: "translate(-50%, 0.2rem)", opacity: 1, offset: 0.8 }, { transform: "translate(-50%, 0.5rem) scaleY(0.4)", opacity: 0 }],
     { duration: 300, easing: "cubic-bezier(0.55, 0, 1, 0.45)" }).finished.then(() => m.remove(), () => m.remove());
@@ -103,6 +109,7 @@ function gulMynt(naa) {
   if (flis.bottom < 0 || flis.top > innerHeight) return;
   const m = document.createElement("span");
   m.className = "gulmynt";
+  m.textContent = "kr";
   m.style.left = `${tilfeldig(25, 75)}%`;
   r.figur.append(m);
   flyt(m, 28, 900);
@@ -341,6 +348,7 @@ function tegnButikk() {
     const merker = [];
     if (rabatt(t, id) > 0) merker.push(["krakk", `Krakk: ${prosent(rabatt(t, id))} billigere`]);
     if (t.uro.verden?.mal === id) merker.push(["verden", `Utbytte ${prosent(t.uro.verden.fall)} lavere`]);
+    if (pekt === id) merker.push(["rad", "Fondsen peker hit"]);
     const merkeNokkel = merker.map((m) => m.join(":")).join("|");
     if (r.merker.dataset.n !== merkeNokkel) {
       r.merker.dataset.n = merkeNokkel;
@@ -353,6 +361,7 @@ function tegnButikk() {
     }
     settAttr(r.knapp, "aria-disabled", pris <= t.saldo ? "false" : "true");
     r.li.classList.toggle("eier", n > 0);
+    r.li.classList.toggle("pekt", pekt === id);
   }
 }
 
@@ -364,6 +373,7 @@ function kjop(id) {
   t = kjopAksje(t, id, ant);
   if (t === for_) { si(`Du mangler ${ore(prisAksje(t, id, ant) - t.saldo)}.`); return; }
   hopp(rader.get(id)?.figur);
+  if (id === pekt) pekNeste = 0;   // rådgiveren ser på nytt når du har kjøpt det han pekte på
   const n = t.aksjer[id];
   const gf = gfAntall(t, id);
   if (gf > gfFor) si(`Generalforsamling i ${a.navn}: du stemte for høyere utbytte. Nå ${ganger(Math.pow(REGLER.gfFaktor, gf))} utbytte.`);
@@ -377,6 +387,12 @@ function kjop(id) {
 function klikkSisteSek(naa = performance.now()) {
   klikk = klikk.filter((k) => naa - k.tid < 1000);
   return klikk;
+}
+
+// Fartsstreken: de første 60 % går jevnt til 2,5 ganger, resten opp mot 12 ganger.
+function fartAndel(f) {
+  if (f <= REGLER.fartLett) return (0.6 * (f - 1)) / (REGLER.fartLett - 1);
+  return 0.6 + (0.4 * Math.log(f / REGLER.fartLett)) / Math.log(REGLER.fartMaks / REGLER.fartLett);
 }
 
 function tegnKonto() {
@@ -394,9 +410,10 @@ function tegnKonto() {
 
   const f = fartFaktor(siste.length);
   settTekst(el.grisVerdi, "+" + ore(klikkverdi(t, siste.length + 1)));
-  settTekst(el.fartTekst, f > 1 ? `Fart ${formaterTall(f, 2)}x` : "Trykk raskt for fart");
+  settTekst(el.fartTekst, f > 1 ? `Fart ${formaterTall(f, f >= 10 ? 1 : 2)}x` : "Trykk raskt for fart");
   el.fart.classList.toggle("pa", f > 1);
-  el.fartFyll.style.transform = `scaleX(${(f - 1) / (REGLER.fartMaks - 1)})`;
+  el.fart.classList.toggle("vill", f > REGLER.fartLett);
+  el.fartFyll.style.transform = `scaleX(${fartAndel(f).toFixed(3)})`;
 
   const pris = prisTrykk(t, 1);
   settTekst(el.oppgraderNiva, `nivå ${formaterTall(t.trykkNiva)}`);
@@ -493,44 +510,178 @@ function tegnEkstra(naa) {
       tilbud = ekstraTilbud(t);
       if (tilbud) {
         tilbudSlutt = naa + REGLER.ekstraVisSek * 1000;
+        lagEkstraValg();
         el.ekstra.hidden = false;
         hopp(el.ekstra);
       }
     }
   }
   if (tilbud) {
-    const mangler = tilbud.pris - t.saldo;
-    settTekst(el.ekstraVilkar, `Betal ${ore(tilbud.pris)} nå, få ${ore(tilbud.sum)} om ${tilbud.vent} sek` + (mangler > 0 ? `. Du mangler ${ore(mangler)}.` : "."));
-    settAttr(el.ekstra, "aria-disabled", mangler > 0 ? "true" : "false");
+    settTekst(el.ekstraVilkar, `Få ${ore(tilbud.sum)}. Jo lenger du venter, jo mindre betaler du nå.`);
+    for (const knapp of el.ekstraValg.children) {
+      const v = tilbud.valg[Number(knapp.dataset.nr)];
+      settAttr(knapp, "aria-disabled", v.pris <= t.saldo ? "false" : "true");
+    }
     el.ekstra.style.setProperty("--igjen", Math.max(0, (tilbudSlutt - naa) / (REGLER.ekstraVisSek * 1000)).toFixed(3));
   }
-  const nokkel = t.ventende.map((v) => `${v.sum}:${Math.ceil(v.igjen)}`).join("|");
+  const nokkel = t.ventende.map((v) => `${v.sum}:${formaterTid(Math.ceil(v.igjen))}`).join("|");
   if (nokkel !== ventNokkel) {
     ventNokkel = nokkel;
     el.ventende.replaceChildren(...t.ventende.map((v) => {
       const li = document.createElement("li");
-      li.textContent = `Ekstraordinært utbytte: ${ore(v.sum)} om ${Math.ceil(v.igjen)} sek`;
+      li.textContent = `Ekstraordinært utbytte: ${ore(v.sum)} om ${formaterTid(Math.ceil(v.igjen))}`;
       return li;
     }));
   }
 }
 
-el.ekstra.addEventListener("click", () => {
+function lagEkstraValg() {
+  el.ekstraValg.replaceChildren(...tilbud.valg.map((v, nr) => {
+    const knapp = document.createElement("button");
+    knapp.type = "button";
+    knapp.className = "ekstra-knapp";
+    knapp.dataset.nr = nr;
+    knapp.innerHTML = '<span class="ekstra-tid"></span><span class="ekstra-avk"></span><span class="pris"></span>';
+    knapp.querySelector(".ekstra-tid").textContent = formaterTid(v.vent);
+    knapp.querySelector(".ekstra-avk").textContent = `+${prosent(ekstraAvkastning(tilbud, v))}`;
+    knapp.querySelector(".pris").textContent = ore(v.pris);
+    knapp.setAttribute("aria-label", `Vent ${formaterTid(v.vent)}: betal ${ore(v.pris)} nå og få ${ore(tilbud.sum)}, ${prosent(ekstraAvkastning(tilbud, v))} avkastning.`);
+    knapp.addEventListener("click", () => investerValg(nr));
+    return knapp;
+  }));
+}
+
+function investerValg(nr) {
   if (!tilbud) return;
+  const v = tilbud.valg[nr];
   const for_ = t;
-  t = investerEkstra(t, tilbud);
-  if (t === for_) { si(`Du mangler ${ore(tilbud.pris - t.saldo)}.`); return; }
-  si(`Du investerte ${ore(tilbud.pris)}. ${ore(tilbud.sum)} kommer om ${tilbud.vent} sek.`);
+  t = investerEkstra(t, tilbud, nr);
+  if (t === for_) { si(`Du mangler ${ore(v.pris - t.saldo)}.`); return; }
+  si(`Du investerte ${ore(v.pris)}. ${ore(tilbud.sum)} kommer om ${formaterTid(v.vent)}.`);
   tilbud = null;
   el.ekstra.hidden = true;
   tilbudNeste = Date.now() + tilfeldig(45, 90) * 1000;
   tegn();
   lagre();
-});
+}
 
 // ---------- Alt sammen ----------
 
+// ---------- Investeringsrådgiveren ----------
+
+el.radgiverFigur.innerHTML = `<span class="ikon-flis" style="--tile:${FIGURER.radgiver.tile}">${FIGURER.radgiver.svg}</span>`;
+
+function tegnRadgiver(naa) {
+  const vis = radgiverSynlig(t);
+  if (el.radgiver.hidden === vis) el.radgiver.hidden = !vis;
+  if (!vis) return;
+  const treff = radgiverTreff(t);
+  if (treff > 0 && (naa >= pekNeste || (pekt && !rader.has(pekt)))) {
+    const ny = radgiverPek(t);
+    if (ny !== pekt && ny) { pekt = ny; hopp(rader.get(ny)?.figur); }
+    pekNeste = naa + PEK_SEK * 1000;
+  }
+  if (treff === 0) pekt = null;
+  const navn = pekt ? aksje(pekt).navn : "";
+  settTekst(el.radgiverInfo, treff === 0
+    ? `Peker på aksjen som ser rimeligst ut, med mest utbytte per krone. Treffer ${prosent(REGLER.radgiverStart)} av gangene, og bommer han, er det oftest med lite.`
+    : `Treffsikkerhet ${prosent(treff)}. Han peker nå på ${navn}.`);
+  const pris = prisRadgiver(t);
+  const toppen = !Number.isFinite(pris);
+  el.radgiverKnapp.hidden = toppen;
+  if (toppen) return;
+  const neste = treff === 0 ? REGLER.radgiverStart : treff + REGLER.radgiverSteg;
+  settTekst(el.radgiverHandling, treff === 0 ? "Ansett" : `Oppgrader til ${prosent(neste)}`);
+  settTekst(el.radgiverPris, ore(pris));
+  settAttr(el.radgiverKnapp, "aria-disabled", pris <= t.saldo ? "false" : "true");
+}
+
+el.radgiverKnapp.addEventListener("click", () => {
+  const for_ = t;
+  t = kjopRadgiver(t);
+  if (t === for_) { si(`Du mangler ${ore(prisRadgiver(t) - t.saldo)}.`); return; }
+  pekNeste = 0;
+  si(for_.radgiver === 0 ? "Finn Fondsen er ansatt. Han peker på én aksje om gangen." : `Finn Fondsen treffer nå ${prosent(radgiverTreff(t))} av gangene.`);
+  hopp(el.radgiverFigur);
+  tegn();
+  lagre();
+});
+
+// ---------- Byen i bakgrunnen: én figur for hver aksje, bod og butikk du eier ----------
+
+const bilder = {};
+let byNokkel = "";
+
+function bilde(id) {
+  if (!bilder[id]) {
+    const img = new Image();
+    const kode = FIGURER[id].svg.replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" ');
+    img.onload = () => { byNokkel = ""; };
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(kode);
+    bilder[id] = img;
+  }
+  return bilder[id];
+}
+
+// Byen bygges fra bakken og opp. Innen hver rad er rekkefølgen fast, men stokket, så figurene står på samme sted fra gang til gang.
+function rekkefolge(kol, rad) {
+  let fro = 20261117;
+  const neste = () => { fro = (fro * 1664525 + 1013904223) % 4294967296; return fro / 4294967296; };
+  const liste = [];
+  for (let r = rad - 1; r >= 0; r--) {
+    const kolonner = Array.from({ length: kol }, (_, i) => i);
+    for (let i = kol - 1; i > 0; i--) { const j = Math.floor(neste() * (i + 1)); [kolonner[i], kolonner[j]] = [kolonner[j], kolonner[i]]; }
+    for (const k of kolonner) liste.push({ k, r, dx: neste() - 0.5, dy: neste() - 0.5 });
+  }
+  return liste;
+}
+
+function tegnBy() {
+  // Byen står under saldoen, så tallene alltid er lette å lese.
+  const topp = el.konto.offsetTop + el.konto.offsetHeight + 8;
+  const b = el.scene.clientWidth, h = Math.max(0, el.scene.clientHeight - topp);
+  if (el.by.style.top !== `${topp}px`) { el.by.style.top = `${topp}px`; el.by.style.height = `${h}px`; }
+  const eide = AKSJER.filter((a) => t.aksjer[a.id] > 0).map((a) => ({ id: a.id, n: t.aksjer[a.id] }));
+  const nokkel = `${b}x${h}:` + eide.map((e) => `${e.id}${e.n}`).join(",");
+  if (nokkel === byNokkel || !b || !h) return;
+  byNokkel = nokkel;
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  el.by.width = Math.round(b * dpr);
+  el.by.height = Math.round(h * dpr);
+  const ctx = el.by.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, b, h);
+  const totalt = eide.reduce((s, e) => s + e.n, 0);
+  if (!totalt) return;
+  const rute = Math.max(13, Math.min(34, Math.floor(Math.sqrt((b * h) / totalt))));
+  const kol = Math.floor(b / rute), rad = Math.floor(h / rute);
+  const plasser = kol * rad;
+  // Er det flere enn det er plass til, får hvert selskap plass etter hvor mange du eier, men minst én.
+  const tegnes = totalt <= plasser ? eide : eide.map((e) => ({ ...e, n: Math.max(1, Math.floor((e.n / totalt) * plasser)) }));
+  const rekke = rekkefolge(kol, rad);
+  const kant = (b - kol * rute) / 2;
+  const luft = Math.max(1.5, rute * 0.08);
+  const str = rute - 2 * luft;
+  let i = 0;
+  for (const e of tegnes) {
+    const img = bilde(e.id);
+    const tile = FIGURER[e.id].tile;
+    for (let k = 0; k < e.n && i < plasser; k++, i++) {
+      const p = rekke[i];
+      const x = kant + p.k * rute + luft + p.dx * luft;
+      const y = h - (rad - p.r) * rute + luft + p.dy * luft;
+      ctx.fillStyle = tile;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(x, y, str, str, str * 0.25) : ctx.rect(x, y, str, str);
+      ctx.fill();
+      if (img.complete && img.naturalWidth) ctx.drawImage(img, x, y, str, str);
+    }
+  }
+}
+if ("ResizeObserver" in window) new ResizeObserver(() => { byNokkel = ""; tegnBy(); }).observe(el.scene);
+
 function tegn(naa = Date.now()) {
+  tegnRadgiver(naa);
   tegnKonto();
   tegnBoostere();
   tegnGf();
@@ -538,6 +689,7 @@ function tegn(naa = Date.now()) {
   tegnUro();
   tegnEkstra(naa);
   tegnMilepel();
+  tegnBy();
   oppdaterTips();
 }
 
@@ -593,7 +745,7 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) lagre
     }
     nullstill();
     t = nyTilstand();
-    milepel = 0; klikk = []; tilbud = null; tilbudNeste = 0;
+    milepel = 0; klikk = []; tilbud = null; tilbudNeste = 0; pekt = null; pekNeste = 0;
     boosterNokkel = ""; gfNokkel = ""; ventNokkel = "";
     el.ekstra.hidden = true;
     skjulTips();
