@@ -1,97 +1,209 @@
 // Spillet «Overfør»: regler og regning. Rene funksjoner uten avhengigheter til nettleseren.
 // Alle beløp er i øre. Tilstanden endres aldri, hver handling gir en ny tilstand.
+// Tilfeldighet kommer inn som en funksjon rng() som gir et tall fra 0 til 1, så testene kan styre den.
 
 import { formaterTall } from "./format.js";
 
-const NBSP = " ";
+const NBSP = " ";
 
 export const REGLER = Object.freeze({
   trykkStart: 10,          // øre per trykk på «Overfør»
   trykkSteg: 0.1,          // øre mer per nivå
   trykkGrunnpris: 10,      // øre for første nivå
   trykkVekst: 1.05,        // hvert nivå koster 5 % mer enn forrige
-  prisvekst: 1.15,         // hvert nivå av en hjelper koster 15 % mer enn forrige
-  loftNivaer: Object.freeze([10, 25, 50]),   // nivåene der en hjelper kan få et løft
-  loftPris: Object.freeze([12, 150, 4000]),  // prisen på løftet, i ganger hjelperens grunnpris
-  utbytteSek: 60,          // et utbytte er verdt så mange sekunder inntekt
-  utbytteVisSek: 12,       // så lenge kan et utbytte hentes
-  maksBorteSek: 2 * 3600,  // lengste tid hjelperne tjener mens du er borte
-  maksKjop: 1000,          // flest nivåer i ett kjøp
-  visFra: 0.5,             // en hjelper vises når du har tjent halve grunnprisen
+  prisvekst: 1.15,         // hver aksje koster 15 % mer enn forrige, men gir like mye
+  boosterPris: Object.freeze([20, 300, 8000]),  // prisen på boosterne for en aksje, i ganger grunnprisen
+  gfHver: 50,              // generalforsamling for hver 50. aksje i samme selskap
+  gfFaktor: 1.5,           // hver generalforsamling gir 1,5 ganger utbytte
+  fartFra: 3,              // trykk i sekundet før farten gir ekstra
+  fartSteg: 0.15,          // ekstra per trykk i sekundet over grensen
+  fartMaks: 2.5,           // høyeste fartsboost
+  ekstraSek: 90,           // et ekstraordinært utbytte er verdt så mange sekunder utbytte
+  ekstraBetal: Object.freeze([0.6, 0.7]),  // andel av summen du betaler nå
+  ekstraVent: Object.freeze([40, 60]),     // sekunder til summen kommer
+  ekstraVisSek: 12,        // så lenge tilbudet står
+  uroSek: 180,             // så lang tid streken bruker på å fylles
+  uroFare: 0.004,          // sjanse i sekundet for en hendelse når streken er full, før den er helt full
+  verdenFall: Object.freeze([0.2, 0.5]),
+  verdenSek: Object.freeze([30, 60]),
+  krakkRabatt: Object.freeze([0.1, 0.2]),  // fra selskapet med lavest vekst til det med høyest
+  krakkSek: Object.freeze([30, 60]),
+  maksBorteSek: 2 * 3600,  // lengste tid aksjene gir utbytte mens du er borte
+  maksKjop: 1000,          // flest aksjer i ett kjøp
+  visFra: 0.5,             // et selskap vises når du har tjent halve grunnprisen
 });
 
-// Rekkefølgen er spillets egen og sier ingenting om hvem som har mest.
-// rate er øre i sekundet per nivå, pris er øre for første nivå.
-export const HJELPERE = Object.freeze([
-  { id: "reitan", navn: "Odd Reitan", bransje: "Dagligvare", rate: 10, pris: 150, loft: ["Større handlevogn", "Åpent til sent", "Butikk i hver bygd"] },
-  { id: "stordalen", navn: "Petter Stordalen", bransje: "Hotell", rate: 60, pris: 1500, loft: ["Frokostbuffet", "Takterrasse", "Hotell i hver by"] },
-  { id: "witzoe", navn: "Gustav Witzøe", bransje: "Laks", rate: 400, pris: 16000, loft: ["Større merd", "Fôrbåt", "Merd til havs"] },
-  { id: "andresen", navn: "Katharina Andresen", bransje: "Familieselskap", rate: 2500, pris: 160000, loft: ["Styremøte", "Langsiktig plan", "Neste generasjon"] },
-  { id: "rokke", navn: "Kjell Inge Røkke", bransje: "Industri", rate: 15000, pris: 1.6e6, loft: ["Større kran", "Nytt verft", "Industripark"] },
-  { id: "fredriksen", navn: "John Fredriksen", bransje: "Skipsfart", rate: 100000, pris: 1.8e7, loft: ["Større tankskip", "Ny rute", "Hel flåte"] },
-  { id: "midelfart", navn: "Celina Midelfart", bransje: "Investeringer", rate: 700000, pris: 2.1e8, loft: ["Regneark", "Større portefølje", "Styreverv"] },
-  { id: "tangen", navn: "Nicolai Tangen", bransje: "Oljefondet", rate: 5e6, pris: 2.5e9, loft: ["Kvartalsrapport", "Bredere indeks", "Lang horisont"] },
-].map((h) => Object.freeze({ ...h, loft: Object.freeze(h.loft) })));
+// Fra lavest til høyest vekst. Navnene er oppdiktet. rate er øre i sekundet per aksje, pris er øre for den første.
+const LISTE = [
+  { id: "limonade", navn: "Limonadebod", sektor: "Gatesalg", en: "bod", fler: "boder", rate: 10, pris: 150,
+    boostere: ["Mer sitron", "Isbiter", "Bod på hvert hjørne"], uro: "Det regner hele uka" },
+  { id: "blomst", navn: "Blomsterbutikk", sektor: "Blomster", en: "butikk", fler: "butikker", rate: 50, pris: 1000,
+    boostere: ["Tulipaner", "Buketter til morsdag", "Drivhus"], uro: "Pollensesongen kom tidlig" },
+  { id: "jordbaer", navn: "Jordbærstand", sektor: "Bær", en: "stand", fler: "stander", rate: 300, pris: 11000,
+    boostere: ["Større kurver", "Fløte på toppen", "Hel åker"], uro: "Snegler i åkeren" },
+  { id: "onkel", navn: "Onkels ølbryggeri", sektor: "Bryggeri", en: "bryggeri", fler: "bryggerier", rate: 1500, pris: 120000,
+    boostere: ["Ny gjær", "Onkels hemmelige humle", "Bryggeripub"], uro: "Humlemangel" },
+  { id: "geitan", navn: "O. Geitan", sektor: "Dagligvare", en: "aksje", fler: "aksjer", rate: 8000, pris: 1.3e6,
+    boostere: ["Større handlevogn", "Åpent til sent", "Butikk i hver bygd"], uro: "Priskrig i dagligvare" },
+  { id: "lilledalen", navn: "P. Lilledalen", sektor: "Hotell", en: "aksje", fler: "aksjer", rate: 45000, pris: 1.4e7,
+    boostere: ["Frokostbuffet", "Takterrasse", "Hotell i hver by"], uro: "Turistene uteblir" },
+  { id: "fredriksjo", navn: "J. Fredriksjø", sektor: "Skipsfart", en: "aksje", fler: "aksjer", rate: 260000, pris: 2e8,
+    boostere: ["Større tankskip", "Ny rute", "Hel flåte"], uro: "Storm i Nordsjøen" },
+  { id: "lokke", navn: "K. Løkke", sektor: "Industri", en: "aksje", fler: "aksjer", rate: 1.4e6, pris: 3.3e9,
+    boostere: ["Større kran", "Nytt verft", "Industripark"], uro: "Stålprisen stiger" },
+  { id: "blitzoe", navn: "G. Blitzøe", sektor: "Havbruk", en: "aksje", fler: "aksjer", rate: 7.8e6, pris: 5.1e10,
+    boostere: ["Større merd", "Fôrbåt", "Merd til havs"], uro: "Lakselus i merdene" },
+  { id: "sandresen", navn: "K. Sandresen", sektor: "Familieselskap", en: "aksje", fler: "aksjer", rate: 4.4e7, pris: 7.5e11,
+    boostere: ["Styremøte", "Langsiktig plan", "Neste generasjon"], uro: "Nye regler for eiere" },
+  { id: "mittelfart", navn: "C. Mittelfart", sektor: "Investeringer", en: "aksje", fler: "aksjer", rate: 2.6e8, pris: 1e13,
+    boostere: ["Regneark", "Større portefølje", "Styreverv"], uro: "Renten hopper opp" },
+  { id: "kolla", navn: "Koka-Kolla", sektor: "Brus", en: "aksje", fler: "aksjer", rate: 1.6e9, pris: 1.4e14,
+    boostere: ["Ny smak", "Uten sukker", "Automat i hver gang"], uro: "Ny sukkeravgift" },
+  { id: "valmart", navn: "Valmart", sektor: "Varehus", en: "aksje", fler: "aksjer", rate: 1e10, pris: 1.7e15,
+    boostere: ["Lavpris hver dag", "Større parkering", "Varehus i hver by"], uro: "Tollkrig" },
+  { id: "amasan", navn: "Amasån", sektor: "Netthandel", en: "aksje", fler: "aksjer", rate: 6.5e10, pris: 2.1e16,
+    boostere: ["Raskere levering", "Lager med roboter", "Levering med drone"], uro: "Pakkene står fast" },
+  { id: "mikromyk", navn: "Mikromyk", sektor: "Programvare", en: "aksje", fler: "aksjer", rate: 4.3e11, pris: 2.6e17,
+    boostere: ["Ny versjon", "Abonnement", "Sky for alle"], uro: "Skyen er nede" },
+  { id: "eple", navn: "Eple", sektor: "Telefoner", en: "aksje", fler: "aksjer", rate: 2.9e12, pris: 3.1e18,
+    boostere: ["Ny farge", "Større skjerm", "Egen butikk"], uro: "Ny modell blir utsatt" },
+  { id: "nvidde", navn: "N-Vidde", sektor: "Databrikker", en: "aksje", fler: "aksjer", rate: 2.1e13, pris: 3.7e19,
+    boostere: ["Raskere brikke", "Egen fabrikk", "Datasenter"], uro: "Brikkemangel" },
+];
 
-// Løft for selve overføringen. Hvert trykk gir en andel av det hjelperne tjener i sekundet.
-export const TRYKKLOFT = Object.freeze([
-  { id: "fast", navn: "Fast overføring", andel: 0.01, pris: 5000, krav: 50 },
-  { id: "lonn", navn: "Lønningsdag", andel: 0.02, pris: 500000, krav: 300 },
-  { id: "forst", navn: "Spar først", andel: 0.03, pris: 5e7, krav: 1000 },
-].map(Object.freeze));
+const [rabattLav, rabattHoy] = REGLER.krakkRabatt;
+export const AKSJER = Object.freeze(LISTE.map((a, i) => Object.freeze({
+  ...a,
+  boostere: Object.freeze(a.boostere),
+  krakk: Math.round((rabattLav + ((rabattHoy - rabattLav) * i) / (LISTE.length - 1)) * 100) / 100,
+})));
 
-const hjelper = (id) => HJELPERE.find((h) => h.id === id);
+// Trykkboostere: hvert trykk gir også en andel av utbyttet i sekundet.
+const TRYKKBOOST = [
+  { id: "fast", navn: "Fast overføring", andel: 0.01, pris: 2e4 },
+  { id: "lonn", navn: "Lønningsdag", andel: 0.02, pris: 2e6 },
+  { id: "forst", navn: "Spar først", andel: 0.03, pris: 2e8 },
+];
+
+// Alle boostere, sortert etter pris. type er «aksje» (ganger utbyttet fra ett selskap),
+// «trykk» (andel av utbyttet per trykk) eller «alle» (ganger utbyttet fra alle selskapene).
+export const BOOSTERE = Object.freeze([
+  ...AKSJER.flatMap((a) => a.boostere.map((navn, i) => ({
+    id: `${a.id}-${i + 1}`, type: "aksje", mal: a.id, trinn: i + 1, navn, faktor: 2, pris: a.pris * REGLER.boosterPris[i],
+  }))),
+  ...TRYKKBOOST.map((b, i) => ({ ...b, type: "trykk", trinn: i + 1 })),
+  { id: "tangent", type: "alle", navn: "N. Tangent", faktor: 1.5, pris: 5e9, trinn: 1 },
+].sort((a, b) => a.pris - b.pris).map(Object.freeze));
+
+const aksje = (id) => AKSJER.find((a) => a.id === id);
+const booster = (id) => BOOSTERE.find((b) => b.id === id);
+const mellom = ([lav, hoy], x) => lav + (hoy - lav) * x;
+
+function stille() {
+  return { fyll: 0, verden: null, krakk: null };
+}
 
 export function nyTilstand() {
   return {
     saldo: 0,
-    overfort: 0,   // det du har overført selv, ved å trykke
-    tjent: 0,      // det hjelperne har tjent
-    trykk: 0,      // antall trykk
+    totalt: 0,      // alt som har kommet inn på kontoen
+    trykk: 0,
     trykkNiva: 0,
-    hjelpere: Object.fromEntries(HJELPERE.map((h) => [h.id, 0])),
-    loft: Object.fromEntries(HJELPERE.map((h) => [h.id, 0])),
-    trykkloft: 0,  // antall løft for overføringen, kjøpt i rekkefølge
+    aksjer: Object.fromEntries(AKSJER.map((a) => [a.id, 0])),
+    boostere: [],   // id-ene til kjøpte boostere
+    ventende: [],   // ekstraordinære utbytter: { sum, igjen }
+    uro: stille(),  // lagres ikke
   };
 }
 
-/** Det én hjelper tjener i sekundet, i øre. */
-export function hjelperRate(t, id) {
-  const h = hjelper(id);
-  return h ? h.rate * t.hjelpere[id] * Math.pow(2, t.loft[id]) : 0;
+const har = (t, id) => t.boostere.includes(id);
+
+/** Antall generalforsamlinger du har stemt på i et selskap: én for hver 50. aksje. */
+export function gfAntall(t, id) {
+  return Math.floor((t.aksjer[id] ?? 0) / REGLER.gfHver);
 }
 
-/** Det alle hjelperne tjener i sekundet, i øre. */
+/** Det boosterne og generalforsamlingene ganger utbyttet med, uten verdenshendelser. */
+export function faktor(t, id) {
+  let f = Math.pow(REGLER.gfFaktor, gfAntall(t, id));
+  for (const b of BOOSTERE) {
+    if (!har(t, b.id)) continue;
+    if (b.type === "aksje" && b.mal === id) f *= b.faktor;
+    if (b.type === "alle") f *= b.faktor;
+  }
+  return f;
+}
+
+/** Hvor mye en verdenshendelse trekker fra utbyttet, fra 0 til 1. */
+export function fall(t, id) {
+  const v = t.uro?.verden;
+  return v && v.mal === id ? v.fall : 0;
+}
+
+/** Utbytte per aksje i sekundet, i øre. Det samme for hver aksje du kjøper. */
+export function utbyttePerAksje(t, id) {
+  const a = aksje(id);
+  return a ? a.rate * faktor(t, id) * (1 - fall(t, id)) : 0;
+}
+
+/** Utbytte fra ett selskap i sekundet, i øre. */
+export function aksjeRate(t, id) {
+  return utbyttePerAksje(t, id) * (t.aksjer[id] ?? 0);
+}
+
+/** Utbytte fra alle selskapene i sekundet, i øre. */
 export function perSekund(t) {
-  return HJELPERE.reduce((sum, h) => sum + hjelperRate(t, h.id), 0);
+  return AKSJER.reduce((sum, a) => sum + aksjeRate(t, a.id), 0);
 }
 
-/** Verdien av ett trykk uten løft: 10 øre, så 10,1 og 10,2. Regnet i tideler for å unngå avrundingsfeil. */
+/** Verdien av ett trykk uten boostere: 10 øre, så 10,1 og 10,2. Regnet i tideler for å unngå avrundingsfeil. */
 export function grunnTrykk(niva) {
   return (Math.round(REGLER.trykkStart * 10) + Math.round(REGLER.trykkSteg * 10) * niva) / 10;
 }
 
-/** Andelen av inntekten per sekund som hvert trykk gir i tillegg. */
+/** Andelen av utbyttet i sekundet som hvert trykk gir i tillegg. */
 export function trykkAndel(t) {
-  return TRYKKLOFT.slice(0, t.trykkloft).reduce((sum, l) => sum + l.andel, 0);
+  return BOOSTERE.filter((b) => b.type === "trykk" && har(t, b.id)).reduce((sum, b) => sum + b.andel, 0);
 }
 
-/** Verdien av ett trykk på «Overfør», i øre. */
+/** Verdien av ett trykk i rolig tempo, i øre. */
 export function trykkverdi(t) {
   return grunnTrykk(t.trykkNiva) + trykkAndel(t) * perSekund(t);
 }
 
-function sumPriser(grunnpris, vekst, fra, antall) {
+/** Fartsboost: trykker du mer enn tre ganger i sekundet, gir hvert trykk mer, opptil 2,5 ganger. */
+export function fartFaktor(trykkSisteSek) {
+  const over = Math.max(0, (Number.isFinite(trykkSisteSek) ? trykkSisteSek : 0) - REGLER.fartFra);
+  return Math.min(REGLER.fartMaks, 1 + REGLER.fartSteg * over);
+}
+
+/** Verdien av ett trykk når du har trykket så mange ganger det siste sekundet. */
+export function klikkverdi(t, trykkSisteSek = 0) {
+  return trykkverdi(t) * fartFaktor(trykkSisteSek);
+}
+
+/** Ett trykk på «Overfør». */
+export function trykk(t, trykkSisteSek = 0) {
+  const verdi = klikkverdi(t, trykkSisteSek);
+  return { ...t, saldo: t.saldo + verdi, totalt: t.totalt + verdi, trykk: t.trykk + 1 };
+}
+
+/** Rabatten på et selskap under et børskrakk, fra 0 til 1. */
+export function rabatt(t, id) {
+  return t.uro?.krakk ? aksje(id)?.krakk ?? 0 : 0;
+}
+
+function sumPriser(grunnpris, vekst, fra, antall, ganger = 1) {
   let sum = 0;
-  for (let i = 0; i < antall; i++) sum += Math.ceil(grunnpris * Math.pow(vekst, fra + i));
+  for (let i = 0; i < antall; i++) sum += Math.ceil(grunnpris * Math.pow(vekst, fra + i) * ganger);
   return sum;
 }
 
-function maks(grunnpris, vekst, fra, saldo) {
+function maks(grunnpris, vekst, fra, saldo, ganger = 1) {
   let antall = 0;
   let sum = 0;
   while (antall < REGLER.maksKjop) {
-    const neste = Math.ceil(grunnpris * Math.pow(vekst, fra + antall));
+    const neste = Math.ceil(grunnpris * Math.pow(vekst, fra + antall) * ganger);
     if (sum + neste > saldo) break;
     sum += neste;
     antall++;
@@ -101,16 +213,23 @@ function maks(grunnpris, vekst, fra, saldo) {
 
 const gyldigAntall = (antall) => Number.isInteger(antall) && antall >= 1 && antall <= REGLER.maksKjop;
 
-/** Prisen for de neste nivåene av en hjelper, i hele øre. */
-export function prisHjelper(t, id, antall = 1) {
-  const h = hjelper(id);
-  return h && gyldigAntall(antall) ? sumPriser(h.pris, REGLER.prisvekst, t.hjelpere[id], antall) : Infinity;
+/** Prisen for de neste aksjene i et selskap, i hele øre. Hver aksje koster mer enn den forrige. */
+export function prisAksje(t, id, antall = 1) {
+  const a = aksje(id);
+  return a && gyldigAntall(antall) ? sumPriser(a.pris, REGLER.prisvekst, t.aksjer[id], antall, 1 - rabatt(t, id)) : Infinity;
 }
 
-/** Hvor mange nivåer av en hjelper saldoen rekker til. */
-export function maksHjelper(t, id) {
-  const h = hjelper(id);
-  return h ? maks(h.pris, REGLER.prisvekst, t.hjelpere[id], t.saldo) : 0;
+/** Hvor mange aksjer saldoen rekker til. */
+export function maksAksje(t, id) {
+  const a = aksje(id);
+  return a ? maks(a.pris, REGLER.prisvekst, t.aksjer[id], t.saldo, 1 - rabatt(t, id)) : 0;
+}
+
+/** Kjøper aksjer. Gir samme tilstand tilbake når saldoen ikke rekker. */
+export function kjopAksje(t, id, antall = 1) {
+  const pris = prisAksje(t, id, antall);
+  if (!(pris <= t.saldo)) return t;
+  return { ...t, saldo: t.saldo - pris, aksjer: { ...t.aksjer, [id]: t.aksjer[id] + antall } };
 }
 
 /** Prisen for de neste nivåene av overføringen, i hele øre. */
@@ -122,19 +241,6 @@ export function maksTrykk(t) {
   return maks(REGLER.trykkGrunnpris, REGLER.trykkVekst, t.trykkNiva, t.saldo);
 }
 
-/** Ett trykk på «Overfør». */
-export function trykk(t) {
-  const verdi = trykkverdi(t);
-  return { ...t, saldo: t.saldo + verdi, overfort: t.overfort + verdi, trykk: t.trykk + 1 };
-}
-
-/** Kjøper nivåer av en hjelper. Gir samme tilstand tilbake når saldoen ikke rekker. */
-export function kjopHjelper(t, id, antall = 1) {
-  const pris = prisHjelper(t, id, antall);
-  if (!(pris <= t.saldo)) return t;
-  return { ...t, saldo: t.saldo - pris, hjelpere: { ...t.hjelpere, [id]: t.hjelpere[id] + antall } };
-}
-
 /** Kjøper nivåer av overføringen. */
 export function kjopTrykk(t, antall = 1) {
   const pris = prisTrykk(t, antall);
@@ -142,86 +248,138 @@ export function kjopTrykk(t, antall = 1) {
   return { ...t, saldo: t.saldo - pris, trykkNiva: t.trykkNiva + antall };
 }
 
+/** De neste boosterne du ikke har kjøpt, billigste først. */
+export function nesteBoostere(t, antall = 3) {
+  return BOOSTERE.filter((b) => !har(t, b.id)).slice(0, antall);
+}
+
+/** Hvor stor del av prisen du har råd til, fra 0 til 1. */
+export function andelRad(t, pris) {
+  return pris > 0 ? Math.min(1, Math.max(0, t.saldo / pris)) : 1;
+}
+
+export function kjopBooster(t, id) {
+  const b = booster(id);
+  if (!b || har(t, id) || !(b.pris <= t.saldo)) return t;
+  return { ...t, saldo: t.saldo - b.pris, boostere: [...t.boostere, id] };
+}
+
+/** Selskapene der du har stemt på generalforsamling, med neste grense. */
+export function generalforsamlinger(t) {
+  return AKSJER.filter((a) => gfAntall(t, a.id) > 0).map((a) => ({
+    id: a.id, antall: gfAntall(t, a.id), faktor: Math.pow(REGLER.gfFaktor, gfAntall(t, a.id)),
+    neste: (gfAntall(t, a.id) + 1) * REGLER.gfHver,
+  }));
+}
+
 /**
- * Løftene som kan kjøpes nå. Et løft for en hjelper dobler det hjelperen tjener,
- * og blir tilgjengelig når hjelperen når nivå 10, 25 og 50.
+ * Tiden går: aksjene gir utbytte, hendelser løper ut, og ekstraordinære utbytter kommer når ventetiden er over.
+ * Gir den nye tilstanden og det som kom inn fra ekstraordinære utbytter.
  */
-export function tilgjengeligeLoft(t) {
-  const liste = [];
-  const neste = TRYKKLOFT[t.trykkloft];
-  if (neste && t.trykk >= neste.krav) {
-    liste.push({ id: "trykk", navn: neste.navn, pris: neste.pris, type: "trykk", andel: neste.andel });
-  }
-  for (const h of HJELPERE) {
-    const steg = t.loft[h.id];
-    if (steg < REGLER.loftNivaer.length && t.hjelpere[h.id] >= REGLER.loftNivaer[steg]) {
-      liste.push({ id: h.id, navn: h.loft[steg], pris: h.pris * REGLER.loftPris[steg], type: "hjelper", hjelper: h.navn });
-    }
-  }
-  return liste;
-}
-
-/** Nivået der hjelperen får sitt neste løft, eller null når alle er brukt. */
-export function nesteLoftNiva(t, id) {
-  const niva = REGLER.loftNivaer[t.loft[id]];
-  return niva === undefined ? null : niva;
-}
-
-/** Kjøper løftet for en hjelper, eller for overføringen når id er «trykk». */
-export function kjopLoft(t, id) {
-  const l = tilgjengeligeLoft(t).find((x) => x.id === id);
-  if (!l || !(l.pris <= t.saldo)) return t;
-  if (l.type === "trykk") return { ...t, saldo: t.saldo - l.pris, trykkloft: t.trykkloft + 1 };
-  return { ...t, saldo: t.saldo - l.pris, loft: { ...t.loft, [id]: t.loft[id] + 1 } };
-}
-
-/** Hjelperne tjener i et antall sekunder. */
 export function tikk(t, sekunder) {
   if (!(sekunder > 0) || !Number.isFinite(sekunder)) return t;
-  const gevinst = perSekund(t) * sekunder;
-  if (gevinst === 0) return t;
-  return { ...t, saldo: t.saldo + gevinst, tjent: t.tjent + gevinst };
+  const utbytte = perSekund(t) * sekunder;
+  let ekstra = 0;
+  const ventende = [];
+  for (const v of t.ventende) {
+    const igjen = v.igjen - sekunder;
+    if (igjen <= 0) ekstra += v.sum;
+    else ventende.push({ ...v, igjen });
+  }
+  const nedtell = (h) => (h && h.igjen - sekunder > 0 ? { ...h, igjen: h.igjen - sekunder } : null);
+  const uro = t.uro ? { ...t.uro, verden: nedtell(t.uro.verden), krakk: nedtell(t.uro.krakk) } : stille();
+  const inn = utbytte + ekstra;
+  return { ...t, saldo: t.saldo + inn, totalt: t.totalt + inn, ventende, uro };
 }
 
-/** Tiden du har vært borte teller, men aldri mer enn to timer. */
+/** Tiden du har vært borte teller, men aldri mer enn to timer. Hendelser er over når du kommer tilbake. */
 export function borte(t, sekunder) {
   const sek = Math.min(Math.max(0, Number.isFinite(sekunder) ? sekunder : 0), REGLER.maksBorteSek);
-  const etter = tikk(t, sek);
-  return { tilstand: etter, sekunder: sek, gevinst: etter.tjent - t.tjent };
+  const rolig = { ...t, uro: { ...stille(), fyll: t.uro?.fyll ?? 0 } };
+  const etter = tikk(rolig, sek);
+  return { tilstand: etter, sekunder: sek, gevinst: etter.totalt - t.totalt };
 }
 
-/** Et utbytte er verdt ett minutt av det hjelperne tjener. */
-export function utbytteverdi(t) {
-  return perSekund(t) * REGLER.utbytteSek;
+// ---------- Uro i markedet ----------
+
+/** Hvor full streken er, fra 0 til 1. */
+export function uroFyll(t) {
+  return Math.min(1, (t.uro?.fyll ?? 0) / REGLER.uroSek);
 }
 
-export function taUtbytte(t) {
-  return tikk(t, REGLER.utbytteSek);
-}
-
-/** Hvor mange sekunder neste nivå av en hjelper bruker på å tjene inn prisen sin. */
-export function nedbetalingSek(t, id) {
-  const h = hjelper(id);
-  if (!h) return Infinity;
-  return prisHjelper(t, id, 1) / (h.rate * Math.pow(2, t.loft[id]));
-}
-
-/** Hvor mange trykk neste nivå av overføringen bruker på å tjene inn prisen sin. */
-export function nedbetalingTrykk(t) {
-  return prisTrykk(t, 1) / REGLER.trykkSteg;
+/** Om det er en hendelse på gang nå. */
+export function urolig(t) {
+  return Boolean(t.uro?.verden || t.uro?.krakk);
 }
 
 /**
- * Hvilke hjelpere som vises: de du eier, de du snart har råd til, og den neste som skygge.
+ * Fyller streken. Sjansen for en hendelse vokser med streken, og når den er full, skjer det alltid noe.
+ * Streken står stille mens en hendelse varer. Gir { tilstand, hendelse } der hendelse er null når ingenting skjer.
+ */
+export function uroSteg(t, sekunder, rng = Math.random) {
+  if (!(sekunder > 0) || urolig(t)) return { tilstand: t, hendelse: null };
+  const fyll = Math.min(REGLER.uroSek, (t.uro?.fyll ?? 0) + sekunder);
+  const andel = fyll / REGLER.uroSek;
+  const sjanse = andel >= 1 ? 1 : 1 - Math.exp(-REGLER.uroFare * andel * sekunder);
+  const neste = { ...t, uro: { ...(t.uro ?? stille()), fyll } };
+  if (rng() >= sjanse) return { tilstand: neste, hendelse: null };
+  const hendelse = lagHendelse(neste, rng);
+  return { tilstand: startHendelse(neste, hendelse), hendelse };
+}
+
+/** Trekker en hendelse: en verdenshendelse som rammer ett selskap, eller et børskrakk som gjør aksjene billigere. */
+export function lagHendelse(t, rng = Math.random) {
+  if (rng() < 0.5) {
+    const eide = AKSJER.filter((a) => t.aksjer[a.id] > 0);
+    const kandidater = eide.length ? eide : [AKSJER[0]];
+    const a = kandidater[Math.min(kandidater.length - 1, Math.floor(rng() * kandidater.length))];
+    return {
+      type: "verden", mal: a.id,
+      fall: Math.round(mellom(REGLER.verdenFall, rng()) * 100) / 100,
+      sek: Math.round(mellom(REGLER.verdenSek, rng())),
+    };
+  }
+  return { type: "krakk", sek: Math.round(mellom(REGLER.krakkSek, rng())) };
+}
+
+export function startHendelse(t, h) {
+  const uro = { ...(t.uro ?? stille()), fyll: 0 };
+  if (h.type === "verden") uro.verden = { mal: h.mal, fall: h.fall, igjen: h.sek };
+  else uro.krakk = { igjen: h.sek };
+  return { ...t, uro };
+}
+
+// ---------- Ekstraordinært utbytte ----------
+
+/**
+ * Et tilbud: betal 60 til 70 % av summen nå, og få hele summen om 40 til 60 sekunder.
+ * Summen er verdt 90 sekunder utbytte, men aldri mer enn at du har råd. Null når du ikke har utbytte.
+ */
+export function ekstraTilbud(t, rng = Math.random) {
+  const sum = Math.min(perSekund(t) * REGLER.ekstraSek, Math.floor(t.saldo / REGLER.ekstraBetal[1]));
+  if (!(sum > 0)) return null;
+  return {
+    sum,
+    pris: Math.ceil(sum * mellom(REGLER.ekstraBetal, rng())),
+    vent: Math.round(mellom(REGLER.ekstraVent, rng())),
+  };
+}
+
+export function investerEkstra(t, tilbud) {
+  if (!tilbud || !(tilbud.pris <= t.saldo)) return t;
+  return { ...t, saldo: t.saldo - tilbud.pris, ventende: [...t.ventende, { sum: tilbud.sum, igjen: tilbud.vent }] };
+}
+
+/**
+ * Hvilke selskaper som vises: de du eier, de du snart har råd til, og det neste som skygge.
  * Gir en liste med { id, status } der status er «apen» eller «skygge».
  */
 export function synlige(t) {
-  const totalt = t.overfort + t.tjent;
   const liste = [];
-  for (const [i, h] of HJELPERE.entries()) {
-    const apen = i === 0 || t.hjelpere[h.id] > 0 || totalt >= h.pris * REGLER.visFra;
-    if (apen) liste.push({ id: h.id, status: "apen" });
-    else { liste.push({ id: h.id, status: "skygge" }); break; }
+  for (const [i, a] of AKSJER.entries()) {
+    const apen = i === 0 || t.aksjer[a.id] > 0 || t.totalt >= a.pris * REGLER.visFra;
+    if (apen) liste.push({ id: a.id, status: "apen" });
+    else { liste.push({ id: a.id, status: "skygge" }); break; }
   }
   return liste;
 }
@@ -231,32 +389,39 @@ export function synlige(t) {
 const tall = (x) => typeof x === "number" && Number.isFinite(x) && x >= 0;
 const heltall = (x, maksimum) => Number.isInteger(x) && x >= 0 && x <= maksimum;
 
-/** Tilstanden som et enkelt objekt som kan gjøres om til tekst. */
+/** Tilstanden som et enkelt objekt som kan gjøres om til tekst. Uro lagres ikke. */
 export function tilLagring(t, tid) {
-  return { v: 1, tid, ...t };
+  const { uro, ...resten } = t;
+  return { v: 2, tid, ...resten };
 }
 
-/** Leser en lagret tilstand. Gir null når noe mangler eller ikke er et gyldig tall. */
+/** Leser en lagret tilstand. Gir null når noe mangler eller ikke er gyldig. Lagring fra første utgave beholder saldo og overføring. */
 export function fraLagring(obj) {
-  if (!obj || typeof obj !== "object" || obj.v !== 1) return null;
+  if (!obj || typeof obj !== "object") return null;
   const t = nyTilstand();
-  for (const felt of ["saldo", "overfort", "tjent"]) {
-    if (!tall(obj[felt])) return null;
-    t[felt] = obj[felt];
+  const tid = tall(obj.tid) ? obj.tid : null;
+  if (obj.v === 1) {
+    if (!tall(obj.saldo) || !tall(obj.overfort) || !tall(obj.tjent)) return null;
+    if (!heltall(obj.trykk, Number.MAX_SAFE_INTEGER) || !heltall(obj.trykkNiva, 1e6)) return null;
+    return { tilstand: { ...t, saldo: obj.saldo, totalt: obj.overfort + obj.tjent, trykk: obj.trykk, trykkNiva: obj.trykkNiva }, tid };
   }
+  if (obj.v !== 2) return null;
+  if (!tall(obj.saldo) || !tall(obj.totalt)) return null;
   if (!heltall(obj.trykk, Number.MAX_SAFE_INTEGER) || !heltall(obj.trykkNiva, 1e6)) return null;
-  if (!heltall(obj.trykkloft, TRYKKLOFT.length)) return null;
-  t.trykk = obj.trykk;
-  t.trykkNiva = obj.trykkNiva;
-  t.trykkloft = obj.trykkloft;
-  for (const h of HJELPERE) {
-    const niva = obj.hjelpere?.[h.id];
-    const loft = obj.loft?.[h.id];
-    if (!heltall(niva, 1e5) || !heltall(loft, REGLER.loftNivaer.length)) return null;
-    t.hjelpere[h.id] = niva;
-    t.loft[h.id] = loft;
+  t.saldo = obj.saldo; t.totalt = obj.totalt; t.trykk = obj.trykk; t.trykkNiva = obj.trykkNiva;
+  for (const a of AKSJER) {
+    const n = obj.aksjer?.[a.id] ?? 0;
+    if (!heltall(n, 1e5)) return null;
+    t.aksjer[a.id] = n;
   }
-  return { tilstand: t, tid: tall(obj.tid) ? obj.tid : null };
+  if (!Array.isArray(obj.boostere) || !obj.boostere.every((id) => typeof id === "string")) return null;
+  t.boostere = [...new Set(obj.boostere.filter((id) => booster(id)))];
+  if (!Array.isArray(obj.ventende)) return null;
+  for (const v of obj.ventende.slice(0, 20)) {
+    if (!v || !tall(v.sum) || !tall(v.igjen)) return null;
+    t.ventende.push({ sum: v.sum, igjen: Math.min(v.igjen, REGLER.ekstraVent[1]) });
+  }
+  return { tilstand: t, tid };
 }
 
 // ---------- Tekst ----------

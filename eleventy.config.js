@@ -5,7 +5,7 @@ import { beregnSparing, lagForhandsvalg, simuler, skattesatsFor } from "./src/li
 import { andeler, lagTekster } from "./src/lib/tekster.js";
 import { feilIAktive, reklameoversikt } from "./src/lib/partnere.js";
 import { REGLER, utfallStatistikk } from "./src/lib/spill.js";
-import { REGLER as KLIKKREGLER, HJELPERE, TRYKKLOFT, formaterOre, formaterTid } from "./src/lib/klikker.js";
+import { REGLER as KLIKKREGLER, AKSJER, BOOSTERE, formaterOre, formaterTid } from "./src/lib/klikker.js";
 
 const datoFormat = new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Oslo" });
 const satser = JSON.parse(readFileSync(new URL("./src/_data/satser.json", import.meta.url)));
@@ -59,7 +59,7 @@ export default function (eleventyConfig) {
   eleventyConfig.addGlobalData("spilldata", () => ({ regler: REGLER, statistikk: utfallStatistikk() }));
 
   // Reglene i spillet «Overfør», så teksten på siden bruker de samme tallene som motoren.
-  eleventyConfig.addGlobalData("klikkdata", () => ({ regler: KLIKKREGLER, hjelpere: HJELPERE, trykkloft: TRYKKLOFT }));
+  eleventyConfig.addGlobalData("klikkdata", () => ({ regler: KLIKKREGLER, aksjer: AKSJER, boostere: BOOSTERE }));
 
   // Annonselenker: en partner som er slått på, men mangler merking, tillatelse eller gyldig avtale, stopper byggingen.
   eleventyConfig.addGlobalData("reklame", () => {

@@ -612,146 +612,241 @@ body.side-forside { overflow-x: clip; }
 }
 
 /* ---------- Spillet «Overfør» ---------- */
-/* Blått er det du har overført selv, gult er det hjelperne har tjent. Knapper og figurer er i blekk. */
-.klikk { display: grid; gap: 1.25rem; }
-.klikk-konto { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "tall mynt" "deling deling" "melding melding"; column-gap: 1rem; align-items: center; background: var(--paper); }
-.konto-tall { grid-area: tall; min-width: 0; }
-.konto-merke { font-size: var(--t-small); font-weight: 600; color: var(--muted); }
-.konto-saldo { font-size: 1.75rem; font-weight: 700; font-stretch: var(--widest); line-height: 1.15; letter-spacing: -0.02em; font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; }
-.konto-saldo.lang { font-size: 1.25rem; line-height: 1.6; }
-.konto-rate { font-size: var(--t-small); color: var(--ink-2); font-variant-numeric: tabular-nums; }
-
-.mynt-flate { grid-area: mynt; position: relative; }
-.mynt {
-  display: grid; place-content: center; gap: 0.1rem; width: 5.75rem; height: 5.75rem; padding: 0; border: 0; border-radius: 50%;
-  background: var(--ink); color: var(--paper); font: inherit; line-height: 1.15; text-align: center; cursor: pointer;
-  -webkit-touch-callout: none; transition: transform 120ms var(--ease-out);
+/* Spillsiden har egne, varme farger fordi Hans ville ha den fargerik og hjemmekoselig.
+   Multegult brukes fortsatt bare om utbytte, og blått om det du overfører selv. */
+.side-klikk {
+  --g-bak: #fbeedb; --g-prikk: rgb(120 80 40 / 0.08); --g-kort: #fffaf2; --g-kant: #e6cfae; --g-blekk: #2b2118;
+  --g-dempet: #6a5743; --g-gronn: #2c7d4b; --g-gronn-bak: #dcefd9; --g-pris-tekst: #fff;
+  --g-rod: #a8361f; --g-rod-bak: #fbe0d8; --g-rosa: #c93a64; --g-lilla: #6b4a8e;
 }
-.mynt:focus-visible { border-radius: 50%; }
-.mynt:active { transform: scale(0.95); }
-.mynt-navn { font-weight: 700; font-stretch: var(--wide); }
-.mynt-verdi { font-size: 0.75rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (prefers-color-scheme: dark) {
+  .side-klikk {
+    --g-bak: #261f1a; --g-prikk: rgb(255 230 200 / 0.05); --g-kort: #31281f; --g-kant: #4d3d2f; --g-blekk: #ead9c0;
+    --g-dempet: #cfbaa1; --g-gronn: #62c48a; --g-gronn-bak: #1e3a29; --g-pris-tekst: #10241a;
+    --g-rod: #ff9a85; --g-rod-bak: #44231c; --g-rosa: #ff8fb0; --g-lilla: #c8a8f0;
+  }
+}
+html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
+
+.klikk {
+  position: relative; display: grid; gap: 1.75rem; margin-inline: calc(-1 * var(--gutter)); padding: 1.25rem var(--gutter) 1.5rem;
+  background-color: var(--g-bak); background-image: radial-gradient(circle at 1px 1px, var(--g-prikk) 1.5px, transparent 0); background-size: 16px 16px;
+}
+@media (min-width: 40rem) { .klikk { margin-inline: 0; padding: 1.5rem; border-radius: 1.5rem; } }
+
+/* Scenen: saldo øverst, boostere til venstre, grisen i midten, uro-streken til høyre. */
+.klikk-scene {
+  display: grid; grid-template-columns: 3.5rem minmax(0, 1fr) 3.5rem;
+  grid-template-areas: "konto konto konto" "boost gris uro" "oppg oppg oppg" "meld meld meld"; gap: 1rem 0.5rem; align-items: start;
+}
+.gris-konto { grid-area: konto; text-align: center; }
+.konto-merke { font-size: var(--t-small); font-weight: 650; color: var(--g-dempet); }
+.konto-saldo { font-size: 2.25rem; font-weight: 750; font-stretch: var(--widest); line-height: 1.1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; }
+.konto-saldo.lang { font-size: 1.6rem; line-height: 1.4; }
+.konto-inntekt { margin-top: 0.2rem; font-variant-numeric: tabular-nums; }
+.konto-inntekt b { font-weight: 750; }
+.konto-deler { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 1rem; margin-top: 0.1rem; font-size: 0.8125rem; color: var(--g-dempet); font-variant-numeric: tabular-nums; }
+.konto-deler b { color: var(--ink); font-weight: 650; }
+.inntekt-del { display: inline-flex; align-items: baseline; gap: 0.3rem; }
+.inntekt-del::before { content: ""; flex: none; width: 0.5rem; height: 0.5rem; border-radius: 50%; align-self: center; }
+.del-utbytte::before { background: var(--multe); }
+.del-trykk::before { background: var(--fjord); }
+
+/* Ikoner: boostere og generalforsamling. Ingen tekst før du holder over eller trykker. */
+.boostere { grid-area: boost; display: grid; justify-items: center; gap: 0.5rem; }
+.panel-tittel { font-size: 0.75rem; font-weight: 750; white-space: nowrap; color: var(--g-dempet); }
+.ikonliste { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.7rem; justify-items: center; }
+.spillikon {
+  position: relative; display: block; width: 3.25rem; height: 3.25rem; padding: 0; border: 0; border-radius: 0.9rem; background: none;
+  cursor: pointer; -webkit-touch-callout: none; transition: transform 140ms var(--ease-out), opacity 200ms ease;
+}
+.spillikon:active { transform: scale(0.94); }
+.spillikon:focus-visible { outline-offset: 4px; border-radius: 1rem; }
+.ikon-flis { display: block; width: 100%; height: 100%; overflow: hidden; border: 2px solid var(--g-blekk); border-radius: 0.9rem; background: var(--tile); }
+.ikon-flis .fig { display: block; width: 100%; height: 100%; }
+.ikon-merke {
+  position: absolute; right: -0.45rem; bottom: -0.4rem; padding: 0 0.3rem; border: 2px solid var(--g-blekk); border-radius: 999px;
+  background: #fffaf0; color: #2b2118; font-size: 0.6875rem; font-weight: 800; line-height: 1.35; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.booster.svart .ikon-flis { background: #8a7f75; }
+.booster.svart .fig { filter: brightness(0); }
+.booster.svart .ikon-merke { background: #2b2118; color: #fffaf0; }
+.booster.halv { opacity: 0.5; }
+.booster.klar .ikon-flis { box-shadow: 0 0 0 3px var(--g-bak), 0 0 0 5px var(--g-gronn); }
+.gf-liste { margin-top: 0.35rem; padding-top: 0.85rem; border-top: 2px dashed var(--g-kant); }
+.gf-liste .spillikon { width: 2.6rem; height: 2.6rem; }
+.gf .ikon-merke { background: var(--g-lilla); border-color: var(--g-blekk); color: #fff; }
+@media (prefers-color-scheme: dark) { .gf .ikon-merke { color: #1d1530; } }
+
+.tips {
+  position: fixed; z-index: 30; max-width: 15rem; padding: 0.65rem 0.8rem; border: 2px solid var(--g-blekk); border-radius: 0.9rem;
+  background: var(--g-kort); color: var(--ink); font-size: var(--t-small); line-height: 1.35; pointer-events: none;
+  box-shadow: 0 5px 0 -1px rgb(43 33 24 / 0.18);
+}
+.tips strong { display: block; margin-bottom: 0.15rem; font-weight: 750; }
+.tips p + p { margin-top: 0.25rem; }
+.tips .tips-status { color: var(--g-dempet); font-weight: 600; }
+
+/* Grisen */
+.gris-flate { grid-area: gris; position: relative; display: grid; justify-items: center; gap: 0.6rem; min-width: 0; }
+.gris {
+  position: relative; display: grid; justify-items: center; width: min(100%, 12rem); padding: 0.25rem 0 0; border: 0; background: none;
+  color: inherit; font: inherit; cursor: pointer; -webkit-touch-callout: none; touch-action: manipulation;
+}
+.gris-fig { display: block; width: 100%; height: auto; overflow: visible; transform-origin: 50% 92%; transition: transform 110ms var(--ease-out); }
+.gris:active .gris-fig { transform: scale(1.04, 0.93); }
+.gris:focus-visible { outline: none; }
+.gris:focus-visible .gris-merke { outline: 3px solid var(--ink); outline-offset: 3px; }
+.gris-merke {
+  display: inline-flex; align-items: baseline; gap: 0.45rem; margin-top: -0.4rem; padding: 0.4rem 1rem; border: 2px solid var(--g-blekk); border-radius: 999px;
+  background: var(--g-rosa); color: #fff; box-shadow: 0 3px 0 var(--g-blekk); white-space: nowrap;
+}
+@media (prefers-color-scheme: dark) { .gris-merke { color: #2b1018; } }
+.gris-navn { font-weight: 800; font-stretch: var(--wide); }
+.gris-verdi { font-size: 0.8125rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.gris-mynt { position: absolute; top: 14%; left: 50%; width: 1.3rem; height: 1.3rem; border: 2px solid var(--g-blekk); border-radius: 50%; background: #dfe3ea; pointer-events: none; }
+
 .pluss {
-  position: absolute; z-index: 3; display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.1rem 0.5rem; border-radius: 999px;
-  background: var(--paper); border: 1px solid var(--rule); color: var(--ink); font-size: var(--t-small); font-weight: 650;
-  font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none; transform: translate(-50%, 0);
+  position: absolute; z-index: 3; padding: 0.1rem 0.5rem; border: 2px solid var(--g-blekk); border-radius: 999px; background: var(--g-kort); color: var(--ink);
+  font-size: var(--t-small); font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none;
 }
-.pluss::before, .utbytte::before { content: ""; flex: none; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--fjord); }
-.utbytte::before { background: var(--multe); }
+.pluss.rask { background: #ffd8c2; color: #2b2118; }
 
-.konto-deling { grid-area: deling; }
-.konto-deling .fordeling { margin: 0.6rem 0 0.35rem; height: 0.5rem; }
-.konto-nokkel { display: flex; flex-wrap: wrap; gap: 0 1.25rem; margin: 0; font-size: var(--t-small); }
-.konto-nokkel > div { display: flex; align-items: baseline; gap: 0.4rem; min-width: 0; }
-.konto-nokkel dt { display: flex; align-items: baseline; gap: 0.4rem; color: var(--ink-2); }
-.konto-nokkel dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.konto-melding { grid-area: melding; display: flex; align-items: center; min-height: 3rem; font-size: var(--t-small); line-height: 1.3; color: var(--ink-2); }
-.konto-melding:has(.utbytte:not([hidden])) #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.utbytte { gap: 0.5rem; min-height: 2.75rem; padding-block: 0.3rem; font-size: var(--t-small); font-variant-numeric: tabular-nums; }
+.fart { display: grid; justify-items: center; gap: 0.25rem; font-size: 0.75rem; font-weight: 700; color: var(--g-dempet); font-variant-numeric: tabular-nums; }
+.fart.pa { color: var(--ink); }
+.fart-strek { width: 7rem; height: 0.45rem; overflow: hidden; border: 1.5px solid var(--g-blekk); border-radius: 999px; background: var(--g-kort); }
+.fart-strek i { display: block; width: 100%; height: 100%; transform: scaleX(0); transform-origin: left; background: linear-gradient(90deg, #f29b38, #e8553d); transition: transform 160ms linear; }
 
-.butikk-hode { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1rem; }
+.pris {
+  padding: 0.15rem 0.55rem; border-radius: 999px; background: var(--g-gronn); color: var(--g-pris-tekst); font-weight: 750;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+[aria-disabled="true"] .pris { background: var(--g-kant); color: var(--g-dempet); }
+.oppgrader {
+  display: inline-flex; align-items: center; gap: 0.55rem; max-width: 100%; min-height: 2.75rem; padding: 0.3rem 0.35rem 0.3rem 0.85rem;
+  border: 2px solid var(--g-blekk); border-radius: 999px; background: var(--g-kort); color: var(--ink); font: inherit; font-size: 0.8125rem; cursor: pointer;
+  transition: transform 140ms var(--ease-out);
+}
+.oppgrader:active { transform: scale(0.97); }
+.oppgrader-rad { grid-area: oppg; display: flex; justify-content: center; }
+.oppgrader-navn { text-align: left; line-height: 1.2; white-space: nowrap; }
+.oppgrader b { font-weight: 800; }
+
+/* Uro i markedet */
+.uro { grid-area: uro; display: grid; justify-items: center; gap: 0.45rem; padding: 0.15rem 0; border-radius: 0.8rem; cursor: help; }
+.uro-ikon { display: block; width: 2.5rem; height: 2.5rem; }
+.uro-ikon .fig { display: block; width: 100%; height: 100%; }
+.uro-strek { position: relative; display: block; width: 0.85rem; height: 8.5rem; overflow: hidden; border: 2px solid var(--g-blekk); border-radius: 999px; background: var(--g-kort); }
+.uro-strek i { position: absolute; inset: 0; transform: scaleY(0); transform-origin: bottom; background: linear-gradient(to top, #f29b38, #e8553d); transition: transform 300ms linear; }
+.uro.aktiv .uro-strek i { background: #e8553d; }
+
+/* Meldinger under grisen */
+.meldinger { grid-area: meld; display: grid; justify-items: center; gap: 0.6rem; text-align: center; }
+.hendelse { max-width: 30rem; padding: 0.6rem 0.9rem; border: 2px solid var(--g-blekk); border-radius: 0.9rem; font-size: var(--t-small); font-weight: 650; line-height: 1.35; }
+.hendelse.verden { background: var(--g-rod-bak); }
+.hendelse.krakk { background: var(--g-gronn-bak); }
+.ekstra {
+  position: relative; display: grid; gap: 0.1rem; max-width: 24rem; padding: 0.6rem 1rem 0.75rem; overflow: hidden; border: 2px solid var(--g-blekk); border-radius: 1rem;
+  background: var(--g-kort); color: var(--ink); font: inherit; text-align: center; cursor: pointer; box-shadow: 0 3px 0 var(--g-blekk); transition: transform 140ms var(--ease-out);
+}
+.ekstra:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--g-blekk); }
+.ekstra[aria-disabled="true"] { box-shadow: none; }
+.ekstra-navn { display: flex; align-items: center; justify-content: center; gap: 0.45rem; font-weight: 750; }
+.ekstra-navn::before { content: ""; flex: none; width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--multe); }
+.ekstra-vilkar { font-size: var(--t-small); color: var(--g-dempet); font-variant-numeric: tabular-nums; }
+.ekstra::after { content: ""; position: absolute; left: 0; bottom: 0; width: 100%; height: 4px; background: var(--multe); transform: scaleX(var(--igjen, 1)); transform-origin: left; }
+.ventende { list-style: none; margin: 0; padding: 0; font-size: var(--t-small); color: var(--g-dempet); font-variant-numeric: tabular-nums; }
+.status { min-height: 1.35em; font-size: var(--t-small); color: var(--g-dempet); }
+
+/* Butikken */
+.butikk-hode { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1rem; margin-bottom: 0.85rem; }
 .butikk-antall { margin: 0; padding: 0; border: 0; min-width: 0; }
+.butikk-antall .segment { background: var(--g-kort); }
 .butikk-antall .segment span { padding: 0.4rem 0.9rem; min-height: 2.75rem; display: grid; place-content: center; }
-.butikk-liste, .loft-liste { list-style: none; margin: 1rem 0 0; padding: 0; }
-.butikk-liste { border-bottom: 1px solid var(--rule); }
-.rad { border-top: 1px solid var(--rule); }
+.butikk-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.65rem; }
 .rad-knapp {
-  --fig-bak: var(--paper);
-  position: relative; display: grid; grid-template-columns: 3.5rem minmax(0, 1fr) auto; grid-template-areas: "figur navn pris" "figur info info" "figur kjop kjop";
-  column-gap: 0.85rem; row-gap: 0.1rem; align-items: baseline; width: 100%; padding: 0.85rem 0 0.95rem; border: 0; border-radius: 0; background: none;
-  color: var(--ink); font: inherit; text-align: left;
+  display: grid; grid-template-columns: 3.75rem minmax(0, 1fr) auto; grid-template-areas: "figur navn kjop" "figur info info" "figur merker merker";
+  column-gap: 0.85rem; row-gap: 0.15rem; align-items: center; width: 100%; padding: 0.7rem 0.85rem 0.7rem 0.7rem; border: 2px solid var(--g-kant); border-radius: 1.1rem;
+  background: var(--g-kort); color: var(--ink); font: inherit; text-align: left; cursor: pointer; -webkit-touch-callout: none;
+  transition: transform 140ms var(--ease-out), border-color 160ms ease;
 }
-button.rad-knapp { cursor: pointer; transition: transform 120ms var(--ease-out); }
-button.rad-knapp:active { transform: scale(0.985); }
-.rad-figur { grid-area: figur; align-self: center; position: relative; width: 3.5rem; height: 3.5rem; color: var(--muted); }
-.rad.eier .rad-figur, .rad[data-id="trykk"] .rad-figur { color: var(--ink); }
-.rad-navn { grid-area: navn; font-weight: 650; font-stretch: var(--wide); line-height: 1.3; }
-.rad-niva { margin-left: 0.25rem; font-size: var(--t-small); font-weight: 500; font-stretch: 100%; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.rad-pris { grid-area: pris; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.rad-info, .rad-kjop { font-size: var(--t-small); line-height: 1.4; color: var(--ink-2); }
-.rad-info { grid-area: info; }
-.rad-kjop { grid-area: kjop; color: var(--muted); }
-.rad-knapp[aria-disabled="true"] .rad-pris { font-weight: 500; color: var(--muted); }
-.rad-strek { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; overflow: hidden; }
-.rad-strek i { display: block; height: 100%; background: var(--muted); transform: scaleX(0); transform-origin: left; transition: transform 200ms linear; }
-.rad-skygge .rad-knapp { grid-template-areas: "figur navn navn" "figur info info"; align-content: center; color: var(--muted); }
-.rad-skygge .rad-navn { font-weight: 600; }
-.rad-skygge .rad-info { color: var(--muted); }
-
-.fig { display: block; width: 100%; height: 100%; overflow: visible; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.fig .f { fill: var(--fig-bak, var(--paper)); }
-.fig .m { fill: currentColor; }
-.fig .p { fill: currentColor; stroke: none; }
-.fig-skygge path { fill: var(--rule); stroke: none; }
-.fig-oyne, .fig-ting { transform-box: fill-box; }
-.fig-oyne { transform-origin: center; }
-.fig-ting { transform-origin: 50% 100%; }
-.gulmynt { position: absolute; left: 50%; top: 0; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--multe); pointer-events: none; transform: translate(-50%, 0); }
-
-.klikk-loft { margin-top: 1.75rem; }
-.loft-liste { display: grid; gap: 0.6rem; margin-top: 0.75rem; }
-.loft-knapp {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.1rem 1rem; align-items: baseline; width: 100%; min-height: 2.75rem; padding: 0.6rem 0.85rem;
-  border: 1.5px solid var(--ink); border-radius: var(--radius); background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer;
-  transition: transform 120ms var(--ease-out);
+.rad-knapp[aria-disabled="false"] { border-color: var(--g-blekk); }
+.rad-knapp:active { transform: scale(0.985); }
+.rad-figur { grid-area: figur; position: relative; display: block; width: 3.75rem; height: 3.75rem; align-self: start; }
+.rad-antall {
+  position: absolute; right: -0.5rem; bottom: -0.45rem; min-width: 1.75rem; padding: 0 0.35rem; border: 2px solid var(--g-blekk); border-radius: 999px;
+  background: #2b2118; color: #fffaf0; font-size: 0.875rem; font-weight: 800; line-height: 1.35; text-align: center; font-variant-numeric: tabular-nums;
 }
-.loft-knapp:focus-visible { border-radius: var(--radius); }
-.loft-knapp:active { transform: scale(0.98); }
-.loft-navn { font-weight: 650; }
-.loft-pris { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.loft-virkning { grid-column: 1 / -1; font-size: var(--t-small); line-height: 1.4; color: var(--ink-2); }
-.loft-knapp[aria-disabled="true"] { border-color: var(--muted); }
-.loft-knapp[aria-disabled="true"] .loft-pris { font-weight: 500; color: var(--muted); }
-
-.klikk-husk { margin-top: 1.75rem; font-size: var(--t-small); }
+@media (prefers-color-scheme: dark) { .rad-antall { background: #fffaf0; color: #2b2118; } }
+.rad-navn { grid-area: navn; display: grid; min-width: 0; }
+.rad-tittel { font-weight: 750; font-stretch: var(--wide); line-height: 1.2; }
+.rad-sektor { font-size: 0.75rem; color: var(--g-dempet); }
+.rad-kjop { grid-area: kjop; display: grid; justify-items: end; gap: 0.1rem; }
+.rad-mengde { font-size: 0.6875rem; font-weight: 650; color: var(--g-dempet); }
+.rad-mengde:empty { display: none; }
+.rad-info { grid-area: info; font-size: 0.8125rem; line-height: 1.35; color: var(--g-dempet); font-variant-numeric: tabular-nums; }
+.rad-merker { grid-area: merker; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.rad-merker:empty { display: none; }
+.radmerke { padding: 0 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
+.merke-krakk { background: var(--g-gronn-bak); color: var(--g-gronn); }
+.merke-verden { background: var(--g-rod-bak); color: var(--g-rod); }
+.aksjerad.rad-skygge .rad-knapp { cursor: default; border-style: dashed; }
+.gulmynt { position: absolute; top: 10%; width: 0.6rem; height: 0.6rem; border: 1.5px solid var(--g-blekk); border-radius: 50%; background: var(--multe); pointer-events: none; }
+.klikk-husk { margin-top: 1.25rem; }
 .klikk-husk label { display: inline-flex; align-items: center; gap: 0.6rem; min-height: 2.75rem; cursor: pointer; }
-.klikk-husk input { flex: none; width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--ink); }
-.klikk .forbehold { max-width: var(--measure); }
+.klikk-husk input { width: 1.25rem; height: 1.25rem; accent-color: var(--ink); }
 
-/* På mobil står kontoen fast øverst, så du ser saldoen mens du handler lenger ned. */
-@media (max-width: 59.99rem) and (min-height: 37rem) {
-  .klikk-konto { position: sticky; top: 0; z-index: 2; padding: calc(0.5rem + env(safe-area-inset-top, 0px)) 0 0; border-bottom: 1px solid var(--rule); }
-  html:has(.side-klikk) { scroll-padding-top: 14rem; }
+.mini {
+  position: fixed; z-index: 20; top: 0; left: 0; right: 0; display: flex; justify-content: center; gap: 1.25rem;
+  padding: calc(0.5rem + env(safe-area-inset-top, 0px)) var(--gutter) 0.5rem; border-bottom: 2px solid var(--g-kant); background: var(--g-kort);
+  font-size: var(--t-small); font-variant-numeric: tabular-nums; transform: translateY(-110%); transition: transform 220ms var(--ease-out);
 }
+.mini.vis { transform: none; }
+.mini b { font-weight: 750; }
+
+@media (hover: hover) and (pointer: fine) {
+  .rad-knapp[aria-disabled="false"]:hover { transform: translateY(-2px); }
+  .spillikon:hover { transform: translateY(-2px); }
+  .oppgrader[aria-disabled="false"]:hover, .ekstra[aria-disabled="false"]:hover { transform: translateY(-1px); }
+}
+
 @media (min-width: 40rem) {
-  .konto-saldo { font-size: 2.25rem; }
-  .konto-saldo.lang { font-size: 1.75rem; line-height: 1.3; }
-  .mynt { width: 6.5rem; height: 6.5rem; }
+  .gris { width: min(100%, 14rem); }
+  .konto-saldo { font-size: 2.75rem; }
 }
 @media (min-width: 60rem) {
-  .klikk { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); column-gap: 4rem; align-items: start; }
-  .klikk-konto { position: sticky; top: 1rem; grid-template-columns: minmax(0, 1fr); grid-template-areas: "tall" "deling" "mynt" "melding"; }
+  .klikk { grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); align-items: start; gap: 2rem; padding: 2rem; }
+  .klikk-scene { position: sticky; top: 1rem; grid-template-columns: 4.25rem minmax(0, 1fr) 3.5rem; row-gap: 1.25rem; }
   .konto-saldo { font-size: 3rem; }
-  .konto-saldo.lang { font-size: 2rem; line-height: 1.5; }
-  .konto-rate { font-size: var(--t-ui); }
-  .konto-deling .fordeling { margin-top: 1.25rem; height: 0.625rem; }
-  .mynt-flate { margin-top: 2rem; justify-self: start; }
-  .mynt { width: 9.5rem; height: 9.5rem; }
-  .mynt-navn { font-size: 1.3125rem; }
-  .mynt-verdi { font-size: var(--t-small); }
-  .konto-melding { margin-top: 0.75rem; min-height: 3.5rem; }
+  .konto-saldo.lang { font-size: 2rem; }
+  .gris { width: min(100%, 17rem); }
+  .spillikon { width: 3.75rem; height: 3.75rem; }
+  .uro-strek { height: 12rem; }
+  .mini { display: none; }
 }
-@media (hover: hover) and (pointer: fine) {
-  .mynt:hover { background: var(--ink-2); }
-  button.rad-knapp[aria-disabled="false"]:hover { --fig-bak: var(--field); background: var(--field); }
-  .loft-knapp[aria-disabled="false"]:hover { background: var(--field); }
-}
+
+/* Figurene lever når du eier selskapet */
+.fig-kropp, .fig-ting, .fig-oyne, .gris-oye { transform-box: fill-box; }
 @media (prefers-reduced-motion: no-preference) {
-  .rad.eier .fig-kropp { animation: fig-vugg 3.2s ease-in-out infinite alternate; }
-  .rad.eier .fig-oyne { animation: fig-blunk 4.6s linear infinite; }
-  .rad.eier .fig-ting { animation: fig-sving 2.6s ease-in-out infinite alternate; }
-  .rad:nth-child(2n) .fig-kropp, .rad:nth-child(2n) .fig-ting { animation-delay: -1.3s; }
-  .rad:nth-child(3n) .fig-kropp, .rad:nth-child(3n) .fig-ting { animation-delay: -2.1s; }
-  .rad:nth-child(2n) .fig-oyne { animation-delay: -1.7s; }
-  .rad:nth-child(3n) .fig-oyne { animation-delay: -3.1s; }
+  .aksjerad.eier .fig-kropp { animation: fig-vugg 2.8s ease-in-out infinite; transform-origin: 50% 100%; }
+  .aksjerad.eier .fig-ting { animation: fig-sving 2.2s ease-in-out infinite; transform-origin: 50% 100%; }
+  .aksjerad.eier .fig-oyne, .gris-oye { animation: fig-blunk 4.6s infinite; transform-origin: center; }
+  .aksjerad.eier:nth-child(2n) .fig-kropp { animation-delay: -0.9s; }
+  .aksjerad.eier:nth-child(3n) .fig-ting { animation-delay: -1.1s; }
+  .aksjerad.eier:nth-child(2n) .fig-oyne { animation-delay: -2.3s; }
+  .booster.klar { animation: klar-puls 1.8s ease-in-out infinite; }
+  .uro.aktiv .uro-strek i { animation: uro-blink 1s ease-in-out infinite; }
+  .tips:not([hidden]) { animation: tips-inn 140ms var(--ease-out); }
 }
+@keyframes fig-vugg { 50% { transform: translateY(-1.5px) rotate(-1.5deg); } }
+@keyframes fig-sving { 50% { transform: rotate(7deg); } }
+@keyframes fig-blunk { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+@keyframes klar-puls { 50% { transform: scale(1.06); } }
+@keyframes uro-blink { 50% { opacity: 0.55; } }
+@keyframes tips-inn { from { opacity: 0.6; transform: scale(0.96); } }
 @media (prefers-reduced-motion: reduce) {
-  .mynt, button.rad-knapp, .loft-knapp, .rad-strek i { transition: none; }
-  .mynt:active, button.rad-knapp:active, .loft-knapp:active { transform: none; opacity: 0.85; }
+  .gris-fig, .spillikon, .rad-knapp, .oppgrader, .ekstra, .fart-strek i, .uro-strek i, .mini { transition: none; }
 }
-@keyframes fig-vugg { from { transform: translateY(0); } to { transform: translateY(-1.5px); } }
-@keyframes fig-blunk { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.12); } }
-@keyframes fig-sving { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
 
 /* ---------- Sideoverganger ---------- */
 @media (prefers-reduced-motion: no-preference) {

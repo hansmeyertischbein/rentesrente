@@ -1,417 +1,606 @@
-// Grensesnittet for spillet «Overfør».
-// Reglene ligger i /lib/klikker.js og er testet der. Denne filen tegner kontoen, butikken og figurene.
-// Fjordblått er det du har overført selv, multegult er det hjelperne har tjent. Figurene er tegnet i blekk.
-
+// Grensesnittet for spillet «Overfør». Regnereglene ligger i /lib/klikker.js, figurene i klikker-figurer.js.
 import {
-  REGLER, HJELPERE, nyTilstand, grunnTrykk, trykkverdi, perSekund, hjelperRate, prisHjelper, maksHjelper, prisTrykk, maksTrykk,
-  trykk, kjopHjelper, kjopTrykk, tilgjengeligeLoft, nesteLoftNiva, kjopLoft, tikk, borte, utbytteverdi, taUtbytte, synlige,
-  tilLagring, fraLagring, formaterOre, formaterTid,
+  REGLER, AKSJER, BOOSTERE, nyTilstand, trykk, klikkverdi, grunnTrykk, fartFaktor, perSekund, aksjeRate, utbyttePerAksje,
+  prisAksje, maksAksje, kjopAksje, prisTrykk, kjopTrykk, nesteBoostere, andelRad, kjopBooster, generalforsamlinger, gfAntall,
+  tikk, borte, uroFyll, urolig, uroSteg, rabatt, ekstraTilbud, investerEkstra, synlige, tilLagring, fraLagring,
+  formaterOre, formaterTid,
 } from "/lib/klikker.js";
 import { formaterTall } from "/lib/format.js";
+import { FIGURER, GRIS } from "./klikker-figurer.js";
 
-const $ = (id) => document.getElementById(id);
-const rolig = matchMedia("(prefers-reduced-motion: reduce)");
-const NBSP = " ";
 const NOKKEL = "rr-overfor";
-const MILEPELER = [100, 1e4, 1e6, 1e8, 1e11, 1e14];
+const MILEPELER = [100, 1e4, 1e6, 1e8, 1e11, 1e14, 1e17];
+const rolig = matchMedia("(prefers-reduced-motion: reduce)");
+const $ = (id) => document.getElementById(id);
 
 const el = {
-  saldo: $("saldo"), rate: $("rate"), mynt: $("overfor"), myntVerdi: $("mynt-verdi"), flate: $("mynt-flate"),
-  blaa: $("andel-blaa"), gul: $("andel-gul"), selv: $("sum-selv"), tjent: $("sum-tjent"),
-  status: $("status"), utbytte: $("utbytte"), butikk: $("butikk"), loftBoks: $("loft"), loft: $("loft-liste"),
-  husk: $("husk"), omstart: $("omstart"),
+  konto: $("konto"), saldo: $("saldo"), inntekt: $("inntekt"), rate: $("rate"), klikkrate: $("klikkrate"),
+  gris: $("overfor"), grisFlate: $("gris-flate"), grisVerdi: $("gris-verdi"),
+  fart: $("fart"), fartTekst: $("fart-tekst"), fartFyll: $("fart-fyll"),
+  oppgrader: $("oppgrader"), oppgraderNiva: $("oppgrader-niva"), oppgraderPris: $("oppgrader-pris"),
+  boostere: $("booster-liste"), gf: $("gf-liste"), tips: $("tips"),
+  uro: $("uro"), uroIkon: $("uro-ikon"), uroFyll: $("uro-fyll"),
+  hendelse: $("hendelse"), ekstra: $("ekstra"), ekstraVilkar: $("ekstra-vilkar"), ventende: $("ventende"), status: $("status"), annonse: $("annonse"),
+  butikk: $("butikk"), husk: $("husk"), omstart: $("omstart"),
+  mini: $("mini"), miniSaldo: $("mini-saldo"), miniRate: $("mini-rate"),
 };
 
 let t = nyTilstand();
 let modus = 1;            // 1, 10 eller "maks"
 let forrige = Date.now();
 let milepel = 0;
-let utbytteNeste = 0, utbytteSlutt = 0;
+let klikk = [];           // trykk det siste sekundet: { tid, verdi }
+let tilbud = null, tilbudSlutt = 0, tilbudNeste = 0;
+let boosterNokkel = "", gfNokkel = "", ventNokkel = "";
+let aktivTips = null, pekertype = "mouse";
 let myntNeste = 0;
 const rader = new Map();
-let loftNokkel = "";
 
-// ---------- Figurene ----------
-// Byster i strek, 64 × 64. Klassen f fyller med papir, m fyller med blekk, p er prikker.
-// Gruppene fig-kropp, fig-oyne og fig-ting beveger seg hver for seg når du eier hjelperen.
-
-const SKULDRE = '<path class="f" d="M9 63C9 52 16 47.5 23 46.5h10c7 1 14 5.5 14 16.5z"/>';
-const HALS = '<path class="f" d="M24 39v8.5h8V39"/>';
-const HODE = '<ellipse class="f" cx="28" cy="27" rx="11" ry="13"/>';
-const OYNE = '<g class="fig-oyne"><circle class="p" cx="23.4" cy="26" r="1.15"/><circle class="p" cx="32.6" cy="26" r="1.15"/></g>';
-const NESE = '<path d="M28 27.5q-1.6 3 .6 3.6"/>';
-const SMIL = '<path d="M23.5 34q4.5 3.4 9 0"/>';
-const BRILLER = '<circle cx="23.3" cy="26" r="3.7"/><circle cx="32.7" cy="26" r="3.7"/><path d="M27 25.6h2M19.6 25.4l-2.3-1M36.4 25.4l2.3-1"/>';
-const SLIPS = '<path d="M22 47l6 6 6-6"/>';
-
-const lag = (kropp, ting) => `<svg class="fig" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><g class="fig-kropp">${kropp}</g><g class="fig-ting">${ting}</g></svg>`;
-
-const FIGURER = {
-  // Runde briller, bar isse med hår på sidene, handlekurv.
-  reitan: lag(
-    SKULDRE + SLIPS + HALS + HODE
-    + '<path d="M17.4 21q-2.6 3.5-.6 8M38.6 21q2.6 3.5.6 8M22.5 16.2q5.5-2.6 11 0"/>'
-    + OYNE + BRILLER + NESE + '<path d="M22.5 33.5q5.5 4.6 11 0"/>',
-    '<path class="f" d="M45 46h16l-2 12H47z"/><path d="M48 46q5-9.5 10 0M50.2 46l.8 12M53 46v12M55.8 46l-.8 12"/>'),
-  // Bakoverstrøket hår, bredt glis, åpen skjorte, resepsjonsklokke.
-  stordalen: lag(
-    SKULDRE + '<path d="M21.5 47l5 8.5M34.5 47l-5 8.5"/>' + HALS + HODE
-    + '<path class="m" d="M16.6 25C13.5 12 23.5 6.6 31 8.2c8.4.6 12.6 8 8.4 16.8-1.4-6-5.4-8.6-11.4-8.2-6-.4-9.8 2.2-11.4 8.2z"/>'
-    + OYNE + '<path d="M20.8 22.4q2.6-1.8 5.2-.6M30 21.8q2.6-1.2 5.2.6"/>' + NESE
-    + '<path class="f" d="M22 32.4q6 7.6 12 0z"/><path d="M23.6 34.2h8.8"/>',
-    '<path class="f" d="M46 56a8 8 0 0 1 16 0z"/><path d="M44 59.5h20M54 48v-2.6"/><circle class="p" cx="54" cy="44" r="1.5"/>'),
-  // Kort hår, arbeidsjakke, en laks.
-  witzoe: lag(
-    SKULDRE + '<path d="M22 47l6 5 6-5M28 52v11"/>' + HALS + HODE
-    + '<path class="m" d="M17 23.5C17 12.8 39 12.8 39 23.5 35.8 18.6 20.2 18.6 17 23.5z"/>'
-    + OYNE + '<path d="M21 22.6h4.6M30.4 22.6H35"/>' + NESE + '<path d="M24 34.2q4 2.2 8 0"/>',
-    '<path class="f" d="M43.5 50c4-6.4 12-6.4 15.5 0-3.5 6.4-11.500 6.4-15.5 0z"/><path class="f" d="M59 50l4.200-4.400v8.800z"/><circle class="p" cx="47.4" cy="49" r=".9"/><path d="M50.6 46.800q1.600 3.200 0 6.400"/>'),
-  // Langt, lyst hår med midtskill, en spire i potte.
-  andresen: lag(
-    '<path class="f" d="M16 26C14 11.500 42 11.500 40 26c1 12 3 20 5.500 26.500h-35C13 46 15 38 16 26z"/>'
-    + SKULDRE + SLIPS + HALS + HODE
-    + '<path d="M28 14.200c-4 2.600-9 5.600-10.600 13.300M28 14.200c4 2.600 9 5.600 10.600 13.300"/>'
-    + OYNE + '<path d="M21 22.800q2.300-1.200 4.600-.300M30.400 22.500q2.300-.900 4.600.300"/>' + NESE + SMIL,
-    '<path class="f" d="M49 55h10l-1.500 7.500h-7z"/><path d="M54 55v-9"/><path class="f" d="M54 49.500q-6.500-.800-6.500-6.500 6.500.300 6.500 6.500zM54 46.500q.500-6 6.500-6.500 0 6-6.500 6.500z"/>'),
-  // Bredt hode, kortklipt hår, skjeggstubb, anker.
-  rokke: lag(
-    SKULDRE + '<path d="M20.500 47.500q7.500 5.500 15 0"/>' + '<path class="f" d="M22.500 39v8.500h11V39"/>'
-    + '<ellipse class="f" cx="28" cy="27.500" rx="12.600" ry="12.600"/>'
-    + '<path class="m" d="M15.500 24.500C15 12 41 12 40.500 24.500 37 19.600 19 19.600 15.500 24.500z"/>'
-    + OYNE + '<path d="M20.600 22.800l5.200-.600M30.200 22.200l5.200.600"/>' + NESE + '<path d="M23 33.200q5.500 3.200 10.500-.600"/>'
-    + '<g class="p"><circle cx="19.600" cy="34.500" r=".55"/><circle cx="21.800" cy="37.200" r=".55"/><circle cx="24.600" cy="38.800" r=".55"/><circle cx="28" cy="39.300" r=".55"/><circle cx="31.400" cy="38.800" r=".55"/><circle cx="34.200" cy="37.200" r=".55"/><circle cx="36.400" cy="34.500" r=".55"/><circle cx="23.200" cy="36" r=".55"/><circle cx="32.800" cy="36" r=".55"/></g>',
-    '<circle cx="54" cy="42" r="2.200"/><path d="M54 44.200V59.500M50 48h8M46 53q1 7 8 6.500 7 .500 8-6.500M44.600 55.800l1.400-2.800 2.800 1.400M63.400 55.800L62 53l-2.800 1.400"/>'),
-  // Eldre, rundt ansikt, hvitt hår, tunge bryn, dress, tankskip på bølger.
-  fredriksen: lag(
-    SKULDRE + SLIPS + '<path d="M28 53v10"/>' + HALS
-    + '<ellipse class="f" cx="28" cy="27.500" rx="12" ry="12.600"/>'
-    + '<path class="f" d="M16.600 24C14.500 12.500 22.500 9.500 28 10.800c6-1.300 13.500 1.700 11.400 13.200-2.400-5.200-6-6.600-11.400-6.400-5.400-.200-9 1.200-11.400 6.400z"/>'
-    + '<path d="M20.500 15q3.700-2.600 7.500-.200 3.800-2.400 7.500.200"/>'
-    + OYNE + '<path stroke-width="2.600" d="M20.400 22.600l5.200-1M30.400 21.600l5.200 1"/><path d="M21.400 28.800q2 1.200 4 0M30.600 28.800q2 1.200 4 0"/>' + NESE
-    + '<path d="M23.500 34.600q4.500 1.400 9 0"/>',
-    '<path class="f" d="M43 52h20.500l-3 6.500H45.500z"/><path class="f" d="M57 52v-5.500h4.500V52"/><path d="M45.500 49.800h9M42 62q2.600-2.200 5.200 0t5.200 0 5.200 0 5.200 0"/>'),
-  // Langt, mørkt hår med sidelugg, stigende kurve.
-  midelfart: lag(
-    '<path class="m" d="M15.500 27C13 10.500 43 10.500 40.500 27c1 11 3.500 18.500 5.500 25H10c2-6.500 4.500-14 5.500-25z"/>'
-    + SKULDRE + SLIPS + HALS + HODE
-    + '<path class="m" d="M17.300 24.500C17.500 14.500 30 12 38.800 19.500 33 18.800 24 19.500 17.300 24.500z"/>'
-    + OYNE + '<path d="M21 23.200q2.300-1 4.600-.200M30.400 23q2.300-.800 4.600.200"/>' + NESE + SMIL,
-    '<path d="M45 43.500V60h18.500M47.500 57l4-4.200 3.200 2.200 7-9M58 46h3.700v3.700"/>'),
-  // Mørkt hår med sideskill, runde briller, slips, globus.
-  tangen: lag(
-    SKULDRE + SLIPS + '<path class="m" d="M28 53l-2.200 4.500L28 63l2.200-5.500z"/>' + HALS + HODE
-    + '<path class="m" d="M17 24.500C15.800 13 30 10.300 39 16c1 3 .700 6 0 8.500-2-4.600-8-6.800-13.500-5.800-3.500.600-6.500 2.800-8.500 5.800z"/>'
-    + OYNE + BRILLER + NESE + SMIL,
-    '<circle class="f" cx="54" cy="52" r="8.500"/><ellipse cx="54" cy="52" rx="3.700" ry="8.500"/><path d="M45.500 52h17M47.300 47q6.700 2.600 13.400 0M47.300 57q6.700-2.600 13.400 0"/>'),
-  trykk: `<svg class="fig" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><g class="fig-kropp"><circle class="f" cx="32" cy="32" r="19"/><circle cx="32" cy="32" r="14.500" stroke-width="1.200"/><path stroke-width="2.600" d="M32 24.500v15M24.500 32h15"/></g><g class="fig-ting"></g></svg>`,
-  skygge: `<svg class="fig fig-skygge" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M9 63C9 52 16 47.500 23 46.500h1V39c-4.500-2.500-7-7-7-12 0-7.200 4.900-13 11-13s11 5.800 11 13c0 5-2.500 9.500-7 12v7.500h1c7 1 14 5.500 14 16.500z"/></svg>`,
+const ore = formaterOre;
+const perSek = (x) => `${ore(x)}/sek`;
+const aksje = (id) => AKSJER.find((a) => a.id === id);
+const prosent = (x) => `${formaterTall(Math.round(x * 100))} %`;
+const ganger = (f) => {
+  const des = Number.isInteger(f) ? 0 : Number.isInteger(Math.round(f * 1000) / 100) ? 1 : 2;
+  return formaterTall(f, des) + "x";
 };
+const flertall = (a, n) => (n === 1 ? a.en : a.fler);
+const tilfeldig = (lav, hoy) => lav + Math.random() * (hoy - lav);
 
-// ---------- Tekst ----------
+function settTekst(node, tekst) { if (node.textContent !== tekst) node.textContent = tekst; }
+function settAttr(node, navn, verdi) { if (node.getAttribute(navn) !== verdi) node.setAttribute(navn, verdi); }
+function si(tekst) { el.status.textContent = tekst; }
+function annonser(tekst) { el.annonse.textContent = tekst; }
 
-const settTekst = (node, tekst) => { if (node.__t !== tekst) { node.__t = tekst; node.textContent = tekst; } };
-const settAttr = (node, navn, verdi) => { if (node.getAttribute(navn) !== verdi) node.setAttribute(navn, verdi); };
-let statusTid = 0;
-function si(tekst) {
-  el.status.textContent = tekst;
-  clearTimeout(statusTid);
-  statusTid = setTimeout(() => { el.status.textContent = ""; }, 7000);
+// ---------- Bevegelse ----------
+
+function hopp(node) {
+  if (!node || rolig.matches) return;
+  node.animate([{ transform: "scale(1)" }, { transform: "scale(1.12) rotate(-3deg)" }, { transform: "scale(1)" }], { duration: 320, easing: "cubic-bezier(0.23, 1, 0.32, 1)" });
 }
-const antallTrykk = (x) => formaterTall(Math.max(1, Math.ceil(x - 1e-9))) + NBSP + "trykk";
-const nivaTekst = (n) => (n === 1 ? "Neste nivå" : formaterTall(n) + NBSP + "nivåer");
+
+function flyt(node, hoyde, varighet) {
+  node.animate([{ transform: `${node.style.transform} translateY(0)`, opacity: 1 }, { transform: `${node.style.transform} translateY(${-hoyde}px)`, opacity: 0 }],
+    { duration: varighet, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }).finished.then(() => node.remove(), () => node.remove());
+}
+
+function pluss(e, verdi, fart) {
+  if (rolig.matches || el.grisFlate.querySelectorAll(".pluss").length > 14) return;
+  const flate = el.grisFlate.getBoundingClientRect();
+  const fraMus = e && e.clientX > 0;
+  const x = fraMus ? e.clientX - flate.left : flate.width / 2 + tilfeldig(-30, 30);
+  const y = fraMus ? e.clientY - flate.top : flate.height * 0.3;
+  const p = document.createElement("span");
+  p.className = fart > 1 ? "pluss rask" : "pluss";
+  p.textContent = "+" + ore(verdi);
+  p.style.left = `${x}px`;
+  p.style.top = `${y - 18}px`;
+  p.style.transform = "translate(-50%, 0)";
+  el.grisFlate.append(p);
+  flyt(p, 60, 800);
+}
+
+function myntInn() {
+  const fig = el.gris.querySelector(".gris-fig");
+  if (rolig.matches || !fig) return;
+  fig.animate([{ transform: "scale(1)" }, { transform: "scale(1.05, 0.92)" }, { transform: "scale(1)" }], { duration: 180, easing: "ease-out" });
+  if (el.gris.querySelectorAll(".gris-mynt").length > 5) return;
+  const m = document.createElement("span");
+  m.className = "gris-mynt";
+  el.gris.append(m);
+  m.animate([{ transform: "translate(-50%, -2.2rem)", opacity: 1 }, { transform: "translate(-50%, 0.2rem)", opacity: 1, offset: 0.8 }, { transform: "translate(-50%, 0.5rem) scaleY(0.4)", opacity: 0 }],
+    { duration: 300, easing: "cubic-bezier(0.55, 0, 1, 0.45)" }).finished.then(() => m.remove(), () => m.remove());
+}
+
+function gulMynt(naa) {
+  if (rolig.matches || naa < myntNeste) return;
+  myntNeste = naa + tilfeldig(900, 1800);
+  const eide = [...rader.values()].filter((r) => r.status === "apen" && t.aksjer[r.id] > 0);
+  if (!eide.length) return;
+  const r = eide[Math.floor(Math.random() * eide.length)];
+  const flis = r.figur.getBoundingClientRect();
+  if (flis.bottom < 0 || flis.top > innerHeight) return;
+  const m = document.createElement("span");
+  m.className = "gulmynt";
+  m.style.left = `${tilfeldig(25, 75)}%`;
+  r.figur.append(m);
+  flyt(m, 28, 900);
+}
+
+// ---------- Tips ved ikonene ----------
+
+function tipsInnhold(anker) {
+  const type = anker.dataset.tips;
+  const linjer = [];
+  let tittel = "";
+  if (type === "booster") {
+    const b = BOOSTERE.find((x) => x.id === anker.dataset.id);
+    if (!b) return null;
+    tittel = b.navn;
+    linjer.push(boosterVirkning(b), `Koster ${ore(b.pris)}.`);
+    const andel = andelRad(t, b.pris);
+    linjer.push(andel >= 1 ? "Du har råd. Trykk for å kjøpe." : `Du har ${prosent(andel)} av prisen.`);
+  } else if (type === "gf") {
+    const a = aksje(anker.dataset.id);
+    const n = t.aksjer[a.id];
+    const antall = gfAntall(t, a.id);
+    tittel = `Generalforsamling i ${a.navn}`;
+    linjer.push(`Du eier ${formaterTall(n)} ${flertall(a, n)} og stemte for høyere utbytte.`);
+    linjer.push(`Gir ${ganger(REGLER.gfFaktor)} utbytte fra ${a.navn} for hver ${REGLER.gfHver}. ${a.en}, nå ${ganger(Math.pow(REGLER.gfFaktor, antall))}.`);
+    linjer.push(`Neste ved ${formaterTall((antall + 1) * REGLER.gfHver)} ${a.fler}.`);
+  } else if (type === "uro") {
+    tittel = "Uro i markedet";
+    linjer.push(`Streken fylles på ${formaterTid(REGLER.uroSek)}. Jo fullere den er, jo større er sjansen for en verdenshendelse eller et børskrakk. Når den er full, skjer det alltid.`);
+    linjer.push(urolig(t) ? "Noe skjer nå." : `Nå: ${prosent(uroFyll(t))}.`);
+  }
+  return { tittel, linjer };
+}
+
+function visTips(anker) {
+  const innhold = tipsInnhold(anker);
+  if (!innhold) return;
+  aktivTips = anker;
+  const s = document.createElement("strong");
+  s.textContent = innhold.tittel;
+  el.tips.replaceChildren(s, ...innhold.linjer.map((l, i) => {
+    const p = document.createElement("p");
+    p.textContent = l;
+    if (i === innhold.linjer.length - 1) p.className = "tips-status";
+    return p;
+  }));
+  el.tips.hidden = false;
+  plasserTips();
+}
+
+function plasserTips() {
+  if (!aktivTips) return;
+  const r = aktivTips.getBoundingClientRect();
+  const b = el.tips.getBoundingClientRect();
+  const kant = 8;
+  let x = r.right + 10;
+  if (x + b.width > innerWidth - kant) x = r.left - b.width - 10;
+  if (x < kant) x = Math.min(innerWidth - b.width - kant, Math.max(kant, r.left + r.width / 2 - b.width / 2));
+  let y = r.top + r.height / 2 - b.height / 2;
+  if (x === Math.min(innerWidth - b.width - kant, Math.max(kant, r.left + r.width / 2 - b.width / 2))) y = r.bottom + 10;
+  y = Math.min(innerHeight - b.height - kant, Math.max(kant, y));
+  el.tips.style.left = `${Math.round(x)}px`;
+  el.tips.style.top = `${Math.round(y)}px`;
+}
+
+function skjulTips(anker) {
+  if (anker && anker !== aktivTips) return;
+  aktivTips = null;
+  el.tips.hidden = true;
+}
+
+function oppdaterTips() {
+  if (!aktivTips) return;
+  if (!aktivTips.isConnected) { skjulTips(); return; }
+  const innhold = tipsInnhold(aktivTips);
+  if (!innhold) return;
+  const siste = el.tips.lastElementChild;
+  if (siste) settTekst(siste, innhold.linjer.at(-1));
+}
+
+/** Gir et ikon tips ved hover, fokus og første trykk med finger. Andre trykk utfører handlingen. */
+function medTips(knapp, handling) {
+  let siste = { type: "mouse", varApen: false };
+  knapp.setAttribute("aria-describedby", "tips");
+  knapp.addEventListener("pointerdown", (e) => { pekertype = e.pointerType; siste = { type: e.pointerType, varApen: aktivTips === knapp }; });
+  knapp.addEventListener("keydown", () => { siste = { type: "keyboard", varApen: true }; });
+  knapp.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") visTips(knapp); });
+  knapp.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") skjulTips(knapp); });
+  knapp.addEventListener("focus", () => visTips(knapp));
+  knapp.addEventListener("blur", () => skjulTips(knapp));
+  knapp.addEventListener("click", () => {
+    if ((siste.type === "touch" || siste.type === "pen") && !siste.varApen) { visTips(knapp); siste.varApen = true; return; }
+    handling?.();
+  });
+}
+
+document.addEventListener("pointerdown", (e) => {
+  if (aktivTips && !aktivTips.contains(e.target)) skjulTips();
+}, { passive: true });
+addEventListener("scroll", () => { if (aktivTips && pekertype !== "mouse") skjulTips(); else plasserTips(); }, { passive: true });
+addEventListener("keydown", (e) => { if (e.key === "Escape") skjulTips(); });
+
+// ---------- Boostere og generalforsamling ----------
+
+function boosterVirkning(b) {
+  if (b.type === "aksje") return `Gir ${ganger(b.faktor)} utbytte fra ${aksje(b.mal).navn}.`;
+  if (b.type === "alle") return `Gir ${ganger(b.faktor)} utbytte fra alle selskapene.`;
+  return `Hvert trykk gir også ${prosent(b.andel)} av utbyttet i sekundet.`;
+}
+
+function boosterFigur(b) {
+  return b.type === "aksje" ? FIGURER[b.mal] : b.type === "alle" ? FIGURER.tangent : FIGURER.trykk;
+}
+
+function lagBooster(b) {
+  const li = document.createElement("li");
+  const f = boosterFigur(b);
+  const merke = b.type === "trykk" ? `+${formaterTall(b.andel * 100)}%` : ganger(b.faktor);
+  li.innerHTML = `<button type="button" class="spillikon booster svart" data-tips="booster" data-id="${b.id}"><span class="ikon-flis" style="--tile:${f.tile}">${f.svg}</span><span class="ikon-merke">${merke}</span></button>`;
+  const knapp = li.firstChild;
+  knapp.setAttribute("aria-label", `${b.navn}. ${boosterVirkning(b)} Koster ${ore(b.pris)}.`);
+  medTips(knapp, () => kjopEnBooster(b, knapp));
+  return li;
+}
+
+function tegnBoostere() {
+  const neste = nesteBoostere(t, 3);
+  const nokkel = neste.map((b) => b.id).join("|");
+  if (nokkel !== boosterNokkel) {
+    const knapper = [...el.boostere.querySelectorAll("button")];
+    const fokus = knapper.indexOf(document.activeElement);
+    boosterNokkel = nokkel;
+    el.boostere.replaceChildren(...neste.map(lagBooster));
+    if (fokus >= 0) el.boostere.querySelectorAll("button")[Math.min(fokus, neste.length - 1)]?.focus();
+  }
+  for (const knapp of el.boostere.querySelectorAll("button")) {
+    const b = BOOSTERE.find((x) => x.id === knapp.dataset.id);
+    const andel = andelRad(t, b.pris);
+    const klasse = andel >= 1 ? "klar" : andel >= 0.5 ? "halv" : "svart";
+    if (!knapp.classList.contains(klasse)) { knapp.classList.remove("klar", "halv", "svart"); knapp.classList.add(klasse); }
+    settAttr(knapp, "aria-disabled", andel >= 1 ? "false" : "true");
+  }
+}
+
+function kjopEnBooster(b, knapp) {
+  const for_ = t;
+  t = kjopBooster(t, b.id);
+  if (t === for_) { si(`${b.navn}: du mangler ${ore(b.pris - t.saldo)}.`); visTips(knapp); return; }
+  skjulTips();
+  si(`${b.navn}. ${boosterVirkning(b)}`);
+  if (b.type === "aksje") hopp(rader.get(b.mal)?.figur);
+  else if (b.type === "alle") for (const r of rader.values()) if (t.aksjer[r.id] > 0) hopp(r.figur);
+  tegn();
+  lagre();
+}
+
+function tegnGf() {
+  const liste = generalforsamlinger(t);
+  const nokkel = liste.map((g) => g.id + ":" + g.antall).join("|");
+  if (nokkel === gfNokkel) return;
+  const nye = liste.filter((g) => !gfNokkel.split("|").includes(g.id + ":" + g.antall));
+  gfNokkel = nokkel;
+  el.gf.hidden = liste.length === 0;
+  el.gf.replaceChildren(...liste.map((g) => {
+    const a = aksje(g.id);
+    const li = document.createElement("li");
+    li.innerHTML = `<button type="button" class="spillikon gf" data-tips="gf" data-id="${g.id}"><span class="ikon-flis" style="--tile:${FIGURER[g.id].tile}">${FIGURER[g.id].svg}</span><span class="ikon-merke">${ganger(g.faktor)}</span></button>`;
+    const knapp = li.firstChild;
+    knapp.setAttribute("aria-label", `Generalforsamling i ${a.navn}: ${ganger(g.faktor)} utbytte.`);
+    medTips(knapp);
+    if (nye.some((n) => n.id === g.id)) requestAnimationFrame(() => hopp(knapp));
+    return li;
+  }));
+}
 
 // ---------- Butikken ----------
 
 function lagRad(id, status) {
+  const a = aksje(id);
   const li = document.createElement("li");
-  li.className = "rad";
+  li.className = "aksjerad";
   li.dataset.id = id;
   if (status === "skygge") {
-    const h = HJELPERE.find((x) => x.id === id);
     li.classList.add("rad-skygge");
-    li.innerHTML = `<div class="rad-knapp"><span class="rad-figur">${FIGURER.skygge}</span><span class="rad-navn">Ukjent hjelper</span><span class="rad-info">Viser seg når du har hatt ${formaterOre(h.pris * REGLER.visFra)} innom kontoen.</span></div>`;
-    return { status, li };
+    li.innerHTML = `<div class="rad-knapp"><span class="rad-figur"><span class="ikon-flis" style="--tile:${FIGURER.skygge.tile}">${FIGURER.skygge.svg}</span></span><span class="rad-navn"><span class="rad-tittel">Ukjent selskap</span></span><span class="rad-info"></span></div>`;
+    li.querySelector(".rad-info").textContent = `Viser seg når du har hatt ${ore(a.pris * REGLER.visFra)} innom grisen.`;
+    return { id, li, status };
   }
-  const navn = id === "trykk" ? "Større overføring" : HJELPERE.find((x) => x.id === id).navn;
-  li.innerHTML = `<button type="button" class="rad-knapp"><span class="rad-figur">${FIGURER[id]}</span><span class="rad-navn">${navn} <span class="rad-niva"></span></span><span class="rad-pris"></span><span class="rad-info"></span><span class="rad-kjop"></span><span class="rad-strek" aria-hidden="true"><i></i></span></button>`;
-  const knapp = li.firstChild;
+  const f = FIGURER[id];
+  li.innerHTML = `<button type="button" class="rad-knapp"><span class="rad-figur"><span class="ikon-flis" style="--tile:${f.tile}">${f.svg}</span><span class="rad-antall" hidden></span></span>` +
+    '<span class="rad-navn"><span class="rad-tittel"></span><span class="rad-sektor"></span></span>' +
+    '<span class="rad-kjop"><span class="rad-mengde"></span><span class="pris rad-pris"></span></span><span class="rad-info"></span><span class="rad-merker"></span></button>';
+  li.querySelector(".rad-tittel").textContent = a.navn;
+  li.querySelector(".rad-sektor").textContent = a.sektor;
+  const knapp = li.querySelector("button");
   knapp.addEventListener("click", () => kjop(id));
   return {
-    status, li, knapp, figur: li.querySelector(".rad-figur"), niva: li.querySelector(".rad-niva"), pris: li.querySelector(".rad-pris"),
-    info: li.querySelector(".rad-info"), kjop: li.querySelector(".rad-kjop"), strek: li.querySelector(".rad-strek i"), andel: -1,
+    id, li, status, knapp, figur: li.querySelector(".rad-figur"), antall: li.querySelector(".rad-antall"),
+    mengde: li.querySelector(".rad-mengde"), pris: li.querySelector(".rad-pris"), info: li.querySelector(".rad-info"), merker: li.querySelector(".rad-merker"),
   };
 }
 
-function antallFor(id) {
-  if (modus !== "maks") return modus;
-  return Math.max(1, id === "trykk" ? maksTrykk(t) : maksHjelper(t, id));
+function antallKjop(id) {
+  return modus === "maks" ? Math.max(1, maksAksje(t, id)) : modus;
 }
 
 function tegnButikk() {
-  const liste = [{ id: "trykk", status: "apen" }, ...synlige(t)];
+  const liste = synlige(t);
+  let forrigeLi = null;
   for (const { id, status } of liste) {
-    let rad = rader.get(id);
-    if (!rad) { rad = lagRad(id, status); rader.set(id, rad); el.butikk.append(rad.li); }
-    else if (rad.status !== status) { const ny = lagRad(id, status); rad.li.replaceWith(ny.li); rader.set(id, ny); rad = ny; }
-    if (status === "skygge") continue;
-
-    const antall = antallFor(id);
-    let pris, niva, info, inn;
-    if (id === "trykk") {
-      pris = prisTrykk(t, antall);
-      niva = t.trykkNiva;
-      info = `Grunnbeløp per trykk: ${formaterOre(grunnTrykk(niva))}. Etter kjøpet: ${formaterOre(grunnTrykk(niva + antall))}.`;
-      inn = antallTrykk(pris / (antall * REGLER.trykkSteg));
-    } else {
-      const h = HJELPERE.find((x) => x.id === id);
-      const perNiva = h.rate * Math.pow(2, t.loft[id]);
-      pris = prisHjelper(t, id, antall);
-      niva = t.hjelpere[id];
-      const loftNiva = nesteLoftNiva(t, id);
-      const loftTekst = loftNiva === null ? "" : niva >= loftNiva ? " Løft klart nederst." : niva > 0 ? ` Løft på nivå ${loftNiva}.` : "";
-      info = niva > 0
-        ? `${h.bransje}. Tjener ${formaterOre(hjelperRate(t, id))} i sekundet.${loftTekst}`
-        : `${h.bransje}. Tjener ${formaterOre(perNiva)} i sekundet per nivå.`;
-      inn = formaterTid(pris / (antall * perNiva));
+    let r = rader.get(id);
+    if (!r || r.status !== status) {
+      const ny = lagRad(id, status);
+      if (r) r.li.replaceWith(ny.li);
+      rader.set(id, ny);
+      r = ny;
+      if (status === "apen") hopp(r.figur);
     }
-    const raad = pris <= t.saldo;
-    settTekst(rad.niva, niva > 0 ? `Nivå${NBSP}${formaterTall(niva)}` : "");
-    settTekst(rad.pris, formaterOre(pris));
-    settTekst(rad.info, info);
-    settTekst(rad.kjop, `${nivaTekst(antall)}. Tjent inn på ${inn}.`);
-    settAttr(rad.knapp, "aria-disabled", raad ? "false" : "true");
-    rad.li.classList.toggle("eier", niva > 0);
-    const andel = raad ? 0 : Math.round(Math.min(1, t.saldo / pris) * 200) / 200;
-    if (andel !== rad.andel) { rad.andel = andel; rad.strek.style.transform = `scaleX(${andel})`; }
+    if (r.li.previousElementSibling !== forrigeLi || r.li.parentNode !== el.butikk) {
+      if (forrigeLi) forrigeLi.after(r.li); else el.butikk.prepend(r.li);
+    }
+    forrigeLi = r.li;
+    if (status !== "apen") continue;
+    const a = aksje(id);
+    const n = t.aksjer[id];
+    const ant = antallKjop(id);
+    const pris = prisAksje(t, id, ant);
+    settTekst(r.pris, ore(pris));
+    settTekst(r.mengde, modus === 1 ? "" : `${formaterTall(ant)} ${flertall(a, ant)}`);
+    r.antall.hidden = n === 0;
+    settTekst(r.antall, formaterTall(n));
+    const perAksje = utbyttePerAksje(t, id);
+    settTekst(r.info, n > 0
+      ? `${perSek(aksjeRate(t, id))} · ${formaterTall(n)} ${flertall(a, n)} · ${ore(perAksje)}/${a.en}/sek`
+      : `Gir ${ore(perAksje)}/sek per ${a.en}`);
+    const merker = [];
+    if (rabatt(t, id) > 0) merker.push(["krakk", `Krakk: ${prosent(rabatt(t, id))} billigere`]);
+    if (t.uro.verden?.mal === id) merker.push(["verden", `Utbytte ${prosent(t.uro.verden.fall)} lavere`]);
+    const merkeNokkel = merker.map((m) => m.join(":")).join("|");
+    if (r.merker.dataset.n !== merkeNokkel) {
+      r.merker.dataset.n = merkeNokkel;
+      r.merker.replaceChildren(...merker.map(([type, tekst]) => {
+        const s = document.createElement("span");
+        s.className = `radmerke merke-${type}`;
+        s.textContent = tekst;
+        return s;
+      }));
+    }
+    settAttr(r.knapp, "aria-disabled", pris <= t.saldo ? "false" : "true");
+    r.li.classList.toggle("eier", n > 0);
   }
 }
 
 function kjop(id) {
-  const antall = antallFor(id);
+  const a = aksje(id);
+  const ant = antallKjop(id);
   const for_ = t;
-  const pris = id === "trykk" ? prisTrykk(t, antall) : prisHjelper(t, id, antall);
-  t = id === "trykk" ? kjopTrykk(t, antall) : kjopHjelper(t, id, antall);
-  if (t === for_) { si(`Du mangler ${formaterOre(Math.max(0.1, pris - t.saldo))}.`); return; }
-  const rad = rader.get(id);
-  hopp(rad.figur);
-  si(id === "trykk"
-    ? `Større overføring er på nivå ${t.trykkNiva}. Hvert trykk gir ${formaterOre(trykkverdi(t))}.`
-    : `${HJELPERE.find((x) => x.id === id).navn} er på nivå ${t.hjelpere[id]}.`);
+  const gfFor = gfAntall(t, id);
+  t = kjopAksje(t, id, ant);
+  if (t === for_) { si(`Du mangler ${ore(prisAksje(t, id, ant) - t.saldo)}.`); return; }
+  hopp(rader.get(id)?.figur);
+  const n = t.aksjer[id];
+  const gf = gfAntall(t, id);
+  if (gf > gfFor) si(`Generalforsamling i ${a.navn}: du stemte for høyere utbytte. Nå ${ganger(Math.pow(REGLER.gfFaktor, gf))} utbytte.`);
+  else si(`${a.navn}: ${formaterTall(n)} ${flertall(a, n)}, ${perSek(aksjeRate(t, id))}.`);
   tegn();
   lagre();
 }
 
-// ---------- Løft ----------
+// ---------- Kontoen, farten og overføringen ----------
 
-function tegnLoft() {
-  const liste = tilgjengeligeLoft(t);
-  const nokkel = liste.map((l) => l.id + ":" + l.navn).join("|");
-  if (nokkel !== loftNokkel) {
-    const nye = liste.filter((l) => !loftNokkel.includes(l.id + ":" + l.navn));
-    const fokus = document.activeElement?.closest?.(".loft-knapp")?.dataset.id;
-    loftNokkel = nokkel;
-    el.loft.replaceChildren(...liste.map((l) => {
-      const li = document.createElement("li");
-      const virkning = l.type === "trykk"
-        ? `Hvert trykk gir også ${formaterTall(l.andel * 100)}${NBSP}% av det hjelperne tjener i sekundet.`
-        : `${l.hjelper} tjener dobbelt.`;
-      li.innerHTML = `<button type="button" class="loft-knapp" data-id="${l.id}"><span class="loft-navn"></span><span class="loft-pris"></span><span class="loft-virkning"></span></button>`;
-      li.querySelector(".loft-navn").textContent = l.navn;
-      li.querySelector(".loft-pris").textContent = formaterOre(l.pris);
-      li.querySelector(".loft-virkning").textContent = virkning;
-      li.firstChild.addEventListener("click", () => kjopEtLoft(l));
-      return li;
-    }));
-    el.loftBoks.hidden = liste.length === 0;
-    if (fokus) (el.loft.querySelector(`[data-id="${fokus}"]`) ?? rader.get(fokus)?.knapp ?? el.mynt).focus();
-    if (nye.length) si(`Nytt løft nederst i butikken: ${nye.map((l) => l.navn).join(", ")}.`);
-  }
-  for (const l of liste) {
-    const knapp = el.loft.querySelector(`[data-id="${l.id}"]`);
-    if (knapp) settAttr(knapp, "aria-disabled", l.pris <= t.saldo ? "false" : "true");
-  }
+function klikkSisteSek(naa = performance.now()) {
+  klikk = klikk.filter((k) => naa - k.tid < 1000);
+  return klikk;
 }
-
-function kjopEtLoft(l) {
-  const for_ = t;
-  t = kjopLoft(t, l.id);
-  if (t === for_) { si(`Du mangler ${formaterOre(Math.max(0.1, l.pris - t.saldo))}.`); return; }
-  if (l.type === "hjelper") hopp(rader.get(l.id)?.figur);
-  tegn();
-  si(l.type === "trykk" ? `${l.navn}: hvert trykk gir nå ${formaterOre(trykkverdi(t))}.` : `${l.navn}: ${l.hjelper} tjener nå ${formaterOre(hjelperRate(t, l.id))} i sekundet.`);
-  lagre();
-}
-
-// ---------- Kontoen ----------
 
 function tegnKonto() {
-  const saldo = formaterOre(t.saldo);
+  const saldo = ore(t.saldo);
   settTekst(el.saldo, saldo);
   el.saldo.classList.toggle("lang", saldo.length > 13);
   const ps = perSekund(t);
-  settTekst(el.rate, ps > 0 ? `${formaterOre(ps)} i sekundet` : "Ingen hjelpere ennå");
-  settTekst(el.myntVerdi, "+" + formaterOre(trykkverdi(t)));
-  settTekst(el.selv, formaterOre(t.overfort));
-  settTekst(el.tjent, formaterOre(t.tjent));
-  const sum = t.overfort + t.tjent;
-  const blaa = sum > 0 ? Math.round((t.overfort / sum) * 200) / 200 : 0;
-  if (el.blaa.__a !== blaa || el.blaa.__s !== (sum > 0)) {
-    el.blaa.__a = blaa; el.blaa.__s = sum > 0;
-    el.blaa.style.flexGrow = sum > 0 ? blaa : 0;
-    el.gul.style.flexGrow = sum > 0 ? 1 - blaa : 0;
-  }
+  const siste = klikkSisteSek();
+  const fraTrykk = siste.reduce((sum, k) => sum + k.verdi, 0);
+  settTekst(el.inntekt, perSek(ps + fraTrykk));
+  settTekst(el.rate, perSek(ps));
+  settTekst(el.klikkrate, ore(fraTrykk));
+  settTekst(el.miniSaldo, saldo);
+  settTekst(el.miniRate, perSek(ps + fraTrykk));
+
+  const f = fartFaktor(siste.length);
+  settTekst(el.grisVerdi, "+" + ore(klikkverdi(t, siste.length + 1)));
+  settTekst(el.fartTekst, f > 1 ? `Fart ${formaterTall(f, 2)}x` : "Trykk raskt for fart");
+  el.fart.classList.toggle("pa", f > 1);
+  el.fartFyll.style.transform = `scaleX(${(f - 1) / (REGLER.fartMaks - 1)})`;
+
+  const pris = prisTrykk(t, 1);
+  settTekst(el.oppgraderNiva, `nivå ${formaterTall(t.trykkNiva)}`);
+  settTekst(el.oppgraderPris, ore(pris));
+  settAttr(el.oppgrader, "aria-disabled", pris <= t.saldo ? "false" : "true");
+  settAttr(el.oppgrader, "aria-label", `Større overføring, nivå ${t.trykkNiva}. Etter kjøpet gir hvert trykk ${ore(grunnTrykk(t.trykkNiva + 1))}. Koster ${ore(pris)}.`);
 }
 
 function tegnMilepel() {
-  const sum = t.overfort + t.tjent;
   let ny = milepel;
-  while (ny < MILEPELER.length && sum >= MILEPELER[ny]) ny++;
-  if (ny > milepel) { milepel = ny; si(`Du har hatt ${formaterOre(MILEPELER[ny - 1])} innom kontoen.`); }
+  while (ny < MILEPELER.length && t.totalt >= MILEPELER[ny]) ny++;
+  if (ny > milepel) { milepel = ny; si(`Du har hatt ${ore(MILEPELER[ny - 1])} innom grisen.`); }
 }
 
-function tegnUtbytte(naa) {
+el.gris.insertAdjacentHTML("afterbegin", GRIS);
+el.gris.addEventListener("click", (e) => {
+  const naa = performance.now();
+  const n = klikkSisteSek(naa).length + 1;
+  const verdi = klikkverdi(t, n);
+  t = trykk(t, n);
+  klikk.push({ tid: naa, verdi });
+  pluss(e, verdi, fartFaktor(n));
+  myntInn();
+  tegn();
+});
+el.gris.addEventListener("keydown", (e) => { if (e.repeat && (e.key === "Enter" || e.key === " ")) e.preventDefault(); });
+
+el.oppgrader.addEventListener("click", () => {
+  const for_ = t;
+  t = kjopTrykk(t, 1);
+  if (t === for_) { si(`Du mangler ${ore(prisTrykk(t, 1) - t.saldo)}.`); return; }
+  si(`Hvert trykk gir nå ${ore(grunnTrykk(t.trykkNiva))} før boostere.`);
+  hopp(el.oppgrader);
+  tegn();
+  lagre();
+});
+
+// ---------- Uro i markedet ----------
+
+el.uroIkon.innerHTML = FIGURER.klode.svg;
+el.uro.dataset.tips = "uro";
+el.uro.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") visTips(el.uro); });
+el.uro.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") skjulTips(el.uro); });
+el.uro.addEventListener("focus", () => visTips(el.uro));
+el.uro.addEventListener("blur", () => skjulTips(el.uro));
+el.uro.addEventListener("pointerdown", (e) => { pekertype = e.pointerType; });
+el.uro.addEventListener("click", () => { if (pekertype !== "mouse") visTips(el.uro); });
+
+let uroProsent = -1;
+function tegnUro() {
+  const fyll = urolig(t) ? 1 : uroFyll(t);
+  el.uroFyll.style.transform = `scaleY(${fyll})`;
+  el.uro.classList.toggle("aktiv", urolig(t));
+  const p = Math.floor(fyll * 10) * 10;
+  if (p !== uroProsent) { uroProsent = p; el.uro.setAttribute("aria-label", urolig(t) ? "Uro i markedet: noe skjer nå" : `Uro i markedet: ${p} prosent`); }
+
+  const v = t.uro.verden, k = t.uro.krakk;
+  let tekst = "", klasse = "";
+  if (v) {
+    const a = aksje(v.mal);
+    tekst = `Verdenshendelse: ${a.uro}. ${a.navn} gir ${prosent(v.fall)} mindre utbytte i ${Math.ceil(v.igjen)} sek.`;
+    klasse = "verden";
+  } else if (k) {
+    tekst = `Børskrakk! Aksjene er ${prosent(REGLER.krakkRabatt[0]).replace(" %", "")} til ${prosent(REGLER.krakkRabatt[1])} billigere i ${Math.ceil(k.igjen)} sek. Mest der veksten er høyest.`;
+    klasse = "krakk";
+  }
+  el.hendelse.hidden = !tekst;
+  settTekst(el.hendelse, tekst);
+  if (klasse && !el.hendelse.classList.contains(klasse)) el.hendelse.className = `hendelse ${klasse}`;
+}
+
+function meldHendelse(h) {
+  if (h.type === "verden") {
+    const a = aksje(h.mal);
+    annonser(`Verdenshendelse: ${a.uro}. ${a.navn} gir ${prosent(h.fall)} mindre utbytte i ${h.sek} sek.`);
+  } else {
+    annonser(`Børskrakk! Aksjene er billigere i ${h.sek} sek.`);
+  }
+  hopp(el.uroIkon);
+}
+
+// ---------- Ekstraordinært utbytte ----------
+
+function tegnEkstra(naa) {
   const ps = perSekund(t);
-  const vist = !el.utbytte.hidden;
-  if (!vist) {
-    if (ps <= 0) { utbytteNeste = 0; return; }
-    if (!utbytteNeste) utbytteNeste = naa + 1000 * (utbytteSlutt ? 45 + Math.random() * 45 : 20 + Math.random() * 15);
-    if (naa < utbytteNeste) return;
-    utbytteSlutt = naa + REGLER.utbytteVisSek * 1000;
-    el.utbytte.hidden = false;
-    el.status.textContent = "";
-  } else if (naa >= utbytteSlutt) { skjulUtbytte(); return; }
-  settTekst(el.utbytte, `Ta imot utbytte: ${formaterOre(utbytteverdi(t))}`);
-}
-function skjulUtbytte() {
-  if (document.activeElement === el.utbytte) el.mynt.focus();
-  el.utbytte.hidden = true;
-  utbytteNeste = 0;
-}
-el.utbytte.addEventListener("click", () => {
-  const verdi = utbytteverdi(t);
-  t = taUtbytte(t);
-  skjulUtbytte();
-  si(`Utbytte: hjelperne ga ${formaterOre(verdi)} ekstra.`);
-  tegn();
-});
-
-function tegn(naa = Date.now()) {
-  tegnKonto();
-  tegnButikk();
-  tegnLoft();
-  tegnMilepel();
-  tegnUtbytte(naa);
-}
-
-// ---------- Bevegelse ----------
-// Bare transform og opacity. Alt står stille for den som har bedt om mindre bevegelse.
-
-function hopp(node) {
-  if (!node || rolig.matches || !node.animate) return;
-  node.animate([{ transform: "translateY(0)" }, { transform: "translateY(-7px)" }, { transform: "translateY(0)" }], { duration: 320, easing: "cubic-bezier(0.23, 1, 0.32, 1)" });
-}
-
-function flyt(node, hoyde, varighet) {
-  const a = node.animate?.([{ transform: "translate(-50%, 0)", opacity: 1 }, { transform: `translate(-50%, ${-hoyde}px)`, opacity: 0 }], { duration: varighet, easing: "cubic-bezier(0.23, 1, 0.32, 1)" });
-  if (a) a.onfinish = () => node.remove(); else node.remove();
-}
-
-function pluss(e, verdi) {
-  if (rolig.matches || el.flate.querySelectorAll(".pluss").length > 14) return;
-  const r = el.flate.getBoundingClientRect();
-  const fraMus = e.detail > 0 && e.clientX > 0;
-  const node = document.createElement("span");
-  node.className = "pluss";
-  node.setAttribute("aria-hidden", "true");
-  node.textContent = "+" + formaterOre(verdi);
-  node.style.left = (fraMus ? e.clientX - r.left : r.width / 2) + (Math.random() * 16 - 8) + "px";
-  node.style.top = (fraMus ? e.clientY - r.top - 28 : -8) + "px";
-  el.flate.append(node);
-  flyt(node, 46, 800);
-}
-
-function gulMynt(naa) {
-  if (rolig.matches || document.hidden || naa < myntNeste) return;
-  myntNeste = naa + 900 + Math.random() * 900;
-  const eide = HJELPERE.filter((h) => t.hjelpere[h.id] > 0).map((h) => rader.get(h.id)).filter((r) => r?.figur);
-  if (!eide.length) return;
-  const rad = eide[Math.floor(Math.random() * eide.length)];
-  const node = document.createElement("i");
-  node.className = "gulmynt";
-  node.setAttribute("aria-hidden", "true");
-  rad.figur.append(node);
-  flyt(node, 20, 900);
-}
-
-// ---------- Trykket ----------
-
-el.mynt.addEventListener("click", (e) => {
-  const verdi = trykkverdi(t);
-  t = trykk(t);
-  pluss(e, verdi);
-  tegn();
-});
-// Holder du en tast inne, teller det som ett trykk.
-el.mynt.addEventListener("keydown", (e) => { if (e.repeat && (e.key === "Enter" || e.key === " ")) e.preventDefault(); });
-
-for (const radio of document.querySelectorAll('input[name="antall"]')) {
-  radio.addEventListener("change", () => { modus = radio.value === "maks" ? "maks" : Number(radio.value); tegn(); });
-  if (radio.checked) modus = radio.value === "maks" ? "maks" : Number(radio.value);
-}
-
-// ---------- Lagring, bare når du ber om det ----------
-
-function lagre() {
-  if (!el.husk.checked) return;
-  try { localStorage.setItem(NOKKEL, JSON.stringify(tilLagring(t, Date.now()))); } catch { /* fullt eller sperret lager: spillet går videre uten */ }
-}
-function slett() { try { localStorage.removeItem(NOKKEL); } catch { /* ingenting å slette */ } }
-function hent() {
-  try { return fraLagring(JSON.parse(localStorage.getItem(NOKKEL))); } catch { return null; }
-}
-
-el.husk.addEventListener("change", () => {
-  if (el.husk.checked) { lagre(); si("Spillet huskes i nettleseren på denne enheten."); }
-  else { slett(); si("Det lagrede spillet er slettet fra denne enheten."); }
-});
-addEventListener("pagehide", lagre);
-document.addEventListener("visibilitychange", () => { if (document.hidden) lagre(); });
-setInterval(lagre, 10000);
-
-function velkommenTilbake(sekunder) {
-  const b = borte(t, sekunder);
-  t = b.tilstand;
-  if (b.gevinst > 0 && sekunder >= 60) {
-    const tak = sekunder > REGLER.maksBorteSek ? ` Bare de første ${formaterTid(REGLER.maksBorteSek)} teller.` : "";
-    si(`Mens du var borte, tjente hjelperne ${formaterOre(b.gevinst)}.${tak}`);
+  if (tilbud && naa > tilbudSlutt) {
+    tilbud = null;
+    el.ekstra.hidden = true;
+    tilbudNeste = naa + tilfeldig(45, 90) * 1000;
+  }
+  if (!tilbud && ps > 0) {
+    if (!tilbudNeste) tilbudNeste = naa + tilfeldig(20, 35) * 1000;
+    if (naa >= tilbudNeste) {
+      tilbud = ekstraTilbud(t);
+      if (tilbud) {
+        tilbudSlutt = naa + REGLER.ekstraVisSek * 1000;
+        el.ekstra.hidden = false;
+        hopp(el.ekstra);
+      }
+    }
+  }
+  if (tilbud) {
+    const mangler = tilbud.pris - t.saldo;
+    settTekst(el.ekstraVilkar, `Betal ${ore(tilbud.pris)} nå, få ${ore(tilbud.sum)} om ${tilbud.vent} sek` + (mangler > 0 ? `. Du mangler ${ore(mangler)}.` : "."));
+    settAttr(el.ekstra, "aria-disabled", mangler > 0 ? "true" : "false");
+    el.ekstra.style.setProperty("--igjen", Math.max(0, (tilbudSlutt - naa) / (REGLER.ekstraVisSek * 1000)).toFixed(3));
+  }
+  const nokkel = t.ventende.map((v) => `${v.sum}:${Math.ceil(v.igjen)}`).join("|");
+  if (nokkel !== ventNokkel) {
+    ventNokkel = nokkel;
+    el.ventende.replaceChildren(...t.ventende.map((v) => {
+      const li = document.createElement("li");
+      li.textContent = `Ekstraordinært utbytte: ${ore(v.sum)} om ${Math.ceil(v.igjen)} sek`;
+      return li;
+    }));
   }
 }
 
-// ---------- Start på nytt ----------
+el.ekstra.addEventListener("click", () => {
+  if (!tilbud) return;
+  const for_ = t;
+  t = investerEkstra(t, tilbud);
+  if (t === for_) { si(`Du mangler ${ore(tilbud.pris - t.saldo)}.`); return; }
+  si(`Du investerte ${ore(tilbud.pris)}. ${ore(tilbud.sum)} kommer om ${tilbud.vent} sek.`);
+  tilbud = null;
+  el.ekstra.hidden = true;
+  tilbudNeste = Date.now() + tilfeldig(45, 90) * 1000;
+  tegn();
+  lagre();
+});
+
+// ---------- Alt sammen ----------
+
+function tegn(naa = Date.now()) {
+  tegnKonto();
+  tegnBoostere();
+  tegnGf();
+  tegnButikk();
+  tegnUro();
+  tegnEkstra(naa);
+  tegnMilepel();
+  oppdaterTips();
+}
+
+for (const radio of document.querySelectorAll('input[name="antall"]')) {
+  radio.addEventListener("change", () => { modus = radio.value === "maks" ? "maks" : Number(radio.value); tegn(); });
+}
+
+// Liten linje øverst med saldo og inntekt når kontoen er rullet ut av syne.
+if ("IntersectionObserver" in window) {
+  new IntersectionObserver(([inngang]) => {
+    el.mini.classList.toggle("vis", !inngang.isIntersecting && inngang.boundingClientRect.top < 0);
+  }).observe(el.konto);
+}
+
+// ---------- Lagring ----------
+
+function lagre() {
+  if (!el.husk.checked) return;
+  try { localStorage.setItem(NOKKEL, JSON.stringify(tilLagring(t, Date.now()))); } catch { /* lagring er valgfritt */ }
+}
+function slett() {
+  try { localStorage.removeItem(NOKKEL); } catch { /* ingenting å slette */ }
+}
+function hent() {
+  try { const tekst = localStorage.getItem(NOKKEL); return tekst ? fraLagring(JSON.parse(tekst)) : null; } catch { return null; }
+}
+
+function velkommenTilbake(sekunder) {
+  const r = borte(t, sekunder);
+  t = r.tilstand;
+  if (r.gevinst > 0) si(`Mens du var borte, ga aksjene ${ore(r.gevinst)} i utbytte.` + (sekunder > REGLER.maksBorteSek ? ` Bare de første ${formaterTid(REGLER.maksBorteSek)} teller.` : ""));
+}
+
+el.husk.addEventListener("change", () => {
+  if (el.husk.checked) { lagre(); si("Spillet huskes på denne enheten."); }
+  else { slett(); si("Det lagrede spillet er slettet fra denne enheten."); }
+});
+setInterval(lagre, 10000);
+addEventListener("pagehide", lagre);
+document.addEventListener("visibilitychange", () => { if (document.hidden) lagre(); });
 
 {
   const tekst = el.omstart.textContent;
   let tid = 0;
   const nullstill = () => { clearTimeout(tid); delete el.omstart.dataset.klar; el.omstart.textContent = tekst; };
   el.omstart.addEventListener("click", () => {
-    const brukt = t.trykk > 0 || t.tjent > 0;
+    const brukt = t.trykk > 0 || t.totalt > 0;
     if (brukt && !el.omstart.dataset.klar) {
       el.omstart.dataset.klar = "1";
-      el.omstart.textContent = "Trykk en gang til for å slette kontoen";
+      el.omstart.textContent = "Trykk en gang til for å tømme grisen";
       tid = setTimeout(nullstill, 4000);
       return;
     }
     nullstill();
     t = nyTilstand();
-    milepel = 0; utbytteNeste = 0; utbytteSlutt = 0; loftNokkel = "";
-    el.utbytte.hidden = true;
-    el.loft.replaceChildren();
-    el.loftBoks.hidden = true;
+    milepel = 0; klikk = []; tilbud = null; tilbudNeste = 0;
+    boosterNokkel = ""; gfNokkel = ""; ventNokkel = "";
+    el.ekstra.hidden = true;
+    skjulTips();
     for (const rad of rader.values()) rad.li.remove();
     rader.clear();
     tegn();
     lagre();
-    si("Kontoen er tom. Du starter på nytt.");
+    si("Grisen er tom. Du starter på nytt.");
   });
 }
 
@@ -421,22 +610,39 @@ const lagret = hent();
 if (lagret) {
   t = lagret.tilstand;
   el.husk.checked = true;
-  while (milepel < MILEPELER.length && t.overfort + t.tjent >= MILEPELER[milepel]) milepel++;
-  loftNokkel = tilgjengeligeLoft(t).map((l) => l.id + ":" + l.navn).join("|");
-  if (lagret.tid) velkommenTilbake((Date.now() - lagret.tid) / 1000);
-  loftNokkel = "";
+  while (milepel < MILEPELER.length && t.totalt >= MILEPELER[milepel]) milepel++;
+  gfNokkel = generalforsamlinger(t).map((g) => g.id + ":" + g.antall).join("|");
+  const borteSek = lagret.tid ? (Date.now() - lagret.tid) / 1000 : 0;
+  if (borteSek > 5) velkommenTilbake(borteSek);
+  else if (borteSek > 0) t = tikk(t, borteSek);
   const melding = el.status.textContent;
-  tegnLoft();
+  gfNokkel = "";
+  tegn();
   if (melding) si(melding);
+} else {
+  tegn();
 }
-tegn();
+for (const r of rader.values()) r.figur && r.figur.getAnimations().forEach((a) => a.finish());
 document.documentElement.classList.add("klikk-klar");
 
 setInterval(() => {
   const naa = Date.now();
   const dt = (naa - forrige) / 1000;
   forrige = naa;
-  if (dt > 5) velkommenTilbake(dt); else t = tikk(t, dt);
+  if (dt > 5) velkommenTilbake(dt);
+  else if (dt > 0) {
+    const ventFor = t.ventende.reduce((sum, v) => sum + v.sum, 0);
+    const varUrolig = urolig(t);
+    t = tikk(t, dt);
+    const ventEtter = t.ventende.reduce((sum, v) => sum + v.sum, 0);
+    if (ventEtter < ventFor) { si(`Ekstraordinært utbytte: ${ore(ventFor - ventEtter)} kom inn.`); hopp(el.saldo); }
+    if (perSekund(t) > 0) {
+      const r = uroSteg(t, dt);
+      t = r.tilstand;
+      if (r.hendelse) meldHendelse(r.hendelse);
+    }
+    if (varUrolig && !urolig(t)) annonser("Markedet er rolig igjen.");
+  }
   tegn(naa);
   gulMynt(naa);
 }, 100);
