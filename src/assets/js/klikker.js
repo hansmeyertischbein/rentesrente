@@ -2,7 +2,7 @@
 import {
   REGLER, AKSJER, BOOSTERE, nyTilstand, trykk, klikkverdi, grunnTrykk, fartFaktor, perSekund, aksjeRate, utbyttePerAksje,
   prisAksje, maksAksje, kjopAksje, prisTrykk, kjopTrykk, nesteBoostere, andelRad, kjopBooster, generalforsamlinger, gfAntall,
-  tikk, borte, uroFyll, urolig, uroSteg, rabatt, ekstraTilbud, ekstraAvkastning, investerEkstra, synlige, tilLagring, fraLagring,
+  tikk, borte, uroFyll, urolig, uroSteg, rabatt, ekstraTilbud, ekstraAvkastning, investerEkstra, gikkDarlig, synlige, tilLagring, fraLagring,
   radgiverTreff, prisRadgiver, kjopRadgiver, radgiverSynlig, radgiverPek, formaterOre, formaterTid,
 } from "/lib/klikker.js";
 import { formaterTall } from "/lib/format.js";
@@ -517,19 +517,19 @@ function tegnEkstra(naa) {
     }
   }
   if (tilbud) {
-    settTekst(el.ekstraVilkar, `Få ${ore(tilbud.sum)}. Jo lenger du venter, jo mindre betaler du nå.`);
+    settTekst(el.ekstraVilkar, `Få ${ore(tilbud.sum)}. Lengre tid gir mer, men høyere risiko. Går det dårlig, får du ${prosent(1 - REGLER.ekstraTap[1])} til ${prosent(1 - REGLER.ekstraTap[0])} av innsatsen tilbake.`);
     for (const knapp of el.ekstraValg.children) {
       const v = tilbud.valg[Number(knapp.dataset.nr)];
       settAttr(knapp, "aria-disabled", v.pris <= t.saldo ? "false" : "true");
     }
     el.ekstra.style.setProperty("--igjen", Math.max(0, (tilbudSlutt - naa) / (REGLER.ekstraVisSek * 1000)).toFixed(3));
   }
-  const nokkel = t.ventende.map((v) => `${v.sum}:${formaterTid(Math.ceil(v.igjen))}`).join("|");
+  const nokkel = t.ventende.map((v) => `${v.lovet ?? v.sum}:${formaterTid(Math.ceil(v.igjen))}`).join("|");
   if (nokkel !== ventNokkel) {
     ventNokkel = nokkel;
     el.ventende.replaceChildren(...t.ventende.map((v) => {
       const li = document.createElement("li");
-      li.textContent = `Ekstraordinært utbytte: ${ore(v.sum)} om ${formaterTid(Math.ceil(v.igjen))}`;
+      li.textContent = `Ekstraordinært utbytte: ${ore(v.lovet ?? v.sum)} om ${formaterTid(Math.ceil(v.igjen))}, hvis det går bra`;
       return li;
     }));
   }
@@ -541,11 +541,12 @@ function lagEkstraValg() {
     knapp.type = "button";
     knapp.className = "ekstra-knapp";
     knapp.dataset.nr = nr;
-    knapp.innerHTML = '<span class="ekstra-tid"></span><span class="ekstra-avk"></span><span class="pris"></span>';
+    knapp.innerHTML = '<span class="ekstra-tid"></span><span class="ekstra-avk"></span><span class="ekstra-risiko"></span><span class="pris"></span>';
+    knapp.querySelector(".ekstra-risiko").textContent = `Risiko ${prosent(v.risiko)}`;
     knapp.querySelector(".ekstra-tid").textContent = formaterTid(v.vent);
     knapp.querySelector(".ekstra-avk").textContent = `+${prosent(ekstraAvkastning(tilbud, v))}`;
     knapp.querySelector(".pris").textContent = ore(v.pris);
-    knapp.setAttribute("aria-label", `Vent ${formaterTid(v.vent)}: betal ${ore(v.pris)} nå og få ${ore(tilbud.sum)}, ${prosent(ekstraAvkastning(tilbud, v))} avkastning.`);
+    knapp.setAttribute("aria-label", `Vent ${formaterTid(v.vent)}: betal ${ore(v.pris)} nå og få ${ore(tilbud.sum)}, ${prosent(ekstraAvkastning(tilbud, v))} avkastning. ${prosent(v.risiko)} risiko for at det går dårlig.`);
     knapp.addEventListener("click", () => investerValg(nr));
     return knapp;
   }));
@@ -557,7 +558,7 @@ function investerValg(nr) {
   const for_ = t;
   t = investerEkstra(t, tilbud, nr);
   if (t === for_) { si(`Du mangler ${ore(v.pris - t.saldo)}.`); return; }
-  si(`Du investerte ${ore(v.pris)}. ${ore(tilbud.sum)} kommer om ${formaterTid(v.vent)}.`);
+  si(`Du investerte ${ore(v.pris)}. Går det bra, kommer ${ore(tilbud.sum)} om ${formaterTid(v.vent)}.`);
   tilbud = null;
   el.ekstra.hidden = true;
   tilbudNeste = Date.now() + tilfeldig(45, 90) * 1000;
@@ -785,11 +786,13 @@ setInterval(() => {
   forrige = naa;
   if (dt > 5) velkommenTilbake(dt);
   else if (dt > 0) {
-    const ventFor = t.ventende.reduce((sum, v) => sum + v.sum, 0);
+    const ferdige = t.ventende.filter((v) => v.igjen - dt <= 0);
     const varUrolig = urolig(t);
     t = tikk(t, dt);
-    const ventEtter = t.ventende.reduce((sum, v) => sum + v.sum, 0);
-    if (ventEtter < ventFor) { si(`Ekstraordinært utbytte: ${ore(ventFor - ventEtter)} kom inn.`); hopp(el.saldo); }
+    for (const v of ferdige) {
+      if (gikkDarlig(v)) si(`Investeringen gikk dårlig. Du fikk ${ore(v.sum)} tilbake av ${ore(v.pris)} du betalte.`);
+      else { si(`Ekstraordinært utbytte: ${ore(v.sum)} kom inn.`); hopp(el.saldo); }
+    }
     if (perSekund(t) > 0) {
       const r = uroSteg(t, dt);
       t = r.tilstand;

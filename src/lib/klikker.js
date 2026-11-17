@@ -22,11 +22,13 @@ export const REGLER = Object.freeze({
   fartMaks: 12,            // høyeste fartsboost
   ekstraSek: 90,           // et ekstraordinært utbytte er verdt så mange sekunder utbytte
   // Tre perioder å velge mellom. Jo lenger du venter, jo mindre betaler du nå, og jo høyere blir avkastningen.
+  // Høyere avkastning gir høyere risiko: sjansen for at investeringen går dårlig.
   ekstraValg: Object.freeze([
-    Object.freeze({ betal: Object.freeze([0.75, 0.8]), vent: Object.freeze([30, 45]) }),
-    Object.freeze({ betal: Object.freeze([0.6, 0.65]), vent: Object.freeze([75, 105]) }),
-    Object.freeze({ betal: Object.freeze([0.42, 0.48]), vent: Object.freeze([150, 210]) }),
+    Object.freeze({ betal: Object.freeze([0.75, 0.8]), vent: Object.freeze([30, 45]), risiko: 0.1 }),
+    Object.freeze({ betal: Object.freeze([0.6, 0.65]), vent: Object.freeze([75, 105]), risiko: 0.2 }),
+    Object.freeze({ betal: Object.freeze([0.42, 0.48]), vent: Object.freeze([150, 210]), risiko: 0.3 }),
   ]),
+  ekstraTap: Object.freeze([0, 0.1]),  // går det dårlig, taper du 0 til 10 % av det du betalte
   ekstraVisSek: 15,        // så lenge tilbudet står
   radgiverPris: 1e9,       // 10 mill. kr for å ansette investeringsrådgiveren
   radgiverStart: 0.3,      // sjansen for at han peker på den rimeligste aksjen
@@ -386,6 +388,7 @@ export function ekstraTilbud(t, rng = Math.random) {
     valg: REGLER.ekstraValg.map((v) => ({
       pris: Math.ceil(sum * mellom(v.betal, rng())),
       vent: Math.round(mellom(v.vent, rng())),
+      risiko: v.risiko,
     })),
   };
 }
@@ -395,10 +398,22 @@ export function ekstraAvkastning(tilbud, valg) {
   return valg && valg.pris > 0 ? tilbud.sum / valg.pris - 1 : 0;
 }
 
-export function investerEkstra(t, tilbud, nr = 0) {
+/**
+ * Investerer i et av valgene. Utfallet trekkes nå, men vises først når pengene kommer:
+ * som oftest hele summen, men med sjansen i risiko går det dårlig, og du får 90 til 100 % av det du betalte.
+ * Ventende utbytter lagres som { sum, lovet, pris, igjen }, der sum er det som faktisk kommer.
+ */
+export function investerEkstra(t, tilbud, nr = 0, rng = Math.random) {
   const valg = tilbud?.valg?.[nr];
   if (!valg || !(valg.pris <= t.saldo)) return t;
-  return { ...t, saldo: t.saldo - valg.pris, ventende: [...t.ventende, { sum: tilbud.sum, igjen: valg.vent }] };
+  const darlig = rng() < (valg.risiko ?? 0);
+  const sum = darlig ? Math.floor(valg.pris * (1 - mellom(REGLER.ekstraTap, rng()))) : tilbud.sum;
+  return { ...t, saldo: t.saldo - valg.pris, ventende: [...t.ventende, { sum, lovet: tilbud.sum, pris: valg.pris, igjen: valg.vent }] };
+}
+
+/** Om et ventende utbytte gikk dårlig, slik at du får mindre enn du ble lovet. */
+export function gikkDarlig(v) {
+  return v.lovet !== undefined && v.sum < v.lovet;
 }
 
 // ---------- Investeringsrådgiveren ----------
@@ -510,7 +525,9 @@ export function fraLagring(obj) {
   if (!Array.isArray(obj.ventende)) return null;
   for (const v of obj.ventende.slice(0, 20)) {
     if (!v || !tall(v.sum) || !tall(v.igjen)) return null;
-    t.ventende.push({ sum: v.sum, igjen: Math.min(v.igjen, EKSTRA_LENGST) });
+    const lovet = tall(v.lovet) ? Math.max(v.lovet, v.sum) : v.sum;
+    const pris = tall(v.pris) ? v.pris : 0;
+    t.ventende.push({ sum: v.sum, lovet, pris, igjen: Math.min(v.igjen, EKSTRA_LENGST) });
   }
   return { tilstand: t, tid };
 }
