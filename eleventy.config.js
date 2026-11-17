@@ -1,11 +1,23 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { formaterKr, formaterProsent, formaterTall, omtrentKr } from "./src/lib/format.js";
 import { beregnSparing, lagForhandsvalg, simuler, skattesatsFor } from "./src/lib/sparing.js";
 import { andeler, lagTekster } from "./src/lib/tekster.js";
 import { feilIAktive, reklameoversikt } from "./src/lib/partnere.js";
 import { REGLER, utfallStatistikk } from "./src/lib/spill.js";
 import { REGLER as KLIKKREGLER, AKSJER, BOOSTERE, formaterOre, formaterTid } from "./src/lib/klikker.js";
+
+// Alle skriptfiler deler ett versjonsnummer, regnet av innholdet i dem alle. Når én fil endres,
+// får alle nye adresser, så nettleseren aldri blander en ny side med en gammel modul fra hurtigbufferen.
+const SKRIPTMAPPER = ["src/assets/js", "src/lib"];
+function skriptVersjon() {
+  const hash = createHash("sha1");
+  for (const mappe of SKRIPTMAPPER) {
+    for (const fil of readdirSync(mappe).filter((f) => f.endsWith(".js")).sort()) hash.update(fil).update(readFileSync(join(mappe, fil)));
+  }
+  return hash.digest("hex").slice(0, 8);
+}
 
 const datoFormat = new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Oslo" });
 const satser = JSON.parse(readFileSync(new URL("./src/_data/satser.json", import.meta.url)));
@@ -70,7 +82,22 @@ export default function (eleventyConfig) {
   });
 
   // Hash av filinnholdet, slik at nettleseren henter ny CSS og JS når filen endres.
+  // Importene inne i skriptene får samme versjonsnummer som skriptet siden laster.
+  eleventyConfig.on("eleventy.after", ({ dir }) => {
+    const v = skriptVersjon();
+    for (const mappe of ["assets/js", "lib"]) {
+      const sti = join(dir.output, mappe);
+      for (const fil of readdirSync(sti).filter((f) => f.endsWith(".js"))) {
+        const full = join(sti, fil);
+        const tekst = readFileSync(full, "utf8");
+        const ny = tekst.replace(/(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(["'])(\.{0,2}\/[^"'?]+\.js)\2/g, (_, foran, q, adr) => `${foran}${q}${adr}?v=${v}${q}`);
+        if (ny !== tekst) writeFileSync(full, ny);
+      }
+    }
+  });
+
   eleventyConfig.addFilter("versjon", (sti) => {
+    if (sti.endsWith(".js")) return skriptVersjon();
     const fil = sti.startsWith("/assets/css/tokens.css") ? "design/tokens.css" : "src" + sti;
     return createHash("sha1").update(readFileSync(fil)).digest("hex").slice(0, 8);
   });
