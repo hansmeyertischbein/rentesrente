@@ -2,7 +2,7 @@
 import {
   REGLER, AKSJER, BOOSTERE, nyTilstand, trykk, klikkverdi, grunnTrykk, fartFaktor, perSekund, aksjeRate, utbyttePerAksje,
   prisAksje, maksAksje, kjopAksje, prisTrykk, kjopTrykk, nesteBoostere, andelRad, kjopBooster, generalforsamlinger, gfAntall,
-  tikk, borte, uroFyll, urolig, uroSteg, rabatt, ekstraTilbud, ekstraAvkastning, investerEkstra, gikkDarlig, synlige, tilLagring, fraLagring,
+  tikk, borte, uroFyll, urolig, uroSteg, rabatt, ekstraTilbud, ekstraAvkastning, investerEkstra, gikkDarlig, synlige, fordeler, nyeFordeler, tilLagring, fraLagring,
   radgiverTreff, prisRadgiver, kjopRadgiver, radgiverSynlig, radgiverPek, formaterOre, formaterTid,
 } from "/lib/klikker.js";
 import { formaterTall } from "/lib/format.js";
@@ -36,6 +36,7 @@ let milepel = 0;
 let klikk = [];           // trykk det siste sekundet: { tid, verdi }
 let tilbud = null, tilbudSlutt = 0, tilbudNeste = 0;
 let boosterNokkel = "", gfNokkel = "", ventNokkel = "";
+let resultater = [];      // investeringer som nettopp kom inn: { tekst, bra, slutt }
 let aktivTips = null, pekertype = "mouse";
 let myntNeste = 0;
 let pekt = null, pekNeste = 0;  // aksjen rådgiveren peker på, og når han ser på nytt
@@ -73,9 +74,10 @@ function flyt(node, hoyde, varighet) {
 function pluss(e, verdi, fart) {
   if (rolig.matches || el.grisFlate.querySelectorAll(".pluss").length > 14) return;
   const flate = el.grisFlate.getBoundingClientRect();
+  const z = flate.width / el.grisFlate.offsetWidth || 1;   // på PC er spillet zoomet ut
   const fraMus = e && e.clientX > 0;
-  const x = fraMus ? e.clientX - flate.left : flate.width / 2 + tilfeldig(-30, 30);
-  const y = fraMus ? e.clientY - flate.top : flate.height * 0.3;
+  const x = fraMus ? (e.clientX - flate.left) / z : el.grisFlate.offsetWidth / 2 + tilfeldig(-30, 30);
+  const y = fraMus ? (e.clientY - flate.top) / z : el.grisFlate.offsetHeight * 0.3;
   const p = document.createElement("span");
   p.className = fart > 1 ? "pluss rask" : "pluss";
   p.textContent = "+" + ore(verdi);
@@ -90,13 +92,21 @@ function myntInn() {
   const fig = el.gris.querySelector(".gris-fig");
   if (rolig.matches || !fig) return;
   fig.animate([{ transform: "scale(1)" }, { transform: "scale(1.05, 0.92)" }, { transform: "scale(1)" }], { duration: 180, easing: "ease-out" });
-  if (el.gris.querySelectorAll(".gris-mynt").length > 5) return;
+  if (el.gris.querySelectorAll(".gris-mynt").length > 8) return;
   const m = document.createElement("span");
   m.className = "gris-mynt";
   m.textContent = "kr";
   el.gris.append(m);
-  m.animate([{ transform: "translate(-50%, -2.2rem)", opacity: 1 }, { transform: "translate(-50%, 0.2rem)", opacity: 1, offset: 0.8 }, { transform: "translate(-50%, 0.5rem) scaleY(0.4)", opacity: 0 }],
-    { duration: 300, easing: "cubic-bezier(0.55, 0, 1, 0.45)" }).finished.then(() => m.remove(), () => m.remove());
+  // Mynten spretter opp fra grisen, sprer seg litt ut til siden og faller ned i sprekken på ryggen.
+  const ut = tilfeldig(-1.6, 1.6).toFixed(2);
+  const hoyde = tilfeldig(3.4, 4.6).toFixed(2);
+  const snu = tilfeldig(-70, 70).toFixed(0);
+  m.animate([
+    { transform: "translate(-50%, 0) scale(0.7) rotateY(0deg)", opacity: 0, easing: "cubic-bezier(0.2, 0.8, 0.4, 1)" },
+    { transform: `translate(calc(-50% + ${ut}rem), -${hoyde}rem) scale(1) rotateY(${snu}deg)`, opacity: 1, offset: 0.45, easing: "cubic-bezier(0.5, 0, 0.9, 0.5)" },
+    { transform: "translate(-50%, 0.1rem) scale(0.9) rotateY(0deg)", opacity: 1, offset: 0.9 },
+    { transform: "translate(-50%, 0.5rem) scale(0.8, 0.3)", opacity: 0 },
+  ], { duration: 620 }).finished.then(() => m.remove(), () => m.remove());
 }
 
 function gulMynt(naa) {
@@ -349,6 +359,9 @@ function tegnButikk() {
     if (rabatt(t, id) > 0) merker.push(["krakk", `Krakk: ${prosent(rabatt(t, id))} billigere`]);
     if (t.uro.verden?.mal === id) merker.push(["verden", `Utbytte ${prosent(t.uro.verden.fall)} lavere`]);
     if (pekt === id) merker.push(["rad", "Fondsen peker hit"]);
+    for (const f of fordeler(t, id)) {
+      merker.push(f.oppnadd ? ["fordel", `✓ ${f.tekst}`] : ["kommer", `${formaterTall(f.antall)} ${a.fler}: ${f.tekst.charAt(0).toLowerCase()}${f.tekst.slice(1)}`]);
+    }
     const merkeNokkel = merker.map((m) => m.join(":")).join("|");
     if (r.merker.dataset.n !== merkeNokkel) {
       r.merker.dataset.n = merkeNokkel;
@@ -370,13 +383,19 @@ function kjop(id) {
   const ant = antallKjop(id);
   const for_ = t;
   const gfFor = gfAntall(t, id);
+  const tilstandFor = t;
   t = kjopAksje(t, id, ant);
   if (t === for_) { si(`Du mangler ${ore(prisAksje(t, id, ant) - t.saldo)}.`); return; }
   hopp(rader.get(id)?.figur);
   if (id === pekt) pekNeste = 0;   // rådgiveren ser på nytt når du har kjøpt det han pekte på
   const n = t.aksjer[id];
   const gf = gfAntall(t, id);
-  if (gf > gfFor) si(`Generalforsamling i ${a.navn}: du stemte for høyere utbytte. Nå ${ganger(Math.pow(REGLER.gfFaktor, gf))} utbytte.`);
+  const nye = nyeFordeler(tilstandFor, t);
+  if (nye.length) {
+    const bonus = nye.some((f) => f.type === "bonus") ? ` Du fikk ${ore(t.totalt - tilstandFor.totalt)}.` : "";
+    si(`${formaterTall(n)} ${a.fler}: ${nye.map((f) => f.tekst.toLowerCase()).join(", ")}.${bonus}`.replace(/^./, (c) => c.toUpperCase()));
+    hopp(el.saldo);
+  } else if (gf > gfFor) si(`Generalforsamling i ${a.navn}: du stemte for høyere utbytte. Nå ${ganger(Math.pow(REGLER.gfFaktor, gf))} utbytte.`);
   else si(`${a.navn}: ${formaterTall(n)} ${flertall(a, n)}, ${perSek(aksjeRate(t, id))}.`);
   tegn();
   lagre();
@@ -524,15 +543,37 @@ function tegnEkstra(naa) {
     }
     el.ekstra.style.setProperty("--igjen", Math.max(0, (tilbudSlutt - naa) / (REGLER.ekstraVisSek * 1000)).toFixed(3));
   }
-  const nokkel = t.ventende.map((v) => `${v.lovet ?? v.sum}:${formaterTid(Math.ceil(v.igjen))}`).join("|");
+  tegnBobler(naa);
+}
+
+// Investeringene som venter, som bobler over grisen. Streken krymper til pengene kommer, uten tall.
+function boble(klasse, tekst) {
+  const li = document.createElement("li");
+  li.className = `boble ${klasse}`;
+  li.innerHTML = '<span class="boble-mynt" aria-hidden="true">kr</span><b></b>';
+  li.querySelector("b").textContent = tekst;
+  return li;
+}
+
+function tegnBobler(naa) {
+  resultater = resultater.filter((r) => r.slutt > naa);
+  const nokkel = t.ventende.map((v) => `${v.lovet ?? v.sum}:${v.lengde}:${v.pris}`).join("|") + "#" + resultater.map((r) => r.slutt).join("|");
   if (nokkel !== ventNokkel) {
     ventNokkel = nokkel;
-    el.ventende.replaceChildren(...t.ventende.map((v) => {
-      const li = document.createElement("li");
-      li.textContent = `Ekstraordinært utbytte: ${ore(v.lovet ?? v.sum)} om ${formaterTid(Math.ceil(v.igjen))}, hvis det går bra`;
-      return li;
-    }));
+    el.ventende.replaceChildren(
+      ...resultater.map((r) => boble(r.bra ? "bra" : "darlig", r.tekst)),
+      ...t.ventende.map((v) => {
+        const li = boble("venter", ore(v.lovet ?? v.sum));
+        li.insertAdjacentHTML("beforeend", '<span class="boble-tid" aria-hidden="true"><i></i></span>');
+        li.setAttribute("aria-label", `Ekstraordinært utbytte: ${ore(v.lovet ?? v.sum)} hvis det går bra.`);
+        return li;
+      }),
+    );
   }
+  const streker = el.ventende.querySelectorAll(".boble-tid i");
+  t.ventende.forEach((v, i) => {
+    if (streker[i]) streker[i].style.transform = `scaleX(${Math.min(1, Math.max(0, v.igjen / (v.lengde || v.igjen || 1))).toFixed(3)})`;
+  });
 }
 
 function lagEkstraValg() {
@@ -558,7 +599,7 @@ function investerValg(nr) {
   const for_ = t;
   t = investerEkstra(t, tilbud, nr);
   if (t === for_) { si(`Du mangler ${ore(v.pris - t.saldo)}.`); return; }
-  si(`Du investerte ${ore(v.pris)}. Går det bra, kommer ${ore(tilbud.sum)} om ${formaterTid(v.vent)}.`);
+  annonser(`Du investerte ${ore(v.pris)}. Går det bra, kommer ${ore(tilbud.sum)} om ${formaterTid(v.vent)}.`);
   tilbud = null;
   el.ekstra.hidden = true;
   tilbudNeste = Date.now() + tilfeldig(45, 90) * 1000;
@@ -747,7 +788,7 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) lagre
     nullstill();
     t = nyTilstand();
     milepel = 0; klikk = []; tilbud = null; tilbudNeste = 0; pekt = null; pekNeste = 0;
-    boosterNokkel = ""; gfNokkel = ""; ventNokkel = "";
+    boosterNokkel = ""; gfNokkel = ""; ventNokkel = ""; resultater = [];
     el.ekstra.hidden = true;
     skjulTips();
     for (const rad of rader.values()) rad.li.remove();
@@ -790,8 +831,10 @@ setInterval(() => {
     const varUrolig = urolig(t);
     t = tikk(t, dt);
     for (const v of ferdige) {
-      if (gikkDarlig(v)) si(`Investeringen gikk dårlig. Du fikk ${ore(v.sum)} tilbake av ${ore(v.pris)} du betalte.`);
-      else { si(`Ekstraordinært utbytte: ${ore(v.sum)} kom inn.`); hopp(el.saldo); }
+      const darlig = gikkDarlig(v);
+      resultater.push({ bra: !darlig, slutt: naa + 4000, tekst: darlig ? `Gikk dårlig: ${ore(v.sum)} av ${ore(v.pris)}` : `+${ore(v.sum)}` });
+      annonser(darlig ? `Investeringen gikk dårlig. Du fikk ${ore(v.sum)} tilbake av ${ore(v.pris)} du betalte.` : `Ekstraordinært utbytte: ${ore(v.sum)} kom inn.`);
+      if (!darlig) hopp(el.saldo);
     }
     if (perSekund(t) > 0) {
       const r = uroSteg(t, dt);

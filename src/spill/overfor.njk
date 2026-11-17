@@ -34,6 +34,7 @@ sideklasse: side-klikk
       </aside>
 
       <div class="gris-flate" id="gris-flate">
+        <ul class="bobler" id="ventende" aria-label="Investeringer som venter"></ul>
         <button type="button" class="gris" id="overfor"><span class="gris-merke"><span class="gris-navn">Overfør</span> <span class="gris-verdi" id="gris-verdi">+{{ r.trykkStart | ore }}</span></span></button>
         <p class="fart" id="fart"><span id="fart-tekst">Trykk raskt for fart</span><span class="fart-strek" aria-hidden="true"><i id="fart-fyll"></i></span></p>
       </div>
@@ -52,7 +53,6 @@ sideklasse: side-klikk
           <p class="ekstra-vilkar" id="ekstra-vilkar"></p>
           <div class="ekstra-valg" id="ekstra-valg"></div>
         </div>
-        <ul class="ventende" id="ventende"></ul>
         <p class="status" id="status" role="status"></p>
         <p class="skjult" id="annonse" role="status"></p>
       </div>
@@ -84,7 +84,6 @@ sideklasse: side-klikk
       <p class="spill-omstart"><button type="button" class="lenkeknapp" id="omstart">Start på nytt</button></p>
     </div>
 
-    <div class="tips" id="tips" role="tooltip" hidden></div>
   </section>
 
   <section class="brodtekst spill-tekst">
@@ -103,4 +102,5 @@ sideklasse: side-klikk
   </aside>
 </div>
 
+<div class="tips" id="tips" role="tooltip" hidden></div>
 <div class="mini" id="mini" aria-hidden="true"><span>I grisen <b id="mini-saldo">0 øre</b></span><span>Inntekt <b id="mini-rate">0 øre/sek</b></span></div>

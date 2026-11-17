@@ -8,9 +8,9 @@ const NBSP = " ";
 
 export const REGLER = Object.freeze({
   trykkStart: 10,          // øre per trykk på «Overfør»
-  trykkSteg: 0.1,          // øre mer per nivå
+  trykkSteg: 1,            // øre mer per nivå, en tidel av det første trykket
   trykkGrunnpris: 10,      // øre for første nivå
-  trykkVekst: 1.05,        // hvert nivå koster 5 % mer enn forrige
+  trykkVekst: 1.07,        // hvert nivå koster 7 % mer enn forrige
   prisvekst: 1.15,         // hver aksje koster 15 % mer enn forrige, men gir like mye
   boosterPris: Object.freeze([20, 300, 8000]),  // prisen på boosterne for en aksje, i ganger grunnprisen
   gfHver: 50,              // generalforsamling for hver 50. aksje i samme selskap
@@ -20,7 +20,7 @@ export const REGLER = Object.freeze({
   fartLett: 2.5,           // fartsboosten øker jevnt hit
   fartVekst: 1.11,         // over kneet gir hvert ekstra trykk i sekundet 11 % mer
   fartMaks: 12,            // høyeste fartsboost
-  ekstraSek: 90,           // et ekstraordinært utbytte er verdt så mange sekunder utbytte
+  ekstraMaksSek: 10,       // du kan aldri investere mer enn 10 sekunder utbytte i et ekstraordinært utbytte
   // Tre perioder å velge mellom. Jo lenger du venter, jo mindre betaler du nå, og jo høyere blir avkastningen.
   // Høyere avkastning gir høyere risiko: sjansen for at investeringen går dårlig.
   ekstraValg: Object.freeze([
@@ -109,7 +109,30 @@ export const BOOSTERE = Object.freeze([
   { id: "tangent", type: "alle", navn: "N. Tangent", faktor: 1.5, pris: 5e9, trinn: 1 },
 ].sort((a, b) => a.pris - b.pris).map(Object.freeze));
 
+// Fordeler: når du eier mange nok i et av de små selskapene, får du noe ekstra.
+export const FORDELER = Object.freeze([
+  { id: "limonade-25", mal: "limonade", antall: 25, type: "trykkRabatt", verdi: 0.5, tekst: "Større overføring koster halvparten" },
+  { id: "blomst-50", mal: "blomst", antall: 50, type: "bonus", verdi: 1000, tekst: "Engangsbonus verdt 1 000 trykk" },
+  { id: "jordbaer-25", mal: "jordbaer", antall: 25, type: "trykkGanger", verdi: 2, tekst: "Hvert trykk gir dobbelt" },
+  { id: "onkel-25", mal: "onkel", antall: 25, type: "risiko", verdi: 0.5, tekst: "Halv risiko på ekstraordinært utbytte" },
+].map(Object.freeze));
+
 const aksje = (id) => AKSJER.find((a) => a.id === id);
+
+/** Om du har en fordel: du eier minst så mange i selskapet. */
+export function harFordel(t, f) {
+  return (t.aksjer[f.mal] ?? 0) >= f.antall;
+}
+
+/** Fordelene i et selskap, med om du har dem. */
+export function fordeler(t, id) {
+  return FORDELER.filter((f) => f.mal === id).map((f) => ({ ...f, oppnadd: harFordel(t, f) }));
+}
+
+// Ganger sammen verdiene til fordelene av en type som du har, eller 1 når du ikke har noen.
+function fordelFaktor(t, type) {
+  return FORDELER.filter((f) => f.type === type && harFordel(t, f)).reduce((x, f) => x * f.verdi, 1);
+}
 const booster = (id) => BOOSTERE.find((b) => b.id === id);
 const mellom = ([lav, hoy], x) => lav + (hoy - lav) * x;
 
@@ -171,7 +194,7 @@ export function perSekund(t) {
   return AKSJER.reduce((sum, a) => sum + aksjeRate(t, a.id), 0);
 }
 
-/** Verdien av ett trykk uten boostere: 10 øre, så 10,1 og 10,2. Regnet i tideler for å unngå avrundingsfeil. */
+/** Verdien av ett trykk uten boostere: 10 øre, så 11 og 12. Regnet i tideler for å unngå avrundingsfeil. */
 export function grunnTrykk(niva) {
   return (Math.round(REGLER.trykkStart * 10) + Math.round(REGLER.trykkSteg * 10) * niva) / 10;
 }
@@ -183,7 +206,7 @@ export function trykkAndel(t) {
 
 /** Verdien av ett trykk i rolig tempo, i øre. */
 export function trykkverdi(t) {
-  return grunnTrykk(t.trykkNiva) + trykkAndel(t) * perSekund(t);
+  return (grunnTrykk(t.trykkNiva) + trykkAndel(t) * perSekund(t)) * fordelFaktor(t, "trykkGanger");
 }
 
 /**
@@ -246,20 +269,28 @@ export function maksAksje(t, id) {
   return a ? maks(a.pris, REGLER.prisvekst, t.aksjer[id], t.saldo, 1 - rabatt(t, id)) : 0;
 }
 
-/** Kjøper aksjer. Gir samme tilstand tilbake når saldoen ikke rekker. */
+/** Kjøper aksjer. Gir samme tilstand tilbake når saldoen ikke rekker. Når du når en engangsbonus, kommer den med en gang. */
 export function kjopAksje(t, id, antall = 1) {
   const pris = prisAksje(t, id, antall);
   if (!(pris <= t.saldo)) return t;
-  return { ...t, saldo: t.saldo - pris, aksjer: { ...t.aksjer, [id]: t.aksjer[id] + antall } };
+  const etter = { ...t, saldo: t.saldo - pris, aksjer: { ...t.aksjer, [id]: t.aksjer[id] + antall } };
+  const bonus = FORDELER.filter((f) => f.type === "bonus" && !harFordel(t, f) && harFordel(etter, f))
+    .reduce((sum, f) => sum + f.verdi * trykkverdi(etter), 0);
+  return bonus > 0 ? { ...etter, saldo: etter.saldo + bonus, totalt: etter.totalt + bonus } : etter;
+}
+
+/** Fordelene du fikk ved å gå fra én tilstand til en annen. */
+export function nyeFordeler(for_, etter) {
+  return FORDELER.filter((f) => !harFordel(for_, f) && harFordel(etter, f));
 }
 
 /** Prisen for de neste nivåene av overføringen, i hele øre. */
 export function prisTrykk(t, antall = 1) {
-  return gyldigAntall(antall) ? sumPriser(REGLER.trykkGrunnpris, REGLER.trykkVekst, t.trykkNiva, antall) : Infinity;
+  return gyldigAntall(antall) ? sumPriser(REGLER.trykkGrunnpris, REGLER.trykkVekst, t.trykkNiva, antall, fordelFaktor(t, "trykkRabatt")) : Infinity;
 }
 
 export function maksTrykk(t) {
-  return maks(REGLER.trykkGrunnpris, REGLER.trykkVekst, t.trykkNiva, t.saldo);
+  return maks(REGLER.trykkGrunnpris, REGLER.trykkVekst, t.trykkNiva, t.saldo, fordelFaktor(t, "trykkRabatt"));
 }
 
 /** Kjøper nivåer av overføringen. */
@@ -377,18 +408,19 @@ export const EKSTRA_LENGST = Math.max(...REGLER.ekstraValg.map((v) => v.vent[1])
 
 /**
  * Et tilbud: få summen om en stund, og velg hvor lenge du vil vente. Kort tid koster 75 til 80 % av summen nå,
- * lang tid 42 til 48 %. Summen er verdt 90 sekunder utbytte, men aldri mer enn at du har råd til alle valgene.
+ * lang tid 42 til 48 %. Du investerer aldri mer enn 10 sekunder utbytte, og aldri mer enn du har råd til.
  * Null når du ikke har utbytte.
  */
 export function ekstraTilbud(t, rng = Math.random) {
-  const sum = Math.min(perSekund(t) * REGLER.ekstraSek, Math.floor(t.saldo / ekstraMaksAndel));
+  const sum = Math.min((perSekund(t) * REGLER.ekstraMaksSek) / ekstraMaksAndel, Math.floor(t.saldo / ekstraMaksAndel));
   if (!(sum > 0)) return null;
+  const risiko = fordelFaktor(t, "risiko");
   return {
     sum,
     valg: REGLER.ekstraValg.map((v) => ({
-      pris: Math.ceil(sum * mellom(v.betal, rng())),
+      pris: Math.min(Math.ceil(sum * mellom(v.betal, rng())), Math.floor(perSekund(t) * REGLER.ekstraMaksSek)),
       vent: Math.round(mellom(v.vent, rng())),
-      risiko: v.risiko,
+      risiko: v.risiko * risiko,
     })),
   };
 }
@@ -401,14 +433,14 @@ export function ekstraAvkastning(tilbud, valg) {
 /**
  * Investerer i et av valgene. Utfallet trekkes nå, men vises først når pengene kommer:
  * som oftest hele summen, men med sjansen i risiko går det dårlig, og du får 90 til 100 % av det du betalte.
- * Ventende utbytter lagres som { sum, lovet, pris, igjen }, der sum er det som faktisk kommer.
+ * Ventende utbytter lagres som { sum, lovet, pris, igjen, lengde }, der sum er det som faktisk kommer og lengde er hele ventetiden.
  */
 export function investerEkstra(t, tilbud, nr = 0, rng = Math.random) {
   const valg = tilbud?.valg?.[nr];
   if (!valg || !(valg.pris <= t.saldo)) return t;
   const darlig = rng() < (valg.risiko ?? 0);
   const sum = darlig ? Math.floor(valg.pris * (1 - mellom(REGLER.ekstraTap, rng()))) : tilbud.sum;
-  return { ...t, saldo: t.saldo - valg.pris, ventende: [...t.ventende, { sum, lovet: tilbud.sum, pris: valg.pris, igjen: valg.vent }] };
+  return { ...t, saldo: t.saldo - valg.pris, ventende: [...t.ventende, { sum, lovet: tilbud.sum, pris: valg.pris, igjen: valg.vent, lengde: valg.vent }] };
 }
 
 /** Om et ventende utbytte gikk dårlig, slik at du får mindre enn du ble lovet. */
@@ -527,7 +559,9 @@ export function fraLagring(obj) {
     if (!v || !tall(v.sum) || !tall(v.igjen)) return null;
     const lovet = tall(v.lovet) ? Math.max(v.lovet, v.sum) : v.sum;
     const pris = tall(v.pris) ? v.pris : 0;
-    t.ventende.push({ sum: v.sum, lovet, pris, igjen: Math.min(v.igjen, EKSTRA_LENGST) });
+    const igjen = Math.min(v.igjen, EKSTRA_LENGST);
+    const lengde = tall(v.lengde) ? Math.min(Math.max(v.lengde, igjen), EKSTRA_LENGST) : igjen;
+    t.ventende.push({ sum: v.sum, lovet, pris, igjen, lengde });
   }
   return { tilstand: t, tid };
 }
