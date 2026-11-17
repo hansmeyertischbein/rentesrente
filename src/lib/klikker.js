@@ -395,16 +395,11 @@ export function tilLagring(t, tid) {
   return { v: 2, tid, ...resten };
 }
 
-/** Leser en lagret tilstand. Gir null når noe mangler eller ikke er gyldig. Lagring fra første utgave beholder saldo og overføring. */
+/** Leser en lagret tilstand. Gir null når noe mangler eller ikke er gyldig. Lagring fra tidligere utgaver avvises, så alle starter på null. */
 export function fraLagring(obj) {
   if (!obj || typeof obj !== "object") return null;
   const t = nyTilstand();
   const tid = tall(obj.tid) ? obj.tid : null;
-  if (obj.v === 1) {
-    if (!tall(obj.saldo) || !tall(obj.overfort) || !tall(obj.tjent)) return null;
-    if (!heltall(obj.trykk, Number.MAX_SAFE_INTEGER) || !heltall(obj.trykkNiva, 1e6)) return null;
-    return { tilstand: { ...t, saldo: obj.saldo, totalt: obj.overfort + obj.tjent, trykk: obj.trykk, trykkNiva: obj.trykkNiva }, tid };
-  }
   if (obj.v !== 2) return null;
   if (!tall(obj.saldo) || !tall(obj.totalt)) return null;
   if (!heltall(obj.trykk, Number.MAX_SAFE_INTEGER) || !heltall(obj.trykkNiva, 1e6)) return null;

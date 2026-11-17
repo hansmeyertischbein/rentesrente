@@ -8,7 +8,8 @@ import {
 import { formaterTall } from "/lib/format.js";
 import { FIGURER, GRIS } from "./klikker-figurer.js";
 
-const NOKKEL = "rr-overfor";
+const NOKKEL = "rr-overfor-2";
+const GAMLE_NOKLER = ["rr-overfor"];   // lagring fra tidligere utgaver slettes, så alle starter på null
 const MILEPELER = [100, 1e4, 1e6, 1e8, 1e11, 1e14, 1e17];
 const rolig = matchMedia("(prefers-reduced-motion: reduce)");
 const $ = (id) => document.getElementById(id);
@@ -606,6 +607,7 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) lagre
 
 // ---------- I gang ----------
 
+try { for (const n of GAMLE_NOKLER) localStorage.removeItem(n); } catch { /* ingenting å slette */ }
 const lagret = hent();
 if (lagret) {
   t = lagret.tilstand;

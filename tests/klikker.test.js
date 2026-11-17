@@ -243,11 +243,8 @@ test("en lagret tilstand kommer likt tilbake, uten uro", () => {
   assert.deepEqual(r.tilstand, { ...t, uro: nyTilstand().uro });
 });
 
-test("lagring fra første utgave beholder saldo og overføring", () => {
-  const r = fraLagring({ v: 1, tid: 5, saldo: 300, overfort: 100, tjent: 400, trykk: 10, trykkNiva: 2, hjelpere: {}, loft: {} });
-  assert.equal(r.tilstand.saldo, 300);
-  assert.equal(r.tilstand.totalt, 500);
-  assert.equal(r.tilstand.trykkNiva, 2);
+test("lagring fra første utgave avvises, så du starter på null", () => {
+  assert.equal(fraLagring({ v: 1, tid: 5, saldo: 5e13, overfort: 100, tjent: 400, trykk: 10, trykkNiva: 2, hjelpere: {}, loft: {} }), null);
 });
 
 test("ødelagt eller fremmed lagring avvises", () => {
