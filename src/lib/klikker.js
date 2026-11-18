@@ -21,12 +21,15 @@ export const REGLER = Object.freeze({
   fartVekst: 1.11,         // over kneet gir hvert ekstra trykk i sekundet 11 % mer
   fartMaks: 12,            // høyeste fartsboost
   ekstraMaksSek: 10,       // du kan aldri investere mer enn 10 sekunder utbytte i et ekstraordinært utbytte
-  // Tre valg med samme ventetid. Jo mindre du betaler nå, jo høyere blir avkastningen, og jo høyere er risikoen
-  // for at investeringen går dårlig. Risikoen vises bare med ord i spillet.
+  // Tre aktiva med samme innsats og samme ventetid. Jo høyere avkastning, jo høyere er risikoen for at investeringen
+  // går dårlig. Risikoen vises bare med ord i spillet. Navnene er oppdiktet, og ett trekkes fra hver gruppe.
   ekstraValg: Object.freeze([
-    Object.freeze({ navn: "Tryggest", betal: Object.freeze([0.75, 0.8]), risiko: 0.1 }),
-    Object.freeze({ navn: "Middels", betal: Object.freeze([0.6, 0.65]), risiko: 0.2 }),
-    Object.freeze({ navn: "Mest risikabelt", betal: Object.freeze([0.42, 0.48]), risiko: 0.3 }),
+    Object.freeze({ niva: "Trygg", avkastning: Object.freeze([0.15, 0.25]), risiko: 0.1,
+      navn: Object.freeze(["Statsobligasjoner", "Sparekonto i Grisebanken", "Rentefond fra Trygge Trine"]) }),
+    Object.freeze({ niva: "Middels", avkastning: Object.freeze([0.4, 0.7]), risiko: 0.2,
+      navn: Object.freeze(["Aksjefond med litt av alt", "Utleiehytte på fjellet", "Gårdsbutikk i Bygda"]) }),
+    Object.freeze({ niva: "Risikabel", avkastning: Object.freeze([1, 1.5]), risiko: 0.3,
+      navn: Object.freeze(["Obligasjoner fra Alis Bilopphuggeri", "CDF på kakaobønner", "Kryptomynten Grisecoin"]) }),
   ]),
   ekstraVent: Object.freeze([60, 120]),  // sekunder til utbyttet kommer, likt for alle valgene i et tilbud
   ekstraTap: Object.freeze([0, 0.1]),  // går det dårlig, taper du 0 til 10 % av det du betalte
@@ -404,33 +407,37 @@ export function startHendelse(t, h) {
 
 // ---------- Ekstraordinært utbytte ----------
 
-const ekstraMaksAndel = Math.max(...REGLER.ekstraValg.map((v) => v.betal[1]));
 export const EKSTRA_LENGST = REGLER.ekstraVent[1];
 
+/** Runder ned til to gjeldende siffer, så beløpet blir pent: 634 øre blir 630 øre, 12 345 blir 12 000. */
+export function pentBelop(ore) {
+  if (!(ore > 0) || !Number.isFinite(ore)) return 0;
+  if (ore < 100) return Math.floor(ore);
+  const steg = Math.pow(10, Math.floor(Math.log10(ore)) - 1);
+  return Math.floor(ore / steg + 1e-9) * steg;
+}
+
 /**
- * Et tilbud: få summen om 1 til 2 minutter, like lenge for alle valgene. Det tryggeste koster 75 til 80 % av summen nå,
- * det mest risikable 42 til 48 %. Du investerer aldri mer enn 10 sekunder utbytte, og aldri mer enn du har råd til.
- * Null når du ikke har utbytte.
+ * Et tilbud: invester samme beløp i ett av tre aktiva, og få pengene om 1 til 2 minutter, like lenge for alle.
+ * Innsatsen er 10 sekunder utbytte, men aldri mer enn du har. Null når du ikke har utbytte.
  */
 export function ekstraTilbud(t, rng = Math.random) {
-  const sum = Math.min((perSekund(t) * REGLER.ekstraMaksSek) / ekstraMaksAndel, Math.floor(t.saldo / ekstraMaksAndel));
-  if (!(sum > 0)) return null;
+  const innsats = pentBelop(Math.min(perSekund(t) * REGLER.ekstraMaksSek, t.saldo));
+  if (!(innsats > 0)) return null;
   const risiko = fordelFaktor(t, "risiko");
   const vent = Math.round(mellom(REGLER.ekstraVent, rng()));
   return {
-    sum,
-    valg: REGLER.ekstraValg.map((v) => ({
-      navn: v.navn,
-      pris: Math.min(Math.ceil(sum * mellom(v.betal, rng())), Math.floor(perSekund(t) * REGLER.ekstraMaksSek)),
-      vent,
-      risiko: v.risiko * risiko,
-    })),
+    innsats,
+    valg: REGLER.ekstraValg.map((v) => {
+      const navn = v.navn[Math.min(v.navn.length - 1, Math.floor(rng() * v.navn.length))];
+      return { navn, niva: v.niva, sum: Math.floor(innsats * (1 + mellom(v.avkastning, rng()))), vent, risiko: v.risiko * risiko };
+    }),
   };
 }
 
-/** Avkastningen på et valg, for eksempel 0,25 når du betaler 80 og får 100. */
+/** Avkastningen på et valg, for eksempel 0,25 når du setter inn 100 og får 125. */
 export function ekstraAvkastning(tilbud, valg) {
-  return valg && valg.pris > 0 ? tilbud.sum / valg.pris - 1 : 0;
+  return valg && tilbud?.innsats > 0 ? valg.sum / tilbud.innsats - 1 : 0;
 }
 
 /**
@@ -440,10 +447,11 @@ export function ekstraAvkastning(tilbud, valg) {
  */
 export function investerEkstra(t, tilbud, nr = 0, rng = Math.random) {
   const valg = tilbud?.valg?.[nr];
-  if (!valg || !(valg.pris <= t.saldo)) return t;
+  const innsats = tilbud?.innsats;
+  if (!valg || !(innsats > 0) || !(innsats <= t.saldo)) return t;
   const darlig = rng() < (valg.risiko ?? 0);
-  const sum = darlig ? Math.floor(valg.pris * (1 - mellom(REGLER.ekstraTap, rng()))) : tilbud.sum;
-  return { ...t, saldo: t.saldo - valg.pris, ventende: [...t.ventende, { sum, lovet: tilbud.sum, pris: valg.pris, igjen: valg.vent, lengde: valg.vent }] };
+  const sum = darlig ? Math.floor(innsats * (1 - mellom(REGLER.ekstraTap, rng()))) : valg.sum;
+  return { ...t, saldo: t.saldo - innsats, ventende: [...t.ventende, { sum, lovet: valg.sum, pris: innsats, igjen: valg.vent, lengde: valg.vent }] };
 }
 
 /** Om et ventende utbytte gikk dårlig, slik at du får mindre enn du ble lovet. */

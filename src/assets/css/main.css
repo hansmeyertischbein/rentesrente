@@ -779,8 +779,12 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 }
 .ekstra-knapp:active { transform: scale(0.96); }
 .ekstra-knapp[aria-disabled="true"] { border-color: var(--g-kant); }
-.ekstra-tid { font-size: 0.8125rem; font-weight: 800; line-height: 1.2; text-align: center; white-space: normal; }
-.ekstra-knapp:last-child .ekstra-tid { color: var(--g-rod); }
+.ekstra-knapp { align-content: start; }
+.ekstra-aktiv { font-size: 0.8125rem; font-weight: 800; line-height: 1.2; text-align: center; white-space: normal; overflow-wrap: anywhere; }
+.ekstra-niva { font-size: 0.6875rem; font-weight: 750; color: var(--g-dempet); }
+.niva-1 .ekstra-niva { color: #b45309; }
+.niva-2 .ekstra-niva { color: var(--g-rod); }
+@media (prefers-color-scheme: dark) { .niva-1 .ekstra-niva { color: #fbbf72; } }
 .ekstra-avk { padding: 0 0.4rem; border-radius: 999px; background: #ffd84a; color: #2b2118; font-size: 0.75rem; font-weight: 800; }
 .ekstra-knapp .pris { font-size: 0.75rem; }
 .ekstra::after { content: ""; position: absolute; left: 0; bottom: 0; width: 100%; height: 4px; background: var(--multe); transform: scaleX(var(--igjen, 1)); transform-origin: left; }

@@ -5,7 +5,7 @@ import {
   perSekund, aksjeRate, utbyttePerAksje, gfAntall, faktor, prisAksje, maksAksje, kjopAksje, prisTrykk, kjopTrykk,
   nesteBoostere, andelRad, kjopBooster, generalforsamlinger, tikk, borte, uroFyll, urolig, uroSteg, lagHendelse,
   startHendelse, rabatt, ekstraTilbud, ekstraAvkastning, investerEkstra, gikkDarlig, synlige, fordeler, nyeFordeler, maksTrykk, radgiverTreff, prisRadgiver, kjopRadgiver,
-  radgiverSynlig, rimeligst, radgiverFordeling, radgiverPek, EKSTRA_LENGST, tilLagring, fraLagring, formaterOre, formaterTid,
+  radgiverSynlig, rimeligst, radgiverFordeling, radgiverPek, EKSTRA_LENGST, pentBelop, tilLagring, fraLagring, formaterOre, formaterTid,
 } from "../src/lib/klikker.js";
 
 const med = (endring) => ({ ...nyTilstand(), ...endring });
@@ -214,70 +214,71 @@ test("uro-streken fylles over tre minutter, og når den er full, skjer det allti
   assert.equal(stille.tilstand, r.tilstand);
 });
 
-test("ekstraordinært utbytte: samme ventetid på 1 til 2 minutter, og høyere avkastning gir høyere risiko", () => {
+test("ekstraordinært utbytte: samme innsats i tre aktiva, samme ventetid, og høyere avkastning gir høyere risiko", () => {
   assert.equal(ekstraTilbud(nyTilstand()), null);
   const t = medAksjer({ limonade: 10 }, { saldo: 10000 });
-  const tilbud = ekstraTilbud(t, fast(0, 1));
-  assert.deepEqual(tilbud, { sum: 1250, valg: [
-    { navn: "Tryggest", pris: 1000, vent: 60, risiko: 0.1 },
-    { navn: "Middels", pris: 813, vent: 60, risiko: 0.2 },
-    { navn: "Mest risikabelt", pris: 600, vent: 60, risiko: 0.3 },
-  ] });
-  assert.ok(ekstraTilbud(t, () => 0.9999).valg.every((v) => v.vent === 120), "lengst to minutter");
-  for (const rng of [() => 0, () => 0.9999]) {
-    assert.ok(ekstraTilbud(medAksjer({ limonade: 10 }, { saldo: 1e9 }), rng).valg.every((v) => v.pris <= 100 * 10), "aldri mer enn 10 sekunder utbytte");
-  }
+  const tilbud = ekstraTilbud(t, () => 0);
+  assert.deepEqual(tilbud, { innsats: 1000, valg: [
+    { navn: "Statsobligasjoner", niva: "Trygg", sum: 1150, vent: 60, risiko: 0.1 },
+    { navn: "Aksjefond med litt av alt", niva: "Middels", sum: 1400, vent: 60, risiko: 0.2 },
+    { navn: "Obligasjoner fra Alis Bilopphuggeri", niva: "Risikabel", sum: 2000, vent: 60, risiko: 0.3 },
+  ] }, "innsatsen er 10 sekunder utbytte");
+  const hoy = ekstraTilbud(t, () => 0.9999);
+  assert.deepEqual(hoy.valg.map((v) => [v.navn, v.sum, v.vent]), [
+    ["Rentefond fra Trygge Trine", 1249, 120], ["Gårdsbutikk i Bygda", 1699, 120], ["Kryptomynten Grisecoin", 2499, 120],
+  ]);
   for (const rng of [() => 0, () => 0.5, () => 0.9999]) {
     const tb = ekstraTilbud(t, rng);
     for (let i = 1; i < tb.valg.length; i++) {
-      assert.equal(tb.valg[i].vent, tb.valg[0].vent, "alle valgene venter like lenge");
-      assert.ok(ekstraAvkastning(tb, tb.valg[i]) > ekstraAvkastning(tb, tb.valg[i - 1]), "hvert valg gir mer");
+      assert.equal(tb.valg[i].vent, tb.valg[0].vent, "alle venter like lenge");
+      assert.ok(ekstraAvkastning(tb, tb.valg[i]) > ekstraAvkastning(tb, tb.valg[i - 1]), "hvert aktivum gir mer");
       assert.ok(tb.valg[i].risiko > tb.valg[i - 1].risiko, "men med høyere risiko");
     }
   }
+  naer(ekstraAvkastning(tilbud, tilbud.valg[0]), 0.15);
   assert.equal(EKSTRA_LENGST, 120);
+  assert.equal(ekstraTilbud(medAksjer({ limonade: 10 }, { saldo: 634 }), () => 0).innsats, 630, "aldri mer enn du har, rundet pent ned");
+  assert.equal(ekstraTilbud(medAksjer({ limonade: 10 }, { saldo: 0 })), null);
+  assert.equal(pentBelop(634), 630);
+  assert.equal(pentBelop(12345), 12000);
+  assert.equal(pentBelop(57), 57);
+  assert.equal(pentBelop(0), 0);
+
   const gikkBra = () => 0.9999;
   let etter = investerEkstra(t, tilbud, 2, gikkBra);
-  assert.equal(etter.saldo, 10000 - 600);
+  assert.equal(etter.saldo, 10000 - 1000, "alle koster det samme");
+  assert.equal(investerEkstra(t, tilbud, 0, gikkBra).saldo, 10000 - 1000);
   etter = tikk(etter, 59);
   assert.equal(etter.ventende.length, 1);
   etter = tikk(etter, 1);
   assert.equal(etter.ventende.length, 0);
-  assert.equal(etter.saldo, 10000 - 600 + 100 * 60 + 1250);
-  assert.equal(investerEkstra(t, tilbud, 0, gikkBra).saldo, 10000 - 1000, "det tryggeste koster mest");
+  assert.equal(etter.saldo, 10000 - 1000 + 100 * 60 + 2000);
   assert.equal(investerEkstra(t, tilbud, 5), t, "et valg som ikke finnes, gjør ingenting");
   assert.equal(investerEkstra(med({ saldo: 10 }), tilbud).ventende.length, 0, "uten råd skjer ingenting");
-  const fattig = medAksjer({ limonade: 10 }, { saldo: 700 });
-  const lite = ekstraTilbud(fattig, () => 0.9999);
-  assert.equal(lite.sum, 875, "summen blir aldri større enn at du har råd");
-  assert.ok(lite.valg.every((v) => v.pris <= fattig.saldo), "du har råd til alle valgene");
-  assert.equal(ekstraTilbud(medAksjer({ limonade: 10 }, { saldo: 0 })), null);
 });
 
-test("investeringen kan gå dårlig: høyere avkastning gir høyere risiko, og du taper 0 til 10 % av det du betalte", () => {
+test("investeringen kan gå dårlig: risikabel oftere enn trygg, og da taper du 0 til 10 % av innsatsen", () => {
   const t = medAksjer({ limonade: 10 }, { saldo: 10000 });
-  const tilbud = ekstraTilbud(t, fast(0, 1));
+  const tilbud = ekstraTilbud(t, () => 0);
   const bra = investerEkstra(t, tilbud, 2, () => 0.3).ventende[0];
-  assert.deepEqual(bra, { sum: 1250, lovet: 1250, pris: 600, igjen: 60, lengde: 60 }, "risikoen er 30 %, så 0,3 går bra");
+  assert.deepEqual(bra, { sum: 2000, lovet: 2000, pris: 1000, igjen: 60, lengde: 60 }, "risikoen er 30 %, så 0,3 går bra");
   assert.equal(gikkDarlig(bra), false);
   const verst = investerEkstra(t, tilbud, 2, fast(0.29, 0.9999)).ventende[0];
   assert.ok(gikkDarlig(verst));
-  assert.equal(verst.sum, Math.floor(600 * (1 - 0.1 * 0.9999)), "verste fall er nesten 10 % tap");
-  assert.ok(verst.sum >= 600 * 0.9 && verst.sum <= 600);
-  assert.equal(investerEkstra(t, tilbud, 2, fast(0.29, 0)).ventende[0].sum, 600, "beste dårlige utfall er null tap");
-  assert.equal(gikkDarlig(investerEkstra(t, tilbud, 0, () => 0.15).ventende[0]), false, "kort tid har bare 10 % risiko");
+  assert.equal(verst.sum, Math.floor(1000 * (1 - 0.1 * 0.9999)), "verste fall er nesten 10 % tap");
+  assert.equal(investerEkstra(t, tilbud, 2, fast(0.29, 0)).ventende[0].sum, 1000, "beste dårlige utfall er null tap");
+  assert.equal(gikkDarlig(investerEkstra(t, tilbud, 0, () => 0.15).ventende[0]), false, "trygg har bare 10 % risiko");
   assert.equal(gikkDarlig(investerEkstra(t, tilbud, 1, () => 0.15).ventende[0]), true, "middels har 20 %");
-  // Over mange forsøk går lang tid oftere dårlig enn kort tid, men gir likevel mest i snitt.
   let fro = 7;
   const rng = () => { fro = (fro * 16807) % 2147483647; return fro / 2147483647; };
   const snitt = (nr) => {
     let sum = 0, darlige = 0;
-    for (let i = 0; i < 4000; i++) { const v = investerEkstra(t, tilbud, nr, rng).ventende[0]; sum += v.sum / tilbud.valg[nr].pris; darlige += gikkDarlig(v); }
+    for (let i = 0; i < 4000; i++) { const v = investerEkstra(t, tilbud, nr, rng).ventende[0]; sum += v.sum / tilbud.innsats; darlige += gikkDarlig(v); }
     return { igjen: sum / 4000, darlige: darlige / 4000 };
   };
-  const kort = snitt(0), lang = snitt(2);
-  assert.ok(lang.darlige > kort.darlige);
-  assert.ok(lang.igjen > kort.igjen && kort.igjen > 1, "i snitt lønner begge seg");
+  const trygg = snitt(0), risikabel = snitt(2);
+  assert.ok(risikabel.darlige > trygg.darlige);
+  assert.ok(trygg.igjen > 1, "i snitt lønner også det trygge seg");
 });
 
 test("fordeler i de små selskapene: halv pris på overføring, dobbelt trykk, halv risiko og en engangsbonus", () => {

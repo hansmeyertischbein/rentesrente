@@ -21,7 +21,7 @@ const el = {
   oppgrader: $("oppgrader"), oppgraderNiva: $("oppgrader-niva"), oppgraderPris: $("oppgrader-pris"),
   boostere: $("booster-liste"), gf: $("gf-liste"), tips: $("tips"),
   uro: $("uro"), uroIkon: $("uro-ikon"), uroFyll: $("uro-fyll"),
-  hendelse: $("hendelse"), ekstra: $("ekstra"), ekstraVilkar: $("ekstra-vilkar"), ekstraValg: $("ekstra-valg"), ventende: $("ventende"), status: $("status"), annonse: $("annonse"),
+  hendelse: $("hendelse"), ekstra: $("ekstra"), ekstraVilkar: $("ekstra-vilkar"), ekstraNavn: $("ekstra-navn"), ekstraValg: $("ekstra-valg"), ventende: $("ventende"), status: $("status"), annonse: $("annonse"),
   butikk: $("butikk"), husk: $("husk"), omstart: $("omstart"),
   mini: $("mini"), miniSaldo: $("mini-saldo"), miniRate: $("mini-rate"),
   scene: $("scene"), by: $("by"), side: document.querySelector(".spillside"), meldinger: document.querySelector(".meldinger"),
@@ -537,11 +537,9 @@ function tegnEkstra(naa) {
     }
   }
   if (tilbud) {
-    settTekst(el.ekstraVilkar, `Få ${ore(tilbud.sum)} om 1 til 2 minutter. Jo høyere avkastning, jo høyere risiko.`);
-    for (const knapp of el.ekstraValg.children) {
-      const v = tilbud.valg[Number(knapp.dataset.nr)];
-      settAttr(knapp, "aria-disabled", v.pris <= t.saldo ? "false" : "true");
-    }
+    settTekst(el.ekstraNavn, `Invester ${ore(tilbud.innsats)} i en av disse`);
+    settTekst(el.ekstraVilkar, "Pengene kommer om 1 til 2 minutter. Jo høyere avkastning, jo høyere risiko.");
+    for (const knapp of el.ekstraValg.children) settAttr(knapp, "aria-disabled", tilbud.innsats <= t.saldo ? "false" : "true");
     el.ekstra.style.setProperty("--igjen", Math.max(0, (tilbudSlutt - naa) / (REGLER.ekstraVisSek * 1000)).toFixed(3));
   }
   tegnBobler(naa);
@@ -583,11 +581,13 @@ function lagEkstraValg() {
     knapp.type = "button";
     knapp.className = "ekstra-knapp";
     knapp.dataset.nr = nr;
-    knapp.innerHTML = '<span class="ekstra-tid"></span><span class="ekstra-avk"></span><span class="pris"></span>';
-    knapp.querySelector(".ekstra-tid").textContent = v.navn;
+    knapp.classList.add(`niva-${nr}`);
+    knapp.innerHTML = '<span class="ekstra-aktiv"></span><span class="ekstra-niva"></span><span class="ekstra-avk"></span><span class="pris"></span>';
+    knapp.querySelector(".ekstra-aktiv").textContent = v.navn;
+    knapp.querySelector(".ekstra-niva").textContent = v.niva;
     knapp.querySelector(".ekstra-avk").textContent = `+${prosent(ekstraAvkastning(tilbud, v))}`;
-    knapp.querySelector(".pris").textContent = ore(v.pris);
-    knapp.setAttribute("aria-label", `${v.navn}: betal ${ore(v.pris)} nå og få ${ore(tilbud.sum)}, ${prosent(ekstraAvkastning(tilbud, v))} avkastning.`);
+    knapp.querySelector(".pris").textContent = `Få ${ore(v.sum)}`;
+    knapp.setAttribute("aria-label", `${v.navn}, ${v.niva.toLowerCase()}: invester ${ore(tilbud.innsats)} og få ${ore(v.sum)}, ${prosent(ekstraAvkastning(tilbud, v))} avkastning.`);
     knapp.addEventListener("click", () => investerValg(nr));
     return knapp;
   }));
@@ -598,8 +598,8 @@ function investerValg(nr) {
   const v = tilbud.valg[nr];
   const for_ = t;
   t = investerEkstra(t, tilbud, nr);
-  if (t === for_) { si(`Du mangler ${ore(v.pris - t.saldo)}.`); return; }
-  annonser(`Du investerte ${ore(v.pris)}. Går det bra, kommer ${ore(tilbud.sum)} om 1 til 2 minutter.`);
+  if (t === for_) { si(`Du mangler ${ore(tilbud.innsats - t.saldo)}.`); return; }
+  annonser(`Du investerte ${ore(tilbud.innsats)} i ${v.navn}. Går det bra, kommer ${ore(v.sum)} om 1 til 2 minutter.`);
   tilbud = null;
   el.ekstra.hidden = true;
   tilbudNeste = Date.now() + tilfeldig(45, 90) * 1000;
