@@ -1,5 +1,5 @@
 // Lyden i «Overfør»: all lyd lages i nettleseren med Web Audio, uten lydfiler.
-// Musikken er rolig lo-fi som lages mens du spiller, og hver handling har sin egen lyd.
+// Musikken er en jazzete børsgroove som lages mens du spiller, og hver handling har sin egen lyd.
 // Ingenting spilles før du har trykket på siden, slik nettleserne krever.
 
 const NOKKEL = "rr-overfor-lyd";
@@ -18,7 +18,7 @@ export function endre(ny) {
   try { localStorage.setItem(NOKKEL, JSON.stringify(valg)); } catch { /* valgfritt */ }
   if (!ctx) return;
   effektBus.gain.setTargetAtTime(valg.effekter ? valg.effektVolum : 0, ctx.currentTime, 0.05);
-  musikkBus.gain.setTargetAtTime(valg.musikk ? valg.musikkVolum * 0.55 : 0, ctx.currentTime, 0.3);
+  musikkBus.gain.setTargetAtTime(valg.musikk ? valg.musikkVolum * 0.5 : 0, ctx.currentTime, 0.3);
   if (valg.musikk) startMusikk(); else stoppMusikk();
 }
 
@@ -45,8 +45,8 @@ function start() {
   komp.threshold.value = -16; komp.ratio.value = 4; komp.attack.value = 0.004; komp.release.value = 0.2;
   master = ctx.createGain(); master.gain.value = 0.9;
   komp.connect(master).connect(ctx.destination);
-  effektBus = ctx.createGain(); effektBus.connect(komp);
-  musikkBus = ctx.createGain(); musikkBus.connect(komp);
+  effektBus = ctx.createGain(); effektBus.gain.value = valg.effekter ? valg.effektVolum : 0; effektBus.connect(komp);
+  musikkBus = ctx.createGain(); musikkBus.gain.value = 0; musikkBus.connect(komp);   // tones inn, så første tone ikke smeller
   const rom = lagRom();
   romSend = ctx.createGain(); romSend.gain.value = 0.22;
   romSend.connect(rom).connect(komp);
@@ -338,52 +338,90 @@ export function spill(navn, ...arg) {
 
 // ---------- Musikken ----------
 
-// Rolig lo-fi i F-dur, 84 slag i minuttet: fire akkorder, bass, myk tromme, shaker og en melodi som varierer litt.
-const TEMPO = 84;
+// «Børsen åpner»: en tett, jazzete groove som minner om nyhetssendinger fra børsen. 108 slag i minuttet i D dorisk.
+// Elpiano med synkoperte akkorder, funky bass og hi-hat som tikker som et kursbånd. Melodien er en kurs:
+// den går opp og ned som en aksje i en tilfeldig gang, oftest litt opp, og av og til kommer et lite krakk.
+// Hver åttende takt ringer kassaapparatet svakt.
+const TEMPO = 108;
 const SEKSTENDEL = 60 / TEMPO / 4;
 const AKKORDER = [
-  { rot: 41, toner: [53, 57, 60, 64] },        // Fmaj7
-  { rot: 38, toner: [53, 57, 60, 62, 64] },    // Dm9
-  { rot: 46, toner: [50, 53, 57, 58] },        // Bbmaj7
-  { rot: 36, toner: [52, 55, 57, 62] },        // C6/9
-  { rot: 43, toner: [53, 55, 58, 62] },        // Gm7
-  { rot: 45, toner: [52, 55, 57, 60] },        // Am7
+  { rot: 38, toner: [53, 57, 60, 64] },   // Dm9
+  { rot: 43, toner: [53, 57, 59, 62] },   // G9
+  { rot: 38, toner: [53, 57, 60, 64] },   // Dm9
+  { rot: 43, toner: [53, 57, 59, 64] },   // G13
+  { rot: 46, toner: [53, 57, 58, 62] },   // Bbmaj7
+  { rot: 48, toner: [52, 55, 58, 62] },   // C9
+  { rot: 45, toner: [52, 55, 60, 64] },   // Am7
+  { rot: 45, toner: [55, 57, 61, 64] },   // A7
 ];
-const FORLOP = [[0, 1, 2, 3], [0, 1, 2, 3], [2, 5, 4, 3], [0, 5, 2, 3]];
-const SKALA = [65, 67, 69, 72, 74, 77, 79, 81];
-let spiller = false, neste = 0, steg = 0, motiv = [], tidtaker = 0;
+// Bassen per sekstendel i takten: hvor mange halvtoner over grunntonen, eller null for pause.
+const BASS = [0, null, null, 0, null, null, 12, null, 0, null, 7, 12, null, null, 10, null];
+// Elpianoet slår an på disse sekstendelene, synkopert.
+const KOMP = { 0: 0.9, 6: 0.55, 10: 0.7, 14: 0.45 };
+const KURS = [62, 64, 65, 67, 69, 72, 74, 76, 77, 79, 81, 84];   // D dorisk uten sjetten, fra D4
+let spiller = false, neste = 0, steg = 0, kurs = 5, tidtaker = 0;
 
-function lagMotiv() {
-  const m = [];
-  let i = Math.floor(tilf(2, 5));
-  for (let s = 0; s < 16; s += 2) {
-    if (Math.random() < 0.42) { i = Math.max(0, Math.min(SKALA.length - 1, i + Math.round(tilf(-2, 2)))); m[s] = SKALA[i]; }
-  }
-  return m;
+/** Elpiano: grunntone, en svak oktav som dør raskt og en kort metallisk «tine», med svak tremolo. */
+function elpiano(f, t0, lengde, volum) {
+  const ut = ctx.createGain();
+  ut.gain.value = 1;
+  const trem = ctx.createOscillator(); trem.frequency.value = 4.8;
+  const dybde = ctx.createGain(); dybde.gain.value = 0.18;
+  trem.connect(dybde).connect(ut.gain);
+  trem.start(t0); trem.stop(t0 + lengde + 0.1);
+  ut.connect(musikkBus);
+  const r = ctx.createGain(); r.gain.value = 0.12; ut.connect(r).connect(romSend);
+  tone(f, t0, lengde, { type: "sine", volum, angrep: 0.004, til: ut });
+  tone(f * 2, t0, lengde * 0.35, { type: "sine", volum: volum * 0.3, angrep: 0.002, til: ut });
+  tone(f * 7.02, t0, 0.07, { type: "sine", volum: volum * 0.12, angrep: 0.001, til: ut });
+}
+
+/** Kursen: en tone som klinger kort og lyst, som et varsel fra en kursskjerm. */
+function kursTone(f, t0, volum) {
+  tone(f, t0, 0.28, { type: "sine", volum, angrep: 0.002, til: musikkBus });
+  tone(f * 4, t0, 0.05, { type: "sine", volum: volum * 0.15, angrep: 0.001, til: musikkBus });
+  tone(f, t0, 0.18, { type: "triangle", volum: volum * 0.3, angrep: 0.002, til: musikkBus, filter: { f: 3000 } });
 }
 
 function musikkSteg(t0) {
   const takt = Math.floor(steg / 16);
   const s = steg % 16;
-  const del = FORLOP[Math.floor(takt / 4) % FORLOP.length];
-  const a = AKKORDER[del[takt % 4]];
+  const a = AKKORDER[takt % AKKORDER.length];
   const ut = musikkBus;
-  if (s === 0) {
-    if (takt % 4 === 0) motiv = lagMotiv();
-    for (const n of a.toner) {   // pute
-      for (const d of [-7, 7]) tone(hz(n), t0, SEKSTENDEL * 16 + 0.4, { type: "triangle", volum: 0.022, angrep: 0.35, til: ut, detune: d, filter: { f: 1400 } });
-    }
+
+  // Trommer: stortromme på 1 og 3, klapp på 2 og 4, hi-hat på hver sekstendel som et kursbånd.
+  if (s === 0 || s === 8 || (s === 11 && takt % 2 === 1)) tromme(t0, { f: 95, volum: 0.2, lengde: 0.2, til: ut });
+  if (s === 4 || s === 12) {
+    stoy(t0, 0.14, { f: 1700, q: 1.2, volum: 0.1, til: ut });
+    stoy(t0 + 0.012, 0.1, { f: 1100, q: 1, volum: 0.05, til: ut });
   }
-  if (s === 0 || s === 10) tone(hz(a.rot), t0, SEKSTENDEL * 5, { type: "sine", volum: 0.16, angrep: 0.01, til: ut });
-  if (s === 7 && Math.random() < 0.5) tone(hz(a.rot + 7), t0, SEKSTENDEL * 2, { type: "sine", volum: 0.1, til: ut });
-  if (s === 0 || s === 8) tromme(t0, { f: 105, volum: 0.22, lengde: 0.28, til: ut });
-  if (s === 4 || s === 12) stoy(t0, 0.12, { f: 1900, q: 0.8, volum: 0.05, til: ut });
-  if (s % 2 === 1) stoy(t0, 0.04, { type: "highpass", f: 7500, volum: s % 4 === 3 ? 0.025 : 0.014, til: ut });
-  const n = motiv[s];
-  if (n && takt % 8 !== 7) {
-    const variert = Math.random() < 0.15 ? n + (Math.random() < 0.5 ? 2 : -3) : n;
-    tone(hz(variert), t0, 0.7, { type: "triangle", volum: 0.05, til: ut, filter: { f: 2600, til: 900, tid: 0.4 } });
-    tone(hz(variert + 12), t0, 0.25, { type: "sine", volum: 0.012, til: ut });
+  const aksent = s % 4 === 2 ? 0.03 : s % 2 === 0 ? 0.016 : 0.01;
+  stoy(t0, s === 14 ? 0.16 : 0.025, { type: "highpass", f: 8500, volum: s === 14 ? 0.025 : aksent, til: ut });
+
+  // Bass
+  const b = BASS[s];
+  if (b !== null) {
+    const f = hz(a.rot + b);
+    tone(f, t0, SEKSTENDEL * 1.6, { type: "sawtooth", volum: 0.07, angrep: 0.004, til: ut, filter: { f: 1400, til: 380, tid: 0.14, q: 2 } });
+    tone(f, t0, SEKSTENDEL * 1.6, { type: "sine", volum: 0.08, angrep: 0.004, til: ut });
+  }
+
+  // Elpiano
+  if (KOMP[s] !== undefined) for (const n of a.toner) elpiano(hz(n), t0, s === 0 ? 0.9 : 0.4, 0.085 * KOMP[s]);
+
+  // Kursen går på åttendeler i annenhver firetakt, som spørsmål og svar.
+  if (Math.floor(takt / 2) % 2 === 1 && s % 2 === 0 && Math.random() < 0.7) {
+    const krakk = Math.random() < 0.06;
+    kurs += krakk ? -3 : Math.random() < 0.58 ? 1 : -1;
+    if (kurs >= KURS.length) kurs = KURS.length - 4;   // toppen nådd: gevinst tas hjem
+    kurs = Math.max(0, kurs);
+    kursTone(hz(KURS[kurs]), t0, 0.1);
+  }
+
+  // Kassaapparatet ringer svakt hver åttende takt.
+  if (s === 0 && takt % 8 === 0 && takt > 0) {
+    stoy(t0, 0.04, { f: 2800, q: 2, volum: 0.05, til: ut });
+    for (const n of [93, 97, 100]) tone(hz(n), t0 + 0.03, 0.7, { type: "sine", volum: 0.018, til: ut });
   }
   steg++;
 }
@@ -392,7 +430,7 @@ function planlegg() {
   if (!spiller || !ctx) return;
   while (neste < ctx.currentTime + 0.15) {
     musikkSteg(Math.max(neste, ctx.currentTime + 0.01));
-    neste += SEKSTENDEL * (steg % 2 === 0 ? 1.12 : 0.88);   // litt swing
+    neste += SEKSTENDEL;
   }
 }
 
