@@ -3,7 +3,7 @@
 // Tilfeldighet kommer inn som en funksjon rng() som gir et tall fra 0 til 1, så testene kan styre den.
 
 import { formaterTall } from "./format.js";
-import { gudVirkning, grein, GRENER, IKONER, ikon, STRATEGI, STRATEGIER, OBLIGASJONER, OBL, PRESTISJE, PRESTASJONER } from "./klikker-guder.js";
+import { gudVirkning, grein, GRENER, IKONER, GAMLE_IKONER, ikon, STRATEGI, STRATEGIER, OBLIGASJONER, OBL, PRESTISJE, PRESTASJONER } from "./klikker-guder.js";
 import { LOTTO, prisRekker, resultat as lottoResultat, trekkTid } from "./klikker-lotto.js";
 
 const NBSP = " ";
@@ -11,8 +11,8 @@ const NBSP = " ";
 export const REGLER = Object.freeze({
   trykkStart: 10,          // øre per trykk på «Overfør»
   trykkSteg: 1,            // øre mer per nivå, en tidel av det første trykket
-  trykkGrunnpris: 10,      // øre for første nivå
-  trykkVekst: 1.07,        // hvert nivå koster 7 % mer enn forrige
+  trykkGrunnpris: 40,      // øre for første nivå: fire trykk
+  trykkVekst: 1.08,        // hvert nivå koster 8 % mer enn forrige
   prisvekst: 1.15,         // hver aksje koster 15 % mer enn forrige, men gir like mye
   boosterPris: Object.freeze([20, 300, 8000]),  // prisen på boosterne for en aksje, i ganger grunnprisen
   gfHver: 50,              // generalforsamling for hver 50. aksje i samme selskap
@@ -26,11 +26,11 @@ export const REGLER = Object.freeze({
   // Tre aktiva med samme innsats og samme ventetid. Jo høyere avkastning, jo høyere er risikoen for at investeringen
   // går dårlig. Risikoen vises bare med ord i spillet. Navnene er oppdiktet, og ett trekkes fra hver gruppe.
   ekstraValg: Object.freeze([
-    Object.freeze({ niva: "Trygg", avkastning: Object.freeze([0.15, 0.25]), risiko: 0.1,
+    Object.freeze({ niva: "Lavest risiko", avkastning: Object.freeze([0.15, 0.25]), risiko: 0.1,
       navn: Object.freeze(["Statsobligasjoner", "Sparekonto i Grisebanken", "Rentefond fra Trygge Trine"]) }),
-    Object.freeze({ niva: "Middels", avkastning: Object.freeze([0.4, 0.7]), risiko: 0.2,
+    Object.freeze({ niva: "Litt risiko", avkastning: Object.freeze([0.4, 0.7]), risiko: 0.2,
       navn: Object.freeze(["Aksjefond med litt av alt", "Utleiehytte på fjellet", "Gårdsbutikk i Bygda"]) }),
-    Object.freeze({ niva: "Risikabel", avkastning: Object.freeze([1, 1.5]), risiko: 0.3,
+    Object.freeze({ niva: "Mest risiko", avkastning: Object.freeze([1, 1.5]), risiko: 0.3,
       navn: Object.freeze(["Obligasjoner fra Alis Bilopphuggeri", "CDF på kakaobønner", "Kryptomynten Grisecoin"]) }),
   ]),
   ekstraVent: Object.freeze([60, 120]),  // sekunder til utbyttet kommer, likt for alle valgene i et tilbud
@@ -55,39 +55,39 @@ export const REGLER = Object.freeze({
 
 // Fra lavest til høyest vekst. Navnene er oppdiktet. rate er øre i sekundet per aksje, pris er øre for den første.
 const LISTE = [
-  { id: "limonade", navn: "Limonadebod", sektor: "Gatesalg", en: "bod", fler: "boder", rate: 10, pris: 150,
+  { id: "limonade", navn: "Limonadebod", sektor: "Gatesalg", en: "bod", fler: "boder", rate: 10, pris: 1000,
     boostere: ["Mer sitron", "Isbiter", "Bod på hvert hjørne"], uro: "Det regner hele uka" },
-  { id: "blomst", navn: "Blomsterbutikk", sektor: "Blomster", en: "butikk", fler: "butikker", rate: 50, pris: 1000,
+  { id: "blomst", navn: "Blomsterbutikk", sektor: "Blomster", en: "butikk", fler: "butikker", rate: 50, pris: 6000,
     boostere: ["Tulipaner", "Buketter til morsdag", "Drivhus"], uro: "Pollensesongen kom tidlig" },
-  { id: "jordbaer", navn: "Jordbærstand", sektor: "Bær", en: "stand", fler: "stander", rate: 300, pris: 11000,
+  { id: "jordbaer", navn: "Jordbærstand", sektor: "Bær", en: "stand", fler: "stander", rate: 300, pris: 45000,
     boostere: ["Større kurver", "Fløte på toppen", "Hel åker"], uro: "Snegler i åkeren" },
-  { id: "onkel", navn: "Onkels ølbryggeri", sektor: "Bryggeri", en: "bryggeri", fler: "bryggerier", rate: 1500, pris: 120000,
+  { id: "onkel", navn: "Onkels ølbryggeri", sektor: "Bryggeri", en: "bryggeri", fler: "bryggerier", rate: 1500, pris: 2.85e5,
     boostere: ["Ny gjær", "Onkels hemmelige humle", "Bryggeripub"], uro: "Humlemangel" },
-  { id: "geitan", navn: "O. Geitan", sektor: "Dagligvare", en: "aksje", fler: "aksjer", rate: 8000, pris: 1.3e6,
+  { id: "geitan", navn: "O. Geitan", sektor: "Dagligvare", en: "aksje", fler: "aksjer", rate: 8000, pris: 1.92e6,
     boostere: ["Større handlevogn", "Åpent til sent", "Butikk i hver bygd"], uro: "Priskrig i dagligvare" },
-  { id: "lilledalen", navn: "P. Lilledalen", sektor: "Hotell", en: "aksje", fler: "aksjer", rate: 45000, pris: 1.4e7,
+  { id: "lilledalen", navn: "P. Lilledalen", sektor: "Hotell", en: "aksje", fler: "aksjer", rate: 45000, pris: 1.35e7,
     boostere: ["Frokostbuffet", "Takterrasse", "Hotell i hver by"], uro: "Turistene uteblir" },
-  { id: "fredriksjo", navn: "J. Fredriksjø", sektor: "Skipsfart", en: "aksje", fler: "aksjer", rate: 260000, pris: 2e8,
+  { id: "fredriksjo", navn: "J. Fredriksjø", sektor: "Skipsfart", en: "aksje", fler: "aksjer", rate: 260000, pris: 9.62e7,
     boostere: ["Større tankskip", "Ny rute", "Hel flåte"], uro: "Storm i Nordsjøen" },
-  { id: "lokke", navn: "K. Løkke", sektor: "Industri", en: "aksje", fler: "aksjer", rate: 1.4e6, pris: 3.3e9,
+  { id: "lokke", navn: "K. Løkke", sektor: "Industri", en: "aksje", fler: "aksjer", rate: 1.4e6, pris: 6.3e8,
     boostere: ["Større kran", "Nytt verft", "Industripark"], uro: "Stålprisen stiger" },
-  { id: "blitzoe", navn: "G. Blitzøe", sektor: "Havbruk", en: "aksje", fler: "aksjer", rate: 7.8e6, pris: 5.1e10,
+  { id: "blitzoe", navn: "G. Blitzøe", sektor: "Havbruk", en: "aksje", fler: "aksjer", rate: 7.8e6, pris: 4.21e9,
     boostere: ["Større merd", "Fôrbåt", "Merd til havs"], uro: "Lakselus i merdene" },
-  { id: "sandresen", navn: "K. Sandresen", sektor: "Familieselskap", en: "aksje", fler: "aksjer", rate: 4.4e7, pris: 7.5e11,
+  { id: "sandresen", navn: "K. Sandresen", sektor: "Familieselskap", en: "aksje", fler: "aksjer", rate: 4.4e7, pris: 2.86e10,
     boostere: ["Styremøte", "Langsiktig plan", "Neste generasjon"], uro: "Nye regler for eiere" },
-  { id: "mittelfart", navn: "C. Mittelfart", sektor: "Investeringer", en: "aksje", fler: "aksjer", rate: 2.6e8, pris: 1e13,
+  { id: "mittelfart", navn: "C. Mittelfart", sektor: "Investeringer", en: "aksje", fler: "aksjer", rate: 2.6e8, pris: 2.03e11,
     boostere: ["Regneark", "Større portefølje", "Styreverv"], uro: "Renten hopper opp" },
-  { id: "kolla", navn: "Koka-Kolla", sektor: "Brus", en: "aksje", fler: "aksjer", rate: 1.6e9, pris: 1.4e14,
+  { id: "kolla", navn: "Koka-Kolla", sektor: "Brus", en: "aksje", fler: "aksjer", rate: 1.6e9, pris: 1.5e12,
     boostere: ["Ny smak", "Uten sukker", "Automat i hver gang"], uro: "Ny sukkeravgift" },
-  { id: "valmart", navn: "Valmart", sektor: "Varehus", en: "aksje", fler: "aksjer", rate: 1e10, pris: 1.7e15,
+  { id: "valmart", navn: "Valmart", sektor: "Varehus", en: "aksje", fler: "aksjer", rate: 1e10, pris: 1.13e13,
     boostere: ["Lavpris hver dag", "Større parkering", "Varehus i hver by"], uro: "Tollkrig" },
-  { id: "amasan", navn: "Amasån", sektor: "Netthandel", en: "aksje", fler: "aksjer", rate: 6.5e10, pris: 2.1e16,
+  { id: "amasan", navn: "Amasån", sektor: "Netthandel", en: "aksje", fler: "aksjer", rate: 6.5e10, pris: 8.78e13,
     boostere: ["Raskere levering", "Lager med roboter", "Levering med drone"], uro: "Pakkene står fast" },
-  { id: "mikromyk", navn: "Mikromyk", sektor: "Programvare", en: "aksje", fler: "aksjer", rate: 4.3e11, pris: 2.6e17,
+  { id: "mikromyk", navn: "Mikromyk", sektor: "Programvare", en: "aksje", fler: "aksjer", rate: 4.3e11, pris: 6.97e14,
     boostere: ["Ny versjon", "Abonnement", "Sky for alle"], uro: "Skyen er nede" },
-  { id: "eple", navn: "Eple", sektor: "Telefoner", en: "aksje", fler: "aksjer", rate: 2.9e12, pris: 3.1e18,
+  { id: "eple", navn: "Eple", sektor: "Telefoner", en: "aksje", fler: "aksjer", rate: 2.9e12, pris: 5.66e15,
     boostere: ["Ny farge", "Større skjerm", "Egen butikk"], uro: "Ny modell blir utsatt" },
-  { id: "nvidde", navn: "N-Vidde", sektor: "Databrikker", en: "aksje", fler: "aksjer", rate: 2.1e13, pris: 3.7e19,
+  { id: "nvidde", navn: "N-Vidde", sektor: "Databrikker", en: "aksje", fler: "aksjer", rate: 2.1e13, pris: 4.91e16,
     boostere: ["Raskere brikke", "Egen fabrikk", "Datasenter"], uro: "Brikkemangel" },
 ];
 
@@ -665,7 +665,18 @@ const MAL = {
   "ikon-1": (t) => t.ikoner.length > 1,
   "ikon-alle": (t) => IKONER.every((i) => i.prestisje || t.ikoner.includes(i.id)),
   "gud-1": (t) => t.gud >= 1, "gud-5": (t) => t.gud >= 5, kronos: (t) => t.gren === "gresk" && t.gud >= 5,
-  "prestisje-1": (t) => t.prestisje >= 1, "prestisje-3": (t) => t.prestisje >= 3,
+  "norron-5": (t) => t.gren === "norron" && t.gud >= 5, "romersk-5": (t) => t.gren === "romersk" && t.gud >= 5,
+  "egyptisk-5": (t) => t.gren === "egyptisk" && t.gud >= 5,
+  "prestisje-1": (t) => t.prestisje >= 1, "prestisje-3": (t) => t.prestisje >= 3, "prestisje-5": (t) => t.prestisje >= 5,
+  "trykknivå-25": (t) => t.trykkNiva >= 25, "trykknivå-100": (t) => t.trykkNiva >= 100,
+  "aksje-100-en": (t) => AKSJER.some((a) => t.aksjer[a.id] >= 100),
+  "aksjer-500": (t) => AKSJER.reduce((s, a) => s + t.aksjer[a.id], 0) >= 500,
+  "gf-10": (t) => AKSJER.reduce((s, a) => s + gfAntall(t, a.id), 0) >= 10,
+  "kr-trilliard": (t) => t.totalt >= 1e23,
+  "inntekt-mill": (t) => perSekund(t) >= 1e8, "inntekt-mrd": (t) => perSekund(t) >= 1e11,
+  "obl-3": (t) => antallObl(t) >= OBL.maksSamtidig,
+  "strategi-avers": (t) => t.strategi === "avers", "strategi-noytral": (t) => t.strategi === "noytral", "strategi-glad": (t) => t.strategi === "glad",
+  "ikon-episk": (t) => t.ikoner.some((id) => ["episk", "legendarisk", "mytisk"].includes(ikon(id)?.sjelden)),
 };
 
 /**
@@ -830,9 +841,10 @@ export function fraLagring(obj) {
   }
   if (typeof obj.ikoner !== "undefined") {
     if (!Array.isArray(obj.ikoner)) return null;
-    t.ikoner = [...new Set(["deg", ...obj.ikoner.filter((id) => ikon(id))])];
+    t.ikoner = [...new Set(["deg", ...obj.ikoner.map((id) => GAMLE_IKONER[id] ?? id).filter((id) => ikon(id))])];
   }
-  if (t.ikoner.includes(obj.ikon)) t.ikon = obj.ikon;
+  const valgt = GAMLE_IKONER[obj.ikon] ?? obj.ikon;
+  if (t.ikoner.includes(valgt)) t.ikon = valgt;
   if (obj.gren !== undefined && obj.gren !== null) {
     if (!grein(obj.gren) || !heltall(obj.gud, 5)) return null;
     t.gren = obj.gren; t.gud = obj.gud;

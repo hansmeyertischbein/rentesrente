@@ -306,7 +306,7 @@ function kjop(id) {
   hopp(rader.get(id)?.figur);
   spill("aksje", AKSJER.findIndex((a) => a.id === id));
   if (rabatt(for_, id) > 0) gi(["krakk-kjop"]);
-  if (id === pekt) pekNeste = 0;   // rådgiveren ser på nytt når du har kjøpt det han pekte på
+  if (id === pekt) { pekNeste = 0; gi(["radgiver-lytt"]); }   // rådgiveren ser på nytt når du har kjøpt det han pekte på
   const n = t.aksjer[id];
   const gf = gfAntall(t, id);
   const nye = nyeFordeler(for_, t);
@@ -388,7 +388,7 @@ el.gris.addEventListener("click", (e) => {
   klikk.push({ tid: naa, verdi });
   const fart = fartFaktor(n);
   spill("mynt", fart);
-  if (fart >= 5) gi(fart >= REGLER.fartMaks ? ["fart-5", "fart-12"] : ["fart-5"]);
+  if (fart >= 5) gi(["fart-5", ...(fart >= 8 ? ["fart-8"] : []), ...(fart >= REGLER.fartMaks ? ["fart-12"] : [])]);
   pluss(e, verdi, fartFaktor(n));
   myntInn();
   tegn();
@@ -553,7 +553,7 @@ function investerValg(nr) {
   t = investerEkstra(t, tilbud, nr);
   if (t === for_) { spill("feil"); si(`Du mangler ${ore(tilbud.innsats - t.saldo)}.`); return; }
   spill("invester");
-  gi(["ekstra-1"]);
+  gi(nr === tilbud.valg.length - 1 ? ["ekstra-1", "ekstra-mest"] : ["ekstra-1"]);
   annonser(`Du investerte ${ore(tilbud.innsats)} i ${v.navn}. Går det bra, kommer ${ore(giret(t, tilbud.innsats, v.sum))} om 1 til 2 minutter.`);
   tilbud = null;
   el.ekstra.hidden = true;
@@ -721,7 +721,7 @@ function hent() {
 function velkommenTilbake(sekunder) {
   const r = borte(t, sekunder);
   t = r.tilstand;
-  if (r.gevinst > 0) gi(["borte"]);
+  if (r.gevinst > 0) gi(sekunder > maksBorte(t) ? ["borte", "borte-lang"] : ["borte"]);
   if (r.gevinst > 0) si(`Mens du var borte, ga aksjene ${ore(r.gevinst)} i utbytte.` + (sekunder > maksBorte(t) ? ` Bare de første ${formaterTid(maksBorte(t))} teller.` : ""));
 }
 
@@ -891,7 +891,7 @@ setInterval(() => {
   }
   const solgt = aksjerFor - antallAksjer(t);
   if (solgt > 0) { spill("tvangssalg"); gi(["tvangssalg"]); si(`Tvangssalg: tapet var større enn saldoen, så ${formaterTall(solgt)} aksjer ble solgt for halv pris.`); lagre(); }
-  if (++tikkTeller % 10 === 0) gi();
+  if (++tikkTeller % 10 === 0) gi(new Date(klokke.naa()).getHours() < 4 ? ["natt"] : []);
   tegn(naa);
   gulMynt(naa);
 }, 100);

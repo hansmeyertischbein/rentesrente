@@ -942,11 +942,12 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .profil .ikon-merke { right: -0.4rem; bottom: -0.35rem; font-size: 0.625rem; }
 .profil-prikk { position: absolute; top: -0.2rem; right: -0.2rem; width: 0.8rem; height: 0.8rem; border: 2px solid var(--g-bak); border-radius: 50%; background: var(--g-gronn); }
 .gud-flis { background: radial-gradient(circle at 50% 40%, #fff6dc, #f3d9a4 70%); }
-.profil-gud[data-gren="norron"] .gud-flis { background: radial-gradient(circle at 50% 40%, #e8f4ff, #9fc3e0 75%); }
+.profil-gud[data-gren="norron"] .gud-flis { background: radial-gradient(circle at 50% 40%, #eaf7e2, #86c58f 75%); }
 .profil-gud[data-gren="romersk"] .gud-flis { background: radial-gradient(circle at 50% 40%, #ffe9d6, #e0937b 75%); }
 .profil-gud[data-gren="egyptisk"] .gud-flis { background: radial-gradient(circle at 50% 40%, #fff3cc, #e3b85c 75%); }
 .profil-gud[data-gren="gresk"] .gud-flis { background: radial-gradient(circle at 50% 40%, #f4f7ff, #a9b8e6 75%); }
-.gud-flis .gud-fig { width: 112%; margin: 14% 0 0 -8%; }
+.gud-fig { display: block; width: 100%; height: auto; }
+.gud-flis .gud-fig { width: 104%; margin: 2% 0 0 -2%; }
 .profil-logg-inn {
   min-height: 2.6rem; padding: 0 0.85rem; border: 2px solid var(--g-blekk); border-radius: 999px; background: var(--g-rosa); color: #fff;
   font: inherit; font-size: 0.8125rem; font-weight: 800; cursor: pointer; box-shadow: 0 2px 0 var(--g-blekk); touch-action: manipulation;
@@ -1012,7 +1013,7 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .prestisje .oppgrader { justify-self: start; background: #ffd84a; color: #2b2118; }
 
 /* Vinduene for ikoner og guder */
-.ikon-liste { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); gap: 0.6rem; margin: 1rem 0 0; padding: 0; }
+.ikon-liste { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: 0.6rem; margin: 1rem 0 0; padding: 0; }
 .ikon-valg {
   display: grid; justify-items: center; gap: 0.3rem; width: 100%; padding: 0.6rem 0.35rem; border: 2px solid var(--g-kant); border-radius: 1rem;
   background: var(--g-bak); color: var(--ink); font: inherit; cursor: pointer; transition: transform 140ms var(--ease-out);
@@ -1020,14 +1021,39 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .ikon-valg:active { transform: scale(0.97); }
 .ikon-valg[aria-disabled="false"] { border-color: var(--g-blekk); }
 .ikon-valg.valgt { box-shadow: 0 0 0 3px var(--g-kort), 0 0 0 5px var(--g-gronn); }
-.ikon-valg[aria-disabled="true"] .ikon-flis { filter: grayscale(0.6) brightness(0.85); }
-.ikon-valg-bilde { display: block; width: 3.5rem; height: 3.5rem; }
+.ikon-valg-bilde { display: block; width: 4.25rem; height: 4.25rem; }
 .ikon-valg-navn { font-size: 0.8125rem; font-weight: 750; }
 .ikon-valg-pris { font-size: 0.75rem; font-weight: 750; color: var(--g-dempet); }
 .ikon-valg-pris.pris { color: var(--g-pris-tekst); }
+/* Sjeldenhet, som i samlespill: rammen og glansen viser hvor sjeldent ikonet er. */
+[data-sjelden] { --sj: #9aa3ad; --sj2: #d7dde3; }
+[data-sjelden="uvanlig"] { --sj: #3faa5c; --sj2: #a9e6b8; }
+[data-sjelden="sjelden"] { --sj: #2f7de1; --sj2: #a9cffa; }
+[data-sjelden="episk"] { --sj: #9b4fe0; --sj2: #dcb8ff; }
+[data-sjelden="legendarisk"] { --sj: #e9a91c; --sj2: #ffe58a; }
+[data-sjelden="mytisk"] { --sj: #e8453d; --sj2: #ffb0a0; }
+.ikon-valg .ikon-flis, .profil-ikon .ikon-flis { position: relative; border-color: var(--sj); box-shadow: inset 0 0 0 2px var(--sj2); }
+.ikon-valg-bilde { position: relative; }
+.ikon-valg-sjelden { padding: 0 0.45rem; border-radius: 999px; background: var(--sj); color: #fff; font-size: 0.625rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+[data-sjelden="legendarisk"] .ikon-valg-sjelden { color: #3b2a06; }
+.ikon-valg[data-sjelden="episk"], .ikon-valg[data-sjelden="legendarisk"], .ikon-valg[data-sjelden="mytisk"] { background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--sj) 22%, transparent), var(--g-bak) 70%); }
+.ikon-valg[data-sjelden="legendarisk"] .ikon-flis, .ikon-valg[data-sjelden="mytisk"] .ikon-flis, .profil-ikon[data-sjelden="legendarisk"] .ikon-flis, .profil-ikon[data-sjelden="mytisk"] .ikon-flis { box-shadow: inset 0 0 0 2px var(--sj2), 0 0 12px var(--sj); }
+/* Glans som går over de sjeldne ikonene */
+.ikon-valg:not(.last)[data-sjelden="episk"] .ikon-flis::after, .ikon-valg:not(.last)[data-sjelden="legendarisk"] .ikon-flis::after, .ikon-valg:not(.last)[data-sjelden="mytisk"] .ikon-flis::after,
+.profil-ikon[data-sjelden="episk"] .ikon-flis::after, .profil-ikon[data-sjelden="legendarisk"] .ikon-flis::after, .profil-ikon[data-sjelden="mytisk"] .ikon-flis::after {
+  content: ""; position: absolute; inset: -20%; background: linear-gradient(115deg, transparent 40%, rgb(255 255 255 / 0.65) 50%, transparent 60%); transform: translateX(-120%); pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ikon-valg .ikon-flis::after, .profil-ikon .ikon-flis::after { animation: glans 3.2s ease-in-out infinite; }
+  @keyframes glans { 0%, 55% { transform: translateX(-120%); } 85%, 100% { transform: translateX(120%); } }
+}
+/* Før du kjøper ikonet, ser du bare silhuetten. */
+.ikon-valg.last .ikon-flis { background: #1a140f; box-shadow: inset 0 0 0 2px var(--sj); }
+.ikon-valg.last .ikon-flis svg { filter: brightness(0); opacity: 0.92; }
+.ikon-valg.last .ikon-flis svg rect:first-of-type { opacity: 0; }
 /* Gudegriser: fire greiner med hver sin farge. Guden du har trykket på, står fast. */
 .gud-vindu { width: min(100% - 1.5rem, 52rem); --gren-a: #fff6dc; --gren-b: #f3d9a4; --gren-kant: #c9a227; }
-[data-gren="norron"] { --gren-a: #e8f4ff; --gren-b: #8fb8dc; --gren-kant: #4a78a6; --gren-tekst: #1d3b5c; }
+[data-gren="norron"] { --gren-a: #eaf7e2; --gren-b: #86c58f; --gren-kant: #2f7a45; --gren-tekst: #123b1f; }
 [data-gren="romersk"] { --gren-a: #ffe9d6; --gren-b: #e08a70; --gren-kant: #a8382a; --gren-tekst: #5c1a12; }
 [data-gren="egyptisk"] { --gren-a: #fff3cc; --gren-b: #e3b85c; --gren-kant: #2f5aa8; --gren-tekst: #3b2a06; }
 [data-gren="gresk"] { --gren-a: #f6f8ff; --gren-b: #a3b4e8; --gren-kant: #5b4bb0; --gren-tekst: #231c55; }
@@ -1088,14 +1114,35 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .stat dd { margin: 0; font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .prestasjon-liste { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0.45rem; margin: 1rem 0 0; padding: 0; }
 .prestasjon {
-  display: grid; grid-template-columns: 2.2rem minmax(0, 1fr); grid-template-areas: "merke navn" "merke tekst"; column-gap: 0.6rem; align-items: center;
-  padding: 0.5rem 0.6rem; border: 2px dashed var(--g-kant); border-radius: 0.8rem; color: var(--g-dempet);
+  display: grid; grid-template-columns: 3.9rem minmax(0, 1fr); grid-template-areas: "merke navn" "merke tekst"; column-gap: 0.7rem; align-items: center;
+  padding: 0.5rem 0.65rem; border: 2px dashed var(--g-kant); border-radius: 0.9rem; color: var(--g-dempet);
 }
 .prestasjon b { grid-area: navn; font-weight: 800; color: var(--ink); }
-.prestasjon > span:last-child { grid-area: tekst; font-size: 0.75rem; line-height: 1.35; }
-.prestasjon-merke { grid-area: merke; display: grid; place-items: center; width: 2.2rem; height: 2.2rem; border-radius: 50%; background: var(--g-kant); font-size: 1.1rem; font-weight: 900; }
-.prestasjon.oppnadd { border-style: solid; border-color: #c9a227; background: linear-gradient(135deg, rgb(255 216 74 / 0.18), transparent); color: var(--ink-2); }
-.prestasjon.oppnadd .prestasjon-merke { background: radial-gradient(circle at 40% 35%, #fff3b0, #ffd84a 45%, #e9a91c); color: #6b3f00; }
+.prestasjon-tekst { grid-area: tekst; font-size: 0.75rem; line-height: 1.35; }
+.prestasjon.oppnadd { border-style: solid; border-color: var(--pk, #c9a227); background: linear-gradient(135deg, color-mix(in srgb, var(--pk, #c9a227) 22%, transparent), transparent 70%); color: var(--ink-2); }
+.prestasjon.niva-1 { --pk: #cd7f32; } .prestasjon.niva-2 { --pk: #aebbc7; } .prestasjon.niva-3 { --pk: #e9a91c; } .prestasjon.niva-4 { --pk: #5fd3e8; }
+/* Pokalen: svever og blinker når du har den. Ellers er den en mørk silhuett. */
+.pokal { grid-area: merke; position: relative; display: block; width: 3.9rem; height: 3.9rem; }
+.pokal-fig { display: block; width: 100%; height: 100%; overflow: visible; }
+.prestasjon:not(.oppnadd) .pokal-fig { filter: brightness(0); opacity: 0.35; }
+.prestasjon.hemmelig .pokal::before { content: "?"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.4rem; font-weight: 900; color: var(--g-dempet); z-index: 1; }
+.pokal i { position: absolute; width: 0.45rem; height: 0.45rem; background: #fff; clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); opacity: 0; pointer-events: none; }
+.pokal i:nth-of-type(1) { top: 4%; right: 6%; } .pokal i:nth-of-type(2) { top: 40%; left: -4%; width: 0.35rem; height: 0.35rem; } .pokal i:nth-of-type(3) { bottom: 10%; right: 0; width: 0.3rem; height: 0.3rem; }
+.prestasjon:not(.oppnadd) .pokal i { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .prestasjon.oppnadd .pokal-fig { animation: pokal-sving 3.4s ease-in-out infinite; animation-delay: calc(var(--n, 0) * -0.37s); transform-origin: 50% 90%; }
+  .prestasjon.oppnadd .pokal i, .toast-pokal i { animation: glimt 2.2s ease-in-out infinite; }
+  .prestasjon.oppnadd .pokal i:nth-of-type(2), .toast-pokal i:nth-of-type(2) { animation-delay: 0.7s; }
+  .prestasjon.oppnadd .pokal i:nth-of-type(3), .toast-pokal i:nth-of-type(3) { animation-delay: 1.4s; }
+  .prestasjon.oppnadd.niva-4 .pokal-fig { animation: pokal-sving 3.4s ease-in-out infinite, diamant 2.4s ease-in-out infinite; }
+  .pokal-glimt { animation: glimt-strek 3s ease-in-out infinite; }
+  .toast-pokal .pokal-fig { animation: pokal-inn 700ms cubic-bezier(0.34, 1.56, 0.64, 1) both, pokal-sving 3s ease-in-out 700ms infinite; }
+  @keyframes pokal-sving { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-3px) rotate(3deg); } }
+  @keyframes diamant { 50% { filter: drop-shadow(0 0 6px #7fe9ff); } }
+  @keyframes glimt { 0%, 100% { opacity: 0; transform: scale(0.4) rotate(0); } 50% { opacity: 1; transform: scale(1.1) rotate(45deg); } }
+  @keyframes glimt-strek { 0%, 60%, 100% { opacity: 0.2; } 75% { opacity: 1; } }
+  @keyframes pokal-inn { from { transform: scale(0.2) rotate(-25deg); opacity: 0; } }
+}
 .prestasjon-toast {
   position: fixed; z-index: 40; top: calc(0.75rem + env(safe-area-inset-top, 0px)); left: 50%; display: flex; align-items: center; gap: 0.7rem;
   padding: 0.55rem 1.1rem 0.55rem 0.6rem; border: 2px solid #c9a227; border-radius: 999px; background: #2b2118; color: #fffaf0;
@@ -1104,7 +1151,7 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .prestasjon-toast.ut { opacity: 0; transform: translate(-50%, -1rem); }
 .prestasjon-toast small { display: block; font-size: 0.6875rem; color: #ffd84a; font-weight: 700; }
 .prestasjon-toast b { font-weight: 800; }
-.toast-merke { display: grid; place-items: center; width: 2.2rem; height: 2.2rem; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #fff3b0, #ffd84a 45%, #e9a91c); color: #6b3f00; font-weight: 900; }
+.toast-pokal { width: 2.8rem; height: 2.8rem; }
 @media (prefers-reduced-motion: no-preference) {
   .prestasjon-toast:not([hidden]):not(.ut) { animation: toast-inn 380ms var(--ease-out); }
   @keyframes toast-inn { from { opacity: 0; transform: translate(-50%, -1.2rem) scale(0.95); } }
@@ -1138,6 +1185,27 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
   min-height: 2.75rem; padding: 0 0.75rem; border: 2px solid var(--g-blekk); border-radius: 0.7rem; background: var(--g-bak); color: var(--ink); font: inherit; font-size: 16px;
 }
 #konto-innlogget { margin-top: 1rem; }
+.konto-valg { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.6rem; margin-top: 1rem; }
+.konto-valg-knapp {
+  display: grid; gap: 0.15rem; justify-items: start; min-height: 4.5rem; padding: 0.85rem 1rem; border: 2px solid var(--g-blekk); border-radius: 1rem;
+  background: var(--g-bak); color: var(--ink); font: inherit; text-align: left; cursor: pointer; box-shadow: 0 3px 0 var(--g-blekk); transition: transform 140ms var(--ease-out);
+}
+.konto-valg-knapp b { font-size: 1.1rem; font-weight: 800; }
+.konto-valg-knapp span { font-size: var(--t-small); color: var(--g-dempet); }
+.konto-valg-knapp.ny { background: var(--g-rosa); color: #fff; }
+.konto-valg-knapp.ny span { color: rgb(255 255 255 / 0.85); }
+@media (prefers-color-scheme: dark) { .konto-valg-knapp.ny, .konto-valg-knapp.ny span { color: #2b1018; } }
+.konto-valg-knapp:active { transform: scale(0.98); }
+.konto-venter { margin-top: 1rem; padding: 0.9rem 1rem; border: 2px dashed var(--g-kant); border-radius: 1rem; }
+.konto-venter-tekst { line-height: 1.45; }
+.konto-laster { display: flex; gap: 0.35rem; margin-top: 0.6rem; }
+.konto-laster i { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--g-rosa); }
+@media (prefers-reduced-motion: no-preference) {
+  .konto-laster i { animation: laster 1.2s ease-in-out infinite; }
+  .konto-laster i:nth-child(2) { animation-delay: 0.15s; }
+  .konto-laster i:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes laster { 50% { transform: translateY(-0.35rem); opacity: 0.5; } }
+}
 .konto-personvern { margin-top: 1rem; font-size: 0.75rem; color: var(--g-dempet); }
 @media (hover: hover) and (pointer: fine) {
   .strategi-knapp:hover, .ikon-valg[aria-disabled="false"]:hover, .gud-ikon:hover { transform: translateY(-1px); }

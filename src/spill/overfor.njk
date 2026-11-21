@@ -157,7 +157,7 @@ sideklasse: side-klikk
 </dialog>
 <dialog class="spill-intro spill-vindu gud-vindu" id="gud-vindu" aria-labelledby="gud-tittel">
   <h2 id="gud-tittel">Gudegriser</h2>
-  <p class="ingress">Velg én av fire greiner og kjøp gudene i rekkefølge. Hold over en gud for å lese hintet, og trykk for å velge den.</p>
+  <p class="ingress">Velg én av fire greiner og kjøp gudene i rekkefølge.</p>
   <div class="gud-valgt" id="gud-valgt" aria-live="polite">
     <span class="gud-valgt-bilde" id="gud-valgt-bilde"></span>
     <div class="gud-valgt-tekst">
@@ -203,12 +203,21 @@ sideklasse: side-klikk
 {% if konto.url and konto.nokkel -%}
 <dialog class="spill-intro spill-vindu" id="konto-vindu" aria-labelledby="konto-tittel" data-url="{{ konto.url }}" data-nokkel="{{ konto.nokkel }}">
   <h2 id="konto-tittel">Spill på flere enheter</h2>
-  <p class="ingress">Med en konto lagres spillet ditt, så du kan fortsette på telefonen eller en annen PC.</p>
-  <form class="konto-skjema" id="konto-skjema" novalidate>
+  <p class="ingress" id="konto-ingress">Med en konto lagres spillet ditt, så du kan fortsette på telefonen eller en annen PC.</p>
+  <div class="konto-valg" id="konto-valg">
+    <button type="button" class="konto-valg-knapp" id="konto-velg-inn"><b>Logg inn</b><span>Jeg har en konto</span></button>
+    <button type="button" class="konto-valg-knapp ny" id="konto-velg-ny"><b>Lag ny konto</b><span>Første gang her</span></button>
+  </div>
+  <form class="konto-skjema" id="konto-skjema" novalidate hidden>
     <label class="konto-felt"><span>E-post</span><input id="konto-epost" type="email" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" required></label>
     <label class="konto-felt"><span>Passord, minst 8 tegn</span><input id="konto-passord" type="password" autocomplete="current-password" minlength="8" maxlength="72" required></label>
-    <p class="flytt-knapper"><button type="submit" class="oppgrader" id="konto-inn"><span class="oppgrader-navn">Logg inn</span></button> <button type="button" class="lenkeknapp" id="konto-ny">Lag ny konto</button></p>
+    <p class="flytt-knapper"><button type="submit" class="oppgrader" id="konto-send"><span class="oppgrader-navn" id="konto-send-tekst">Logg inn</span></button> <button type="button" class="lenkeknapp" id="konto-tilbake">Tilbake</button></p>
   </form>
+  <div class="konto-venter" id="konto-venter" hidden>
+    <p class="konto-venter-tekst" id="konto-venter-tekst"></p>
+    <p class="konto-laster" aria-hidden="true"><i></i><i></i><i></i></p>
+    <p class="flytt-knapper"><button type="button" class="lenkeknapp" id="konto-send-igjen">Send e-posten på nytt</button> <button type="button" class="lenkeknapp" id="konto-avbryt">Avbryt</button></p>
+  </div>
   <div id="konto-innlogget" hidden>
     <p id="konto-hvem"></p>
     <p class="flytt-knapper"><button type="button" class="oppgrader" id="konto-ut"><span class="oppgrader-navn">Logg ut</span></button> <button type="button" class="lenkeknapp" id="konto-slett">Slett kontoen</button></p>

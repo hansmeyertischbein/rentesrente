@@ -2,12 +2,13 @@
 import { AKSJER } from "/lib/klikker.js";
 import { PRESTASJONER } from "/lib/klikker-guder.js";
 import { formaterTall } from "/lib/format.js";
-import { MENYIKONER } from "./klikker-figurer.js";
+import { MENYIKONER, pokal, pokalformer } from "./klikker-figurer.js";
 import { $, ore, settTekst, lag, apne, hopp } from "./overfor-felles.js";
 import { spill } from "./lyd.js";
 
 const el = { knapp: $("prestasjon-knapp"), antall: $("prestasjon-antall"), vindu: $("prestasjon-vindu"), liste: $("prestasjon-liste"), stat: $("statistikk"), toast: $("prestasjon-toast") };
 let api = null, ko = [], viser = false;
+const FORM = pokalformer(PRESTASJONER);
 
 function tegnVindu() {
   const t = api.hent();
@@ -28,11 +29,13 @@ function tegnVindu() {
   }));
   // Opplåste først, så de som gjenstår. Hemmelige viser bare spørsmålstegn til du har dem.
   const sortert = [...PRESTASJONER].sort((a, b) => har.has(b.id) - har.has(a.id));
-  el.liste.replaceChildren(...sortert.map((p) => {
+  el.liste.replaceChildren(...sortert.map((p, i) => {
     const ok = har.has(p.id);
-    const li = lag(`<li class="prestasjon ${ok ? "oppnadd" : ""}"><span class="prestasjon-merke" aria-hidden="true">${ok ? "★" : p.hemmelig ? "?" : "☆"}</span><b></b><span></span></li>`);
-    li.querySelector("b").textContent = ok || !p.hemmelig ? p.navn : "Hemmelig";
-    li.querySelector("span:last-child").textContent = ok || !p.hemmelig ? p.tekst : "Noe spesielt må skje.";
+    const skjult = !ok && p.hemmelig;
+    const li = lag(`<li class="prestasjon niva-${p.niva} ${ok ? "oppnadd" : ""}" style="--n:${i}"><span class="pokal" aria-hidden="true">${pokal(p, FORM.get(p.id))}<i></i><i></i><i></i></span><b></b><span class="prestasjon-tekst"></span></li>`);
+    li.querySelector("b").textContent = skjult ? "Hemmelig" : p.navn;
+    li.querySelector(".prestasjon-tekst").textContent = skjult ? "Noe spesielt må skje." : p.tekst;
+    if (skjult) li.classList.add("hemmelig");
     return li;
   }));
 }
@@ -41,7 +44,7 @@ function visNeste() {
   if (viser || !ko.length) return;
   viser = true;
   const p = ko.shift();
-  el.toast.replaceChildren(lag(`<span class="toast-merke" aria-hidden="true">★</span>`), lag(`<span><small>Prestasjon låst opp</small><b></b></span>`));
+  el.toast.replaceChildren(lag(`<span class="pokal toast-pokal" aria-hidden="true">${pokal(p, FORM.get(p.id))}<i></i><i></i><i></i></span>`), lag(`<span><small>Prestasjon låst opp</small><b></b></span>`));
   el.toast.querySelector("b").textContent = p.navn;
   el.toast.hidden = false;
   el.toast.classList.remove("ut");

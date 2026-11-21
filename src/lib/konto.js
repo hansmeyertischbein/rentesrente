@@ -3,6 +3,8 @@
 // oppsett er { url, nokkel }: adressen til prosjektet og den offentlige nøkkelen, som er laget for å ligge i nettleseren.
 
 export const PASSORD_MIN = 8;
+// Lenken i bekreftelsesposten sender deg hit, så du kommer rett tilbake til spillet.
+export const TILBAKE = "https://rentesrente.no/spill/overfor/";
 
 export function sjekkEpost(e) {
   const s = String(e ?? "").trim();
@@ -28,7 +30,7 @@ const bearer = (okt) => ({ Authorization: `Bearer ${okt.tilgang}` });
 export function foresporsel(oppsett, type, { epost, passord, okt, data } = {}) {
   const u = oppsett.url.replace(/\/+$/, "");
   switch (type) {
-    case "lagKonto": return { url: `${u}/auth/v1/signup`, init: { method: "POST", headers: json(oppsett), body: JSON.stringify({ email: epost.trim(), password: passord }) } };
+    case "lagKonto": return { url: `${u}/auth/v1/signup?redirect_to=${encodeURIComponent(TILBAKE)}`, init: { method: "POST", headers: json(oppsett), body: JSON.stringify({ email: epost.trim(), password: passord }) } };
     case "loggInn": return { url: `${u}/auth/v1/token?grant_type=password`, init: { method: "POST", headers: json(oppsett), body: JSON.stringify({ email: epost.trim(), password: passord }) } };
     case "forny": return { url: `${u}/auth/v1/token?grant_type=refresh_token`, init: { method: "POST", headers: json(oppsett), body: JSON.stringify({ refresh_token: okt.fornyelse }) } };
     case "loggUt": return { url: `${u}/auth/v1/logout`, init: { method: "POST", headers: json(oppsett, bearer(okt)) } };
@@ -36,6 +38,10 @@ export function foresporsel(oppsett, type, { epost, passord, okt, data } = {}) {
     case "lagre": return {
       url: `${u}/rest/v1/spill?on_conflict=bruker`,
       init: { method: "POST", keepalive: true, headers: json(oppsett, { ...bearer(okt), Prefer: "resolution=merge-duplicates,return=minimal" }), body: JSON.stringify({ bruker: okt.bruker, data }) },
+    };
+    case "sendIgjen": return {
+      url: `${u}/auth/v1/resend?redirect_to=${encodeURIComponent(TILBAKE)}`,
+      init: { method: "POST", headers: json(oppsett), body: JSON.stringify({ type: "signup", email: epost.trim() }) },
     };
     case "slett": return { url: `${u}/rest/v1/rpc/slett_meg`, init: { method: "POST", headers: json(oppsett, bearer(okt)), body: "{}" } };
     default: throw new Error(`Ukjent forespørsel: ${type}`);
@@ -66,6 +72,15 @@ export function lesOktFraLenke(hash, naa) {
   } catch {
     return null;
   }
+}
+
+/** Feilen i lenken fra e-posten, som tekst på norsk, eller null når lenken ikke har feil. */
+export function lenkefeil(hash) {
+  const p = new URLSearchParams(String(hash ?? "").replace(/^#/, ""));
+  const kode = p.get("error_code") ?? p.get("error");
+  if (!kode) return null;
+  if (kode === "otp_expired") return "Lenken i e-posten er brukt eller gått ut. Logg inn med e-post og passord, eller be om en ny e-post.";
+  return "Lenken i e-posten virket ikke. Logg inn med e-post og passord, eller be om en ny e-post.";
 }
 
 /** Om økten må fornyes: ett minutt før den går ut. */

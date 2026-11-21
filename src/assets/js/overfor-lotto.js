@@ -38,7 +38,8 @@ function kjop() {
   }
   annonser(`Du kjøpte ${rekkerOrd(n)} for ${ore(prisRekker(n))}.`);
   spill("lottoKjop");
-  api.prestasjon(loddI(api.hent(), r.nr) >= 1000 ? ["lotto-1", "lotto-1000"] : ["lotto-1"]);
+  const har = loddI(api.hent(), r.nr);
+  api.prestasjon(["lotto-1", ...(har >= 1000 ? ["lotto-1000"] : []), ...(har >= LOTTO.maksRekker ? ["lotto-10000"] : [])]);
   hopp(el.knapp);
 }
 

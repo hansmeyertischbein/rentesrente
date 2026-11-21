@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { sjekkEpost, sjekkPassord, foresporsel, lesOkt, lesOktFraLenke, maFornyes, feilmelding, velgSpill } from "../src/lib/konto.js";
+import { sjekkEpost, sjekkPassord, foresporsel, lesOkt, lesOktFraLenke, lenkefeil, maFornyes, feilmelding, velgSpill } from "../src/lib/konto.js";
 
 const oppsett = { url: "https://abc.supabase.co/", nokkel: "offentlig" };
 const okt = { bruker: "u-1", epost: "a@b.no", tilgang: "T", fornyelse: "F", utloper: 100000 };
@@ -20,7 +20,10 @@ test("forespørslene går til riktig sted med den offentlige nøkkelen", () => {
   assert.equal(inn.url, "https://abc.supabase.co/auth/v1/token?grant_type=password");
   assert.equal(inn.init.headers.apikey, "offentlig");
   assert.deepEqual(JSON.parse(inn.init.body), { email: "a@b.no", password: "hemmelig1" });
-  assert.equal(foresporsel(oppsett, "lagKonto", { epost: "a@b.no", passord: "x" }).url, "https://abc.supabase.co/auth/v1/signup");
+  assert.equal(foresporsel(oppsett, "lagKonto", { epost: "a@b.no", passord: "x" }).url, "https://abc.supabase.co/auth/v1/signup?redirect_to=https%3A%2F%2Frentesrente.no%2Fspill%2Foverfor%2F");
+  const igjen = foresporsel(oppsett, "sendIgjen", { epost: "a@b.no" });
+  assert.match(igjen.url, /\/auth\/v1\/resend\?redirect_to=/);
+  assert.deepEqual(JSON.parse(igjen.init.body), { type: "signup", email: "a@b.no" });
   const hent = foresporsel(oppsett, "hent", { okt });
   assert.equal(hent.url, "https://abc.supabase.co/rest/v1/spill?select=data,oppdatert&bruker=eq.u-1");
   assert.equal(hent.init.headers.Authorization, "Bearer T");
@@ -64,4 +67,11 @@ test("lenken i bekreftelsesposten logger deg inn", () => {
   assert.equal(lesOktFraLenke("#error=access_denied", 0), null);
   assert.equal(lesOktFraLenke("", 0), null);
   assert.equal(lesOktFraLenke("#access_token=tull&refresh_token=R", 0), null);
+});
+
+test("feil i lenken fra e-posten blir forståelig", () => {
+  assert.match(lenkefeil("#error=access_denied&error_code=otp_expired&error_description=Email+link"), /brukt eller gått ut/);
+  assert.match(lenkefeil("#error=server_error"), /virket ikke/);
+  assert.equal(lenkefeil("#access_token=a&refresh_token=b"), null);
+  assert.equal(lenkefeil(""), null);
 });

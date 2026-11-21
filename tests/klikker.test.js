@@ -37,15 +37,15 @@ test("overføringen gir 11 øre på nivå 1 og 12 øre på nivå 2, en tidel mer
   assert.equal(trykkverdi(med({ trykkNiva: 3 })), 13);
 });
 
-test("oppgradering av overføringen koster 10 øre først og 7 % mer per nivå", () => {
-  assert.equal(prisTrykk(nyTilstand()), 10);
-  assert.equal(prisTrykk(med({ trykkNiva: 1 })), Math.ceil(10 * 1.07));
-  assert.equal(prisTrykk(med({ trykkNiva: 20 })), Math.ceil(10 * Math.pow(1.07, 20)));
-  assert.ok(prisTrykk(med({ trykkNiva: 18 })) / (grunnTrykk(19) - grunnTrykk(18)) < 40, "nivå 18 betaler seg på under 40 trykk");
-  const t = kjopTrykk(med({ saldo: 10 }));
+test("oppgradering av overføringen koster 40 øre først og 8 % mer per nivå", () => {
+  assert.equal(prisTrykk(nyTilstand()), 40);
+  assert.equal(prisTrykk(med({ trykkNiva: 1 })), Math.ceil(40 * 1.08));
+  assert.equal(prisTrykk(med({ trykkNiva: 20 })), Math.ceil(40 * Math.pow(1.08, 20)));
+  assert.ok(prisTrykk(med({ trykkNiva: 10 })) / (grunnTrykk(11) - grunnTrykk(10)) < 1000, "nivå 10 betaler seg på under 1 000 trykk");
+  const t = kjopTrykk(med({ saldo: 40 }));
   assert.equal(t.trykkNiva, 1);
   assert.equal(t.saldo, 0);
-  assert.equal(kjopTrykk(med({ saldo: 9 })).trykkNiva, 0);
+  assert.equal(kjopTrykk(med({ saldo: 39 })).trykkNiva, 0);
 });
 
 test("raske trykk gir fartsboost: jevnt til 2,5 ganger ved 11 i sekundet, så tungt opp mot 12 ganger", () => {
@@ -75,21 +75,21 @@ test("første selskap gir 10 øre i sekundet per bod, og hver bod gir like mye",
 
 test("hver aksje koster 15 % mer enn den forrige, rundet opp til hele øre", () => {
   const a = AKSJER[0];
-  assert.equal(prisAksje(nyTilstand(), a.id), 150);
-  assert.equal(prisAksje(medAksjer({ [a.id]: 1 }), a.id), Math.ceil(150 * 1.15));
-  assert.equal(prisAksje(nyTilstand(), a.id, 2), 150 + Math.ceil(150 * 1.15));
+  assert.equal(prisAksje(nyTilstand(), a.id), 1000);
+  assert.equal(prisAksje(medAksjer({ [a.id]: 1 }), a.id), Math.ceil(1000 * 1.15));
+  assert.equal(prisAksje(nyTilstand(), a.id, 2), 1000 + Math.ceil(1000 * 1.15));
   assert.equal(prisAksje(nyTilstand(), a.id, 0), Infinity);
   assert.equal(prisAksje(nyTilstand(), "ukjent"), Infinity);
 });
 
 test("kjøp uten nok penger endrer ingenting, og maks kjøper så mange saldoen rekker til", () => {
   const a = AKSJER[0];
-  const t = med({ saldo: 149 });
+  const t = med({ saldo: 999 });
   assert.equal(kjopAksje(t, a.id), t);
-  const rik = med({ saldo: 1000 });
+  const rik = med({ saldo: 7000 });
   const n = maksAksje(rik, a.id);
-  assert.ok(prisAksje(rik, a.id, n) <= 1000);
-  assert.ok(prisAksje(rik, a.id, n + 1) > 1000);
+  assert.ok(prisAksje(rik, a.id, n) <= 7000);
+  assert.ok(prisAksje(rik, a.id, n + 1) > 7000);
   assert.equal(kjopAksje(rik, a.id, n).aksjer[a.id], n);
   assert.equal(maksAksje(med({ saldo: 1e300 }), a.id), REGLER.maksKjop);
 });
@@ -199,8 +199,8 @@ test("et børskrakk gir 10 til 20 % rabatt etter sektor, og rabatten forsvinner 
   assert.equal(h.sek, 45);
   const t = startHendelse(nyTilstand(), h);
   assert.equal(rabatt(t, "limonade"), 0.1);
-  assert.equal(prisAksje(t, "limonade"), 135);
-  assert.equal(prisAksje(tikk(t, 46), "limonade"), 150);
+  assert.equal(prisAksje(t, "limonade"), 900);
+  assert.equal(prisAksje(tikk(t, 46), "limonade"), 1000);
 });
 
 test("uro-streken fylles over tre minutter, og når den er full, skjer det alltid noe", () => {
@@ -223,9 +223,9 @@ test("ekstraordinært utbytte: samme innsats i tre aktiva, samme ventetid, og h�
   const t = medAksjer({ limonade: 10 }, { saldo: 10000 });
   const tilbud = ekstraTilbud(t, () => 0);
   assert.deepEqual(tilbud, { innsats: 1000, valg: [
-    { navn: "Statsobligasjoner", niva: "Trygg", sum: 1150, vent: 60, risiko: 0.1 },
-    { navn: "Aksjefond med litt av alt", niva: "Middels", sum: 1400, vent: 60, risiko: 0.2 },
-    { navn: "Obligasjoner fra Alis Bilopphuggeri", niva: "Risikabel", sum: 2000, vent: 60, risiko: 0.3 },
+    { navn: "Statsobligasjoner", niva: "Lavest risiko", sum: 1150, vent: 60, risiko: 0.1 },
+    { navn: "Aksjefond med litt av alt", niva: "Litt risiko", sum: 1400, vent: 60, risiko: 0.2 },
+    { navn: "Obligasjoner fra Alis Bilopphuggeri", niva: "Mest risiko", sum: 2000, vent: 60, risiko: 0.3 },
   ] }, "innsatsen er 10 sekunder utbytte");
   const hoy = ekstraTilbud(t, () => 0.9999);
   assert.deepEqual(hoy.valg.map((v) => [v.navn, v.sum, v.vent]), [
@@ -288,7 +288,7 @@ test("fordeler i de små selskapene: halv pris på overføring, dobbelt trykk, h
   assert.deepEqual(fordeler(nyTilstand(), "limonade").map((f) => [f.antall, f.oppnadd]), [[25, false]]);
   const lim = medAksjer({ limonade: 25 }, { trykkNiva: 10 });
   assert.equal(fordeler(lim, "limonade")[0].oppnadd, true);
-  assert.equal(prisTrykk(lim), Math.ceil(10 * Math.pow(1.07, 10) * 0.5), "25 boder gir halv pris på større overføring");
+  assert.equal(prisTrykk(lim), Math.ceil(40 * Math.pow(1.08, 10) * 0.5), "25 boder gir halv pris på større overføring");
   assert.equal(maksTrykk({ ...lim, saldo: prisTrykk(lim) }), 1);
   assert.equal(trykkverdi(medAksjer({ jordbaer: 25 })), 20, "25 jordbærstander gir dobbelt per trykk");
   const t = medAksjer({ limonade: 10, onkel: 25 }, { saldo: 10000 });
@@ -328,8 +328,8 @@ test("rådgiveren koster 10 mill. kr, starter på 30 % og kan oppgraderes til 80
 });
 
 test("rådgiveren peker på den rimeligste aksjen med sin treffsikkerhet, og bommer oftest med lite", () => {
-  // Limonade gir 10/150, blomst 50/1000, jordbær 300/11000. Med to boostere på jordbær blir den rimeligst.
-  const t = medAksjer({}, { totalt: 2e4, radgiver: 1 });
+  // Limonade gir 10/1000, blomst 50/6000, jordbær 300/45000. Med to boostere på jordbær blir den rimeligst.
+  const t = medAksjer({}, { totalt: 3e4, radgiver: 1 });
   assert.deepEqual(rimeligst(t), ["limonade", "blomst", "jordbaer"]);
   assert.deepEqual(rimeligst({ ...t, boostere: ["jordbaer-1", "jordbaer-2"] })[0], "jordbaer");
   const f = radgiverFordeling(t);
@@ -340,7 +340,7 @@ test("rådgiveren peker på den rimeligste aksjen med sin treffsikkerhet, og bom
   assert.equal(radgiverPek(t, () => 0), "limonade");
   assert.equal(radgiverPek(t, () => 0.31), "blomst");
   assert.equal(radgiverPek(t, () => 0.9999), "jordbaer");
-  assert.equal(radgiverPek(medAksjer({}, { totalt: 2e4 }), () => 0), null, "uten rådgiver peker ingen");
+  assert.equal(radgiverPek(medAksjer({}, { totalt: 3e4 }), () => 0), null, "uten rådgiver peker ingen");
   const best = radgiverFordeling({ ...t, radgiver: 6 });
   naer(best[0].p, 0.8);
   assert.equal(radgiverFordeling(med({ radgiver: 1 }))[0].p, 1, "med ett selskap peker han alltid på det");
@@ -547,7 +547,7 @@ test("giring ganger gevinst og tap, og tvangssalg dekker et tap større enn sald
   const gjeld = tvangssalg(medAksjer({ limonade: 3, blomst: 1 }, { saldo: -400 }));
   assert.equal(gjeld.aksjer.blomst, 0, "den dyreste selges først");
   assert.equal(gjeld.aksjer.limonade, 3);
-  assert.equal(gjeld.saldo, 100, "solgt for halvparten av prisen");
+  assert.equal(gjeld.saldo, 2600, "solgt for halvparten av prisen");
   const alt = tvangssalg(medAksjer({ limonade: 1 }, { saldo: -1e9 }));
   assert.equal(alt.saldo, 0, "resten av gjelden slettes");
   assert.equal(alt.aksjer.limonade, 0);
@@ -558,15 +558,15 @@ test("giring ganger gevinst og tap, og tvangssalg dekker et tap større enn sald
 
 // ---------- Ikoner, guder og prestisje ----------
 
-test("ikoner: det første er gratis, resten koster fra 500 000 kr og blir dyrere", () => {
+test("ikoner: det første er gratis, resten koster fra 5 mill. kr og blir dyrere", () => {
   assert.equal(IKONER[0].pris, 0);
-  assert.equal(IKONER[1].pris, 5e7);
+  assert.equal(IKONER[1].pris, 5e8);
   for (let i = 2; i < IKONER.length; i++) assert.ok(IKONER[i].pris > IKONER[i - 1].pris);
-  const t = med({ saldo: 6e7 });
-  const k = kjopIkon(t, "gra");
-  assert.equal(k.saldo, 1e7);
-  assert.equal(k.ikon, "gra");
-  assert.equal(kjopIkon(k, "gra"), k, "kjøpes bare én gang");
+  const t = med({ saldo: 6e8 });
+  const k = kjopIkon(t, "kontor");
+  assert.equal(k.saldo, 1e8);
+  assert.equal(k.ikon, "kontor");
+  assert.equal(kjopIkon(k, "kontor"), k, "kjøpes bare én gang");
   assert.equal(kjopIkon(t, "fonix"), t, "fønix får du bare ved prestisje");
   assert.equal(velgIkon(k, "deg").ikon, "deg");
   assert.equal(velgIkon(k, "drage"), k);
@@ -613,10 +613,13 @@ test("prestisje: når alt er kjøpt, starter du på nytt med dobbelt av alt", ()
 });
 
 test("lagring tar med ikoner, guder, strategi, prestisje og lottorekker", () => {
-  const t = med({ ikon: "smil", ikoner: ["deg", "smil"], gren: "norron", gud: 2, strategi: "glad", giring: 3.5, prestisje: 2,
+  const t = med({ ikon: "grunder", ikoner: ["deg", "grunder"], gren: "norron", gud: 2, strategi: "glad", giring: 3.5, prestisje: 2,
     lodd: [{ runde: 7, antall: 3, fro: 99 }], ventende: [{ navn: "Statsobligasjon", sum: -200, lovet: 400, pris: 100, igjen: 100, lengde: 180, obl: true }] });
   const lest = fraLagring(JSON.parse(JSON.stringify(tilLagring(t, 1)))).tilstand;
   for (const k of ["ikon", "ikoner", "gren", "gud", "strategi", "giring", "prestisje", "lodd", "ventende"]) assert.deepEqual(lest[k], t[k], k);
+  const eldre = fraLagring({ ...tilLagring(nyTilstand(), 1), ikon: "smil", ikoner: ["deg", "gra", "smil", "ukjent"] }).tilstand;
+  assert.deepEqual(eldre.ikoner, ["deg", "kontor", "grunder"], "ikoner fra før får nye navn");
+  assert.equal(eldre.ikon, "grunder");
   const gammel = fraLagring(tilLagring(medAksjer({ limonade: 1 }), 1)).tilstand;
   assert.equal(gammel.ikon, "deg");
   assert.equal(gammel.prestisje, 0);
@@ -657,4 +660,15 @@ test("giring gjelder også investeringene som dukker opp", () => {
   assert.equal(v.sum, 1000 + 3 * 1000, "100 % avkastning blir 300 % med 3x giring");
   assert.equal(giret(t, 1000, 2000), 4000);
   assert.equal(giret(nyTilstand(), 1000, 2000), 2000, "uten risikoglad er det ingen giring");
+});
+
+test("hver prestasjon har nivå, tema og en egen kombinasjon, og alle målene peker på en prestasjon som finnes", () => {
+  assert.ok(PRESTASJONER.length >= 60);
+  for (const p of PRESTASJONER) {
+    assert.ok([1, 2, 3, 4].includes(p.niva), p.id);
+    assert.ok(typeof p.tema === "string", p.id);
+  }
+  const t = med({ trykkNiva: 120, aksjer: { ...nyTilstand().aksjer, limonade: 150, blomst: 400 }, strategi: "avers", ikoner: ["deg", "ulv"] });
+  const nye = prestasjonerSteg(t).nye.map((p) => p.id);
+  for (const id of ["trykknivå-25", "trykknivå-100", "aksje-100-en", "aksjer-500", "gf-10", "strategi", "strategi-avers", "ikon-episk"]) assert.ok(nye.includes(id), id);
 });

@@ -1,9 +1,9 @@
 // Ikonet ditt, strategien, obligasjonene, gudegrisene, prestisje og flytting av spillet i «Overfør».
 import {
-  kanVelgeStrategi, velgStrategi, settGiring, giring, oblSynlig, oblInnsats, oblRente, oblRisiko, antallObl, kjopObligasjon,
+  kanVelgeStrategi, velgStrategi, settGiring, giring, oblSynlig, oblInnsats, oblRente, antallObl, kjopObligasjon,
   kjopIkon, velgIkon, guderSynlig, nesteGud, kjopGud, prestisjeMangler, kanPrestisje, prestisje, prestisjeFaktor, fraLagring, formaterTid,
 } from "/lib/klikker.js";
-import { GRENER, grein, IKONER, STRATEGIER, STRATEGI, OBLIGASJONER, OBL, PRESTISJE } from "/lib/klikker-guder.js";
+import { GRENER, grein, IKONER, SJELDENHET, STRATEGIER, STRATEGI, OBLIGASJONER, OBL, PRESTISJE } from "/lib/klikker-guder.js";
 import { formaterTall } from "/lib/format.js";
 import { AVATARER, STRATEGIMERKER, lagGris } from "./klikker-figurer.js";
 import { $, ore, prosent, ganger, settTekst, settAttr, vis, si, annonser, hopp, lag, registrerTips, medTips, apne } from "./overfor-felles.js";
@@ -44,6 +44,7 @@ function tegnIkon() {
   if (nokkel !== ikonNokkel) {
     ikonNokkel = nokkel;
     el.ikonKnapp.innerHTML = flis(AVATARER[x.ikon] ?? AVATARER.deg);
+    el.ikonKnapp.dataset.sjelden = IKONER.find((i) => i.id === x.ikon)?.sjelden ?? "vanlig";
     settAttr(el.ikonKnapp, "aria-label", `Ikonet ditt: ${IKONER.find((i) => i.id === x.ikon)?.navn}. Trykk for å bytte eller kjøpe nye.`);
   }
   if (el.ikonVindu.open) tegnIkonListe();
@@ -58,10 +59,12 @@ function tegnIkonListe() {
     listeNokkel = nokkel;
     el.ikonListe.replaceChildren(...synlige.map((i) => {
       const har = x.ikoner.includes(i.id);
-      const li = lag(`<li><button type="button" class="ikon-valg" data-id="${i.id}"><span class="ikon-valg-bilde">${flis(AVATARER[i.id])}</span><span class="ikon-valg-navn"></span><span class="ikon-valg-pris"></span></button></li>`);
+      const li = lag(`<li><button type="button" class="ikon-valg" data-id="${i.id}" data-sjelden="${i.sjelden}"><span class="ikon-valg-bilde">${flis(AVATARER[i.id])}</span><span class="ikon-valg-sjelden"></span><span class="ikon-valg-navn"></span><span class="ikon-valg-pris"></span></button></li>`);
       li.querySelector(".ikon-valg-navn").textContent = i.navn;
+      li.querySelector(".ikon-valg-sjelden").textContent = SJELDENHET[i.sjelden];
       const knapp = li.firstElementChild;
       knapp.classList.toggle("valgt", x.ikon === i.id);
+      knapp.classList.toggle("last", !har);
       knapp.addEventListener("click", () => velgEllerKjop(i));
       return li;
     }));
@@ -116,11 +119,14 @@ registrerTips("strategi", () => {
 
 // ---------- Obligasjoner ----------
 
+// Risikoen vises aldri som tall, bare med ord.
+const RISIKOORD = ["Lavest risiko", "Litt risiko", "Mest risiko"];
+
 function lagOblValg() {
   el.oblValg.replaceChildren(...OBLIGASJONER.map((o, nr) => {
     const knapp = lag(`<button type="button" class="ekstra-knapp niva-${nr}" data-id="${o.id}"><span class="ekstra-aktiv"></span><span class="ekstra-niva"></span><span class="ekstra-avk"></span><span class="pris"></span></button>`);
     knapp.querySelector(".ekstra-aktiv").textContent = o.navn;
-    knapp.querySelector(".ekstra-niva").textContent = o.sikker === 1 ? "Helt sikker" : `${prosent(o.sikker)} sikker`;
+    knapp.querySelector(".ekstra-niva").textContent = RISIKOORD[nr];
     knapp.addEventListener("click", () => {
       const x = t();
       if (antallObl(x) >= OBL.maksSamtidig) { spill("feil"); si(`Du kan ha ${OBL.maksSamtidig} obligasjoner om gangen.`); return; }
@@ -147,7 +153,6 @@ function tegnObl() {
     const rente = oblRente(x, o);
     settTekst(knapp.querySelector(".ekstra-avk"), `${formaterTall(Math.round(rente * 1000) / 10, rente * 100 % 1 ? 1 : 0)} % rente`);
     settTekst(knapp.querySelector(".pris"), `Få ${ore(Math.floor(innsats * (1 + rente * giring(x)) + 1e-6))}`);
-    settTekst(knapp.querySelector(".ekstra-niva"), oblRisiko(x, o) === 0 ? "Helt sikker" : `${prosent(1 - oblRisiko(x, o))} sikker`);
     settAttr(knapp, "aria-disabled", innsats > 0 && !fulle ? "false" : "true");
   });
 }
@@ -327,6 +332,7 @@ function flytt() {
     }
     delete el.flyttHent.dataset.klar;
     api.byttSpill(lest.tilstand, "Spillet er hentet fra den andre enheten.");
+    api.prestasjon(["flytt"]);
     settTekst(el.flyttStatus, "Spillet er hentet.");
     el.flyttInn.value = "";
   });

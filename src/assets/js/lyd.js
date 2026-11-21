@@ -339,7 +339,7 @@ export function spill(navn, ...arg) {
 // ---------- Musikken ----------
 
 // «Børsen åpner»: en tett, jazzete groove som minner om nyhetssendinger fra børsen. 108 slag i minuttet i D dorisk.
-// Elpiano med synkoperte akkorder, funky bass og hi-hat som tikker som et kursbånd. Melodien er en kurs:
+// Elpiano med synkoperte akkorder over en dyp, funky bass. Melodien er en kurs:
 // den går opp og ned som en aksje i en tilfeldig gang, oftest litt opp, og av og til kommer et lite krakk.
 // Hver åttende takt ringer kassaapparatet svakt.
 const TEMPO = 108;
@@ -389,21 +389,20 @@ function musikkSteg(t0) {
   const a = AKKORDER[takt % AKKORDER.length];
   const ut = musikkBus;
 
-  // Trommer: stortromme på 1 og 3, klapp på 2 og 4, hi-hat på hver sekstendel som et kursbånd.
-  if (s === 0 || s === 8 || (s === 11 && takt % 2 === 1)) tromme(t0, { f: 95, volum: 0.2, lengde: 0.2, til: ut });
+  // Trommer: dyp stortromme på 1 og 3, mykt klapp på 2 og 4. Ingen hi-hat.
+  if (s === 0 || s === 8 || (s === 11 && takt % 2 === 1)) tromme(t0, { f: 72, volum: 0.24, lengde: 0.28, til: ut });
   if (s === 4 || s === 12) {
     stoy(t0, 0.14, { f: 1700, q: 1.2, volum: 0.1, til: ut });
     stoy(t0 + 0.012, 0.1, { f: 1100, q: 1, volum: 0.05, til: ut });
   }
-  const aksent = s % 4 === 2 ? 0.03 : s % 2 === 0 ? 0.016 : 0.01;
-  stoy(t0, s === 14 ? 0.16 : 0.025, { type: "highpass", f: 8500, volum: s === 14 ? 0.025 : aksent, til: ut });
 
   // Bass
   const b = BASS[s];
   if (b !== null) {
     const f = hz(a.rot + b);
-    tone(f, t0, SEKSTENDEL * 1.6, { type: "sawtooth", volum: 0.07, angrep: 0.004, til: ut, filter: { f: 1400, til: 380, tid: 0.14, q: 2 } });
-    tone(f, t0, SEKSTENDEL * 1.6, { type: "sine", volum: 0.08, angrep: 0.004, til: ut });
+    // Dyp bass: en sinus en oktav under som du kjenner mer enn hører, og en sagtann med lukket filter som gir tonen.
+    tone(f / 2, t0, SEKSTENDEL * 1.9, { type: "sine", volum: 0.2, angrep: 0.006, til: ut });
+    tone(f, t0, SEKSTENDEL * 1.6, { type: "sawtooth", volum: 0.06, angrep: 0.004, til: ut, filter: { f: 700, til: 220, tid: 0.16, q: 3 } });
   }
 
   // Elpiano
