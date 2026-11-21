@@ -937,8 +937,22 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 }
 
 /* Profilen øverst: ikonet ditt, strategien og når neste lotto er. */
-.profil { grid-area: prof; display: flex; align-items: center; gap: 0.5rem; margin-bottom: -0.5rem; }
-.profil .spillikon { width: 2.75rem; height: 2.75rem; }
+.profil { grid-area: prof; display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-bottom: -0.5rem; }
+.profil .spillikon { width: 2.6rem; height: 2.6rem; flex: none; }
+.profil .ikon-merke { right: -0.4rem; bottom: -0.35rem; font-size: 0.625rem; }
+.profil-prikk { position: absolute; top: -0.2rem; right: -0.2rem; width: 0.8rem; height: 0.8rem; border: 2px solid var(--g-bak); border-radius: 50%; background: var(--g-gronn); }
+.gud-flis { background: radial-gradient(circle at 50% 40%, #fff6dc, #f3d9a4 70%); }
+.profil-gud[data-gren="norron"] .gud-flis { background: radial-gradient(circle at 50% 40%, #e8f4ff, #9fc3e0 75%); }
+.profil-gud[data-gren="romersk"] .gud-flis { background: radial-gradient(circle at 50% 40%, #ffe9d6, #e0937b 75%); }
+.profil-gud[data-gren="egyptisk"] .gud-flis { background: radial-gradient(circle at 50% 40%, #fff3cc, #e3b85c 75%); }
+.profil-gud[data-gren="gresk"] .gud-flis { background: radial-gradient(circle at 50% 40%, #f4f7ff, #a9b8e6 75%); }
+.gud-flis .gud-fig { width: 112%; margin: 14% 0 0 -8%; }
+.profil-logg-inn {
+  min-height: 2.6rem; padding: 0 0.85rem; border: 2px solid var(--g-blekk); border-radius: 999px; background: var(--g-rosa); color: #fff;
+  font: inherit; font-size: 0.8125rem; font-weight: 800; cursor: pointer; box-shadow: 0 2px 0 var(--g-blekk); touch-action: manipulation;
+}
+@media (prefers-color-scheme: dark) { .profil-logg-inn { color: #2b1018; } }
+.profil-logg-inn:active { transform: scale(0.96); }
 .profil-strategi { cursor: help; }
 .lotto-merke {
   margin: 0 0 0 auto; padding: 0.2rem 0.65rem; border: 2px solid var(--g-kant); border-radius: 999px; background: var(--g-kort);
@@ -994,11 +1008,6 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .giring-rad { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .giring-rad b { font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .giring input { width: 100%; height: 2.75rem; margin: 0; accent-color: #e8553d; touch-action: pan-y; cursor: pointer; }
-.guder { grid-template-columns: 4.5rem minmax(0, 1fr); align-items: center; column-gap: 0.85rem; }
-.gud-figur { display: block; width: 4.5rem; }
-.gud-fig { display: block; width: 100%; height: auto; overflow: visible; }
-.gud-navn { display: block; font-size: 0.8125rem; font-weight: 650; font-stretch: normal; color: var(--g-dempet); }
-.gud-knapper { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; }
 .prestisje { border-style: dashed; border-color: #c9a227; }
 .prestisje .oppgrader { justify-self: start; background: #ffd84a; color: #2b2118; }
 
@@ -1016,29 +1025,103 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .ikon-valg-navn { font-size: 0.8125rem; font-weight: 750; }
 .ikon-valg-pris { font-size: 0.75rem; font-weight: 750; color: var(--g-dempet); }
 .ikon-valg-pris.pris { color: var(--g-pris-tekst); }
-.gud-vindu { width: min(100% - 2rem, 46rem); }
-.gud-grener { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 0.75rem; margin: 1rem 0 0; padding: 0; }
-.gud-gren-navn { font-size: 0.875rem; }
-.gud-gren-navn b { font-weight: 800; }
-.gud-gren-navn span { color: var(--g-dempet); font-size: 0.75rem; font-weight: 650; }
-.gud-rekke { list-style: none; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.25rem; margin: 0.35rem 0 0; padding: 0; }
-.gud-ikon {
-  display: grid; justify-items: center; gap: 0.1rem; width: 100%; min-height: 2.75rem; padding: 0.3rem 0.1rem; border: 2px solid var(--g-kant); border-radius: 0.75rem;
-  background: var(--g-bak); color: var(--ink); font: inherit; cursor: pointer;
+/* Gudegriser: fire greiner med hver sin farge. Guden du har trykket på, står fast. */
+.gud-vindu { width: min(100% - 1.5rem, 52rem); --gren-a: #fff6dc; --gren-b: #f3d9a4; --gren-kant: #c9a227; }
+[data-gren="norron"] { --gren-a: #e8f4ff; --gren-b: #8fb8dc; --gren-kant: #4a78a6; --gren-tekst: #1d3b5c; }
+[data-gren="romersk"] { --gren-a: #ffe9d6; --gren-b: #e08a70; --gren-kant: #a8382a; --gren-tekst: #5c1a12; }
+[data-gren="egyptisk"] { --gren-a: #fff3cc; --gren-b: #e3b85c; --gren-kant: #2f5aa8; --gren-tekst: #3b2a06; }
+[data-gren="gresk"] { --gren-a: #f6f8ff; --gren-b: #a3b4e8; --gren-kant: #5b4bb0; --gren-tekst: #231c55; }
+.gud-valgt {
+  display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 1rem; align-items: center; margin-top: 1rem; padding: 0.9rem;
+  border: 2px solid var(--gren-kant); border-radius: 1.1rem; background: linear-gradient(135deg, var(--gren-a), var(--gren-b)); color: #2b2118;
+  box-shadow: 0 4px 0 var(--gren-kant);
 }
-.gud-portrett { display: block; width: 100%; max-width: 3.25rem; }
-.gud-ikon-navn { max-width: 100%; overflow: hidden; font-size: 0.625rem; font-weight: 750; line-height: 1.2; letter-spacing: -0.01em; white-space: nowrap; text-overflow: clip; }
-.gud-ikon[data-status="eid"] { border-color: var(--g-gronn); background: var(--g-gronn-bak); }
-.gud-ikon[data-status="neste"] { border-color: var(--g-blekk); }
-.gud-ikon[data-status="stengt"] { opacity: 0.4; }
-.gud-ikon[data-status="senere"] .gud-fig, .gud-ikon[data-status="stengt"] .gud-fig { filter: grayscale(0.7); }
-.gud-valgt { min-height: 6.5rem; margin-top: 1rem; padding: 0.75rem 0.85rem; border: 2px dashed var(--g-kant); border-radius: 0.9rem; }
-.gud-valgt strong { font-weight: 800; }
-.gud-valgt p { margin-top: 0.25rem; line-height: 1.4; }
-.gud-valgt small { display: block; margin-top: 0.35rem; font-size: 0.75rem; color: var(--g-dempet); }
-.gud-vindu > p:has(.oppgrader) { margin-top: 0.75rem; }
-@media (min-width: 44rem) { .gud-grener { grid-template-columns: repeat(4, minmax(0, 1fr)); } .gud-rekke { grid-template-columns: minmax(0, 1fr); } }
-@media (min-width: 44rem) { .gud-ikon { grid-template-columns: 2.5rem minmax(0, 1fr); justify-items: start; align-items: center; column-gap: 0.4rem; padding: 0.25rem 0.4rem; } .gud-ikon-navn { font-size: 0.8125rem; } }
+.gud-valgt-bilde { display: block; padding: 0.4rem 0.2rem 0; border-radius: 50%; background: radial-gradient(circle, rgb(255 255 255 / 0.85), transparent 70%); }
+.gud-valgt[data-status="eid"] .gud-valgt-bilde { background: radial-gradient(circle, #fff8d0, rgb(255 216 74 / 0.55) 45%, transparent 72%); }
+.gud-valgt-topp { display: flex; align-items: center; gap: 0.45rem; font-size: 0.75rem; font-weight: 750; color: var(--gren-tekst, #2b2118); }
+.gud-valgt strong { display: block; font-size: 1.6rem; font-weight: 800; font-stretch: var(--widest); line-height: 1.1; color: var(--gren-tekst, #2b2118); }
+.gud-hint { margin-top: 0.2rem; font-style: italic; line-height: 1.4; }
+.gud-virkning { margin-top: 0.25rem; font-weight: 700; }
+.gud-virkning:empty { display: none; }
+.gud-valgt small { display: block; margin-top: 0.3rem; font-size: 0.75rem; font-weight: 600; opacity: 0.85; }
+.gud-kjop { margin-top: 0.5rem; }
+.gud-kjop .oppgrader { background: #fffaf0; color: #2b2118; }
+.gud-tall {
+  display: inline-grid; place-items: center; min-width: 1.6rem; height: 1.6rem; padding: 0 0.3rem; border: 2px solid currentColor; border-radius: 999px;
+  font-family: Georgia, "Times New Roman", serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em;
+}
+.gud-grener { list-style: none; display: grid; gap: 0.75rem; margin: 1rem 0 0; padding: 0; }
+.gud-gren { padding: 0.6rem 0.6rem 0.7rem; border: 2px solid var(--gren-kant); border-radius: 1rem; background: linear-gradient(160deg, var(--gren-a), var(--gren-b)); color: var(--gren-tekst); }
+.gud-gren-navn { display: flex; align-items: baseline; gap: 0.4rem; padding: 0 0.15rem; font-size: 0.9375rem; }
+.gud-gren-navn b { font-weight: 800; font-stretch: var(--wide); }
+.gud-gren-navn span { font-size: 0.75rem; font-weight: 650; opacity: 0.8; }
+.gud-rekke { list-style: none; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.35rem; margin: 0.45rem 0 0; padding: 0; }
+.gud-ikon {
+  position: relative; display: grid; justify-items: center; gap: 0.1rem; width: 100%; padding: 0.35rem 0.15rem 0.3rem; border: 2px solid rgb(43 33 24 / 0.25); border-radius: 0.8rem;
+  background: rgb(255 255 255 / 0.55); color: #2b2118; font: inherit; cursor: pointer; transition: transform 140ms var(--ease-out), box-shadow 160ms ease;
+}
+.gud-ikon:active { transform: scale(0.96); }
+.gud-ikon .gud-tall { position: absolute; top: 0.2rem; left: 0.2rem; min-width: 1.15rem; height: 1.15rem; border-width: 1.5px; font-size: 0.5625rem; background: rgb(255 255 255 / 0.8); }
+.gud-portrett { display: block; width: 100%; max-width: 4rem; margin-top: 0.4rem; }
+.gud-ikon-navn { max-width: 100%; overflow: hidden; font-size: 0.6875rem; font-weight: 800; line-height: 1.2; white-space: nowrap; }
+.gud-ikon-pris { max-width: 100%; padding: 0.05rem 0.3rem; border-radius: 0.6rem; font-size: 0.5625rem; font-weight: 750; line-height: 1.25; text-align: center; background: rgb(43 33 24 / 0.1); font-variant-numeric: tabular-nums; }
+.gud-ikon[data-status="eid"] { border-color: #c9a227; background: radial-gradient(circle at 50% 35%, #fffbe6, #ffe48a); box-shadow: 0 0 0 2px rgb(255 216 74 / 0.5), 0 0 14px rgb(255 200 40 / 0.6); }
+.gud-ikon[data-status="eid"] .gud-ikon-pris { background: #3f8f4a; color: #fff; }
+.gud-ikon[data-status="neste"] { border-color: #2b2118; background: rgb(255 255 255 / 0.85); }
+.gud-ikon.har-rad .gud-ikon-pris { background: #62c48a; color: #10241a; }
+.gud-ikon[data-status="senere"] .gud-portrett { filter: saturate(0.5) brightness(0.92); }
+.gud-ikon[data-status="stengt"] { opacity: 0.45; }
+.gud-ikon[data-status="stengt"] .gud-portrett { filter: grayscale(1); }
+.gud-ikon.valgt { outline: 3px solid #2b2118; outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .gud-ikon[data-status="neste"] { animation: gud-puls 2s ease-in-out infinite; }
+  @keyframes gud-puls { 50% { box-shadow: 0 0 0 4px rgb(255 255 255 / 0.7); } }
+}
+@media (hover: hover) and (pointer: fine) { .gud-ikon:hover { transform: translateY(-2px); } }
+@media (min-width: 46rem) { .gud-grener { grid-template-columns: repeat(2, minmax(0, 1fr)); } .gud-valgt { grid-template-columns: 9rem minmax(0, 1fr); } }
+@media (max-width: 26rem) { .gud-valgt { grid-template-columns: 5.5rem minmax(0, 1fr); gap: 0.7rem; } .gud-valgt strong { font-size: 1.3rem; } }
+
+/* Prestasjoner */
+.statistikk { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 0.5rem; margin: 1rem 0 0; }
+.stat { padding: 0.5rem 0.7rem; border: 2px solid var(--g-kant); border-radius: 0.8rem; background: var(--g-bak); }
+.stat dt { font-size: 0.75rem; font-weight: 650; color: var(--g-dempet); }
+.stat dd { margin: 0; font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.prestasjon-liste { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0.45rem; margin: 1rem 0 0; padding: 0; }
+.prestasjon {
+  display: grid; grid-template-columns: 2.2rem minmax(0, 1fr); grid-template-areas: "merke navn" "merke tekst"; column-gap: 0.6rem; align-items: center;
+  padding: 0.5rem 0.6rem; border: 2px dashed var(--g-kant); border-radius: 0.8rem; color: var(--g-dempet);
+}
+.prestasjon b { grid-area: navn; font-weight: 800; color: var(--ink); }
+.prestasjon > span:last-child { grid-area: tekst; font-size: 0.75rem; line-height: 1.35; }
+.prestasjon-merke { grid-area: merke; display: grid; place-items: center; width: 2.2rem; height: 2.2rem; border-radius: 50%; background: var(--g-kant); font-size: 1.1rem; font-weight: 900; }
+.prestasjon.oppnadd { border-style: solid; border-color: #c9a227; background: linear-gradient(135deg, rgb(255 216 74 / 0.18), transparent); color: var(--ink-2); }
+.prestasjon.oppnadd .prestasjon-merke { background: radial-gradient(circle at 40% 35%, #fff3b0, #ffd84a 45%, #e9a91c); color: #6b3f00; }
+.prestasjon-toast {
+  position: fixed; z-index: 40; top: calc(0.75rem + env(safe-area-inset-top, 0px)); left: 50%; display: flex; align-items: center; gap: 0.7rem;
+  padding: 0.55rem 1.1rem 0.55rem 0.6rem; border: 2px solid #c9a227; border-radius: 999px; background: #2b2118; color: #fffaf0;
+  box-shadow: 0 6px 0 -1px rgb(0 0 0 / 0.25); transform: translateX(-50%); transition: transform 300ms var(--ease-out), opacity 300ms ease;
+}
+.prestasjon-toast.ut { opacity: 0; transform: translate(-50%, -1rem); }
+.prestasjon-toast small { display: block; font-size: 0.6875rem; color: #ffd84a; font-weight: 700; }
+.prestasjon-toast b { font-weight: 800; }
+.toast-merke { display: grid; place-items: center; width: 2.2rem; height: 2.2rem; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #fff3b0, #ffd84a 45%, #e9a91c); color: #6b3f00; font-weight: 900; }
+@media (prefers-reduced-motion: no-preference) {
+  .prestasjon-toast:not([hidden]):not(.ut) { animation: toast-inn 380ms var(--ease-out); }
+  @keyframes toast-inn { from { opacity: 0; transform: translate(-50%, -1.2rem) scale(0.95); } }
+}
+
+/* Innstillinger */
+.innst-del { margin-top: 1.25rem; padding-top: 1rem; border-top: 2px dashed var(--g-kant); }
+.innst-del h3 { margin: 0 0 0.4rem; font-size: 1rem; font-weight: 750; }
+.innst-del > p { font-size: var(--t-small); color: var(--ink-2); }
+.bryter-rad, .skyv-rad { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 2.75rem; font-weight: 650; }
+.bryter-rad input { width: 2.9rem; height: 1.6rem; margin: 0; appearance: none; border: 2px solid var(--g-blekk); border-radius: 999px; background: var(--g-kant); cursor: pointer; position: relative; transition: background 160ms ease; }
+.bryter-rad input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 1.05rem; height: 1.05rem; border-radius: 50%; background: #fffaf0; border: 1.5px solid var(--g-blekk); transition: transform 160ms var(--ease-out); }
+.bryter-rad input:checked { background: var(--g-gronn); }
+.bryter-rad input:checked::after { transform: translateX(1.25rem); }
+.skyv-rad span { font-weight: 600; font-size: var(--t-small); color: var(--g-dempet); }
+.skyv-rad input { flex: 1; max-width: 14rem; height: 2.75rem; margin: 0; accent-color: #e8553d; touch-action: pan-y; cursor: pointer; }
+.skyv-rad input:disabled { opacity: 0.4; }
 
 /* Flytt spillet */
 .flytt-knapper { margin-top: 0.6rem; }

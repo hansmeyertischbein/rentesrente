@@ -7,6 +7,7 @@ import { GRENER, grein, IKONER, STRATEGIER, STRATEGI, OBLIGASJONER, OBL, PRESTIS
 import { formaterTall } from "/lib/format.js";
 import { AVATARER, STRATEGIMERKER, lagGris } from "./klikker-figurer.js";
 import { $, ore, prosent, ganger, settTekst, settAttr, vis, si, annonser, hopp, lag, registrerTips, medTips, apne } from "./overfor-felles.js";
+import { spill } from "./lyd.js";
 
 const el = {
   ikonKnapp: $("ikon-knapp"), strategiMerke: $("strategi-merke"),
@@ -14,9 +15,10 @@ const el = {
   strategiValg: $("strategi-valg"), strategiKnapper: $("strategi-knapper"),
   giring: $("giring"), giringTall: $("giring-tall"), giringSkyv: $("giring-skyv"),
   obl: $("obl"), oblTekst: $("obl-tekst"), oblValg: $("obl-valg"),
-  guder: $("guder"), gudFigur: $("gud-figur"), gudNavn: $("gud-navn"), gudInfo: $("gud-info"), gudKnapp: $("gud-knapp"),
-  gudHandling: $("gud-handling"), gudPris: $("gud-pris"), gudVindu: $("gud-vindu"), gudGrener: $("gud-grener"),
-  gudValgt: $("gud-valgt"), gudVinduKnapp: $("gud-vindu-knapp"), gudVinduHandling: $("gud-vindu-handling"), gudVinduPris: $("gud-vindu-pris"),
+  gudTopp: $("gud-knapp-topp"), gudVindu: $("gud-vindu"), gudGrener: $("gud-grener"),
+  gudBilde: $("gud-valgt-bilde"), gudTall: $("gud-valgt-tall"), gudGren: $("gud-valgt-gren"), gudNavn: $("gud-valgt-navn"),
+  gudHint: $("gud-valgt-hint"), gudVirkning: $("gud-valgt-virkning"), gudMerk: $("gud-valgt-merk"), gudValgt: $("gud-valgt"),
+  gudVinduKnapp: $("gud-vindu-knapp"), gudVinduHandling: $("gud-vindu-handling"), gudVinduPris: $("gud-vindu-pris"),
   prestisje: $("prestisje"), prestisjeTekst: $("prestisje-tekst"), prestisjeKnapp: $("prestisje-knapp"),
   flyttLag: $("flytt-lag"), flyttKode: $("flytt-kode"), flyttInn: $("flytt-inn"), flyttHent: $("flytt-hent"), flyttStatus: $("flytt-status"),
 };
@@ -77,8 +79,9 @@ function tegnIkonListe() {
 
 function velgEllerKjop(i) {
   const x = t();
-  if (x.ikoner.includes(i.id)) { api.sett(velgIkon(x, i.id)); settTekst(el.ikonStatus, `Du er nå ${i.navn.toLowerCase()}.`); return; }
-  if (!api.sett(kjopIkon(x, i.id))) { settTekst(el.ikonStatus, `Du mangler ${ore(i.pris - x.saldo)} for ${i.navn.toLowerCase()}.`); return; }
+  if (x.ikoner.includes(i.id)) { api.sett(velgIkon(x, i.id)); spill("klikk"); settTekst(el.ikonStatus, `Du er nå ${i.navn.toLowerCase()}.`); return; }
+  if (!api.sett(kjopIkon(x, i.id))) { spill("feil"); settTekst(el.ikonStatus, `Du mangler ${ore(i.pris - x.saldo)} for ${i.navn.toLowerCase()}.`); return; }
+  spill("ikon");
   settTekst(el.ikonStatus, `Du kjøpte ${i.navn.toLowerCase()}.`);
   hopp(el.ikonKnapp);
 }
@@ -120,8 +123,10 @@ function lagOblValg() {
     knapp.querySelector(".ekstra-niva").textContent = o.sikker === 1 ? "Helt sikker" : `${prosent(o.sikker)} sikker`;
     knapp.addEventListener("click", () => {
       const x = t();
-      if (antallObl(x) >= OBL.maksSamtidig) { si(`Du kan ha ${OBL.maksSamtidig} obligasjoner om gangen.`); return; }
-      if (!api.sett(kjopObligasjon(x, o.id))) { si("Du har ikke råd nå."); return; }
+      if (antallObl(x) >= OBL.maksSamtidig) { spill("feil"); si(`Du kan ha ${OBL.maksSamtidig} obligasjoner om gangen.`); return; }
+      if (!api.sett(kjopObligasjon(x, o.id))) { spill("feil"); si("Du har ikke råd nå."); return; }
+      spill("obligasjon");
+      api.prestasjon(["obl-1"]);
       annonser(`Du kjøpte ${o.navn.toLowerCase()} for ${ore(oblInnsats(x))}. Pengene kommer om ${formaterTid(OBL.lopetid)}.`);
       hopp(knapp);
     });
@@ -149,6 +154,8 @@ function tegnObl() {
 
 // ---------- Gudegriser ----------
 
+const ROMERTALL = ["I", "II", "III", "IV", "V"];
+
 function virkningTekst(v) {
   const linjer = [];
   if (v.trykk) linjer.push(`Hvert trykk gir ${ganger(v.trykk)}.`);
@@ -171,106 +178,106 @@ function gudStatus(x, g) {
   return nesteGud(x, gren.id)?.id === g.id ? "neste" : "senere";
 }
 
-let valgtGud = null;
-function visGud(id) {
-  valgtGud = id;
-  tegnGudInfo();
-}
+// Guden du har trykket på, står fast. Holder du musen over en annen, vises den til musen forlater gudene.
+// Slik hopper ikke valget når musen passerer andre guder på vei til kjøpeknappen.
+let valgtGud = null, forhandsvis = null;
+const visGud = () => gud(forhandsvis) ?? gud(valgtGud) ?? nesteGud(t()) ?? GRENER[0].guder[0];
+const lastGud = () => gud(valgtGud) ?? nesteGud(t()) ?? GRENER[0].guder[0];
 
 function tegnGudInfo() {
   const x = t();
-  const g = gud(valgtGud) ?? nesteGud(x) ?? GRENER[0].guder[0];
+  const g = visGud();
   const gren = grenFor(g.id);
   const status = gudStatus(x, g);
-  const tittel = el.gudValgt.querySelector("strong");
-  settTekst(tittel, `${g.navn}, ${gren.navn.toLowerCase()} nivå ${g.niva}`);
-  const tekst = el.gudValgt.querySelector("p");
-  settTekst(tekst, status === "eid" ? `«${g.hint}» ${virkningTekst(g.virkning)}` : `«${g.hint}»`);
-  const merk = el.gudValgt.querySelector("small");
-  settTekst(merk, status === "eid" ? "Du har denne." : status === "stengt" ? `Du har valgt ${grein(x.gren).navn.toLowerCase()} guder.`
-    : status === "senere" ? `Kjøp gudene foran først. Velger du ${gren.navn.toLowerCase()} guder, er de andre greinene stengt til du tar prestisje.`
-    : x.gren ? "Neste i greinen din." : `Velger du ${gren.navn.toLowerCase()} guder, er de andre greinene stengt til du tar prestisje.`);
-  vis(el.gudVinduKnapp, status === "neste");
-  if (status === "neste") {
-    settTekst(el.gudVinduHandling, `Kjøp ${g.navn}`);
-    settTekst(el.gudVinduPris, ore(g.pris));
-    settAttr(el.gudVinduKnapp, "aria-disabled", g.pris <= x.saldo ? "false" : "true");
-    el.gudVinduKnapp.dataset.gren = gren.id;
+  if (el.gudValgt.dataset.id !== g.id) {
+    el.gudValgt.dataset.id = g.id;
+    el.gudValgt.dataset.gren = gren.id;
+    el.gudBilde.innerHTML = lagGris(g.id, "gud-fig");
+  }
+  el.gudValgt.dataset.status = status;
+  settTekst(el.gudTall, ROMERTALL[g.niva - 1]);
+  settTekst(el.gudGren, `${gren.navn} · ${gren.tema}`);
+  settTekst(el.gudNavn, g.navn);
+  settTekst(el.gudHint, `«${g.hint}»`);
+  settTekst(el.gudVirkning, status === "eid" ? virkningTekst(g.virkning) : "");
+  settTekst(el.gudMerk, status === "eid" ? "Du har denne guden." : status === "stengt" ? `Stengt: du har valgt ${grein(x.gren).navn.toLowerCase()} guder.`
+    : status === "senere" ? `Koster ${ore(g.pris)}. Kjøp gudene foran i greinen først.`
+    : x.gren ? `Koster ${ore(g.pris)}. Neste i greinen din.` : `Koster ${ore(g.pris)}. Velger du ${gren.navn.toLowerCase()} guder, er de andre greinene stengt til du tar prestisje.`);
+  // Knappen gjelder alltid guden du har trykket på.
+  const valgt = lastGud();
+  const kanKjope = gudStatus(x, valgt) === "neste";
+  vis(el.gudVinduKnapp, kanKjope);
+  if (kanKjope) {
+    settTekst(el.gudVinduHandling, `Kjøp ${valgt.navn}`);
+    settTekst(el.gudVinduPris, ore(valgt.pris));
+    settAttr(el.gudVinduKnapp, "aria-disabled", valgt.pris <= x.saldo ? "false" : "true");
   }
 }
 
 function byggGudVindu() {
   el.gudGrener.replaceChildren(...GRENER.map((gren) => {
-    const kol = lag(`<li class="gud-gren"><p class="gud-gren-navn"><b></b> <span></span></p><ol class="gud-rekke"></ol></li>`);
+    const kol = lag(`<li class="gud-gren" data-gren="${gren.id}"><p class="gud-gren-navn"><b></b> <span></span></p><ol class="gud-rekke"></ol></li>`);
     kol.querySelector("b").textContent = gren.navn;
     kol.querySelector("span").textContent = gren.tema;
     kol.querySelector("ol").replaceChildren(...gren.guder.map((g) => {
-      const li = lag(`<li><button type="button" class="gud-ikon" data-id="${g.id}"><span class="gud-portrett">${lagGris(g.id, "gud-fig")}</span><span class="gud-ikon-navn"></span></button></li>`);
+      const li = lag(`<li><button type="button" class="gud-ikon" data-id="${g.id}"><span class="gud-tall">${ROMERTALL[g.niva - 1]}</span><span class="gud-portrett">${lagGris(g.id, "gud-fig")}</span><span class="gud-ikon-navn"></span><span class="gud-ikon-pris"></span></button></li>`);
       li.querySelector(".gud-ikon-navn").textContent = g.navn;
       const knapp = li.firstElementChild;
-      knapp.setAttribute("aria-label", `${g.navn}, nivå ${g.niva}. ${g.hint}`);
-      knapp.addEventListener("pointerenter", () => visGud(g.id));
-      knapp.addEventListener("focus", () => visGud(g.id));
-      knapp.addEventListener("click", () => visGud(g.id));
+      knapp.setAttribute("aria-label", `${g.navn}, ${gren.navn.toLowerCase()} nivå ${g.niva}. ${g.hint}`);
+      knapp.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") { forhandsvis = g.id; tegnGudInfo(); } });
+      knapp.addEventListener("focus", () => { valgtGud = g.id; forhandsvis = null; tegnGudVindu(); });
+      knapp.addEventListener("click", () => { valgtGud = g.id; forhandsvis = null; spill("klikk"); tegnGudVindu(); });
       return li;
     }));
     return kol;
   }));
+  el.gudGrener.addEventListener("pointerleave", () => { forhandsvis = null; tegnGudInfo(); });
 }
 
 function tegnGudVindu() {
   const x = t();
   for (const knapp of el.gudGrener.querySelectorAll(".gud-ikon")) {
-    const status = gudStatus(x, gud(knapp.dataset.id));
-    if (knapp.dataset.status !== status) { knapp.dataset.status = status; knapp.classList.toggle("valgt", knapp.dataset.id === valgtGud); }
+    const g = gud(knapp.dataset.id);
+    const status = gudStatus(x, g);
+    if (knapp.dataset.status !== status) knapp.dataset.status = status;
+    knapp.classList.toggle("valgt", g.id === lastGud().id);
+    settTekst(knapp.querySelector(".gud-ikon-pris"), status === "eid" ? "✓" : status === "stengt" ? "Stengt" : ore(g.pris));
+    knapp.classList.toggle("har-rad", status === "neste" && g.pris <= x.saldo);
   }
   tegnGudInfo();
 }
 
-function kjopNesteGud(gren) {
+function kjopValgtGud() {
   const x = t();
-  const g = nesteGud(x, gren);
-  if (!g) return;
-  if (!api.sett(kjopGud(x, gren))) { si(`Du mangler ${ore(g.pris - x.saldo)} for ${g.navn}.`); return; }
+  const g = lastGud();
+  if (gudStatus(x, g) !== "neste") return;
+  const gren = grenFor(g.id).id;
+  if (!api.sett(kjopGud(x, gren))) { spill("feil"); settTekst(el.gudMerk, `Du mangler ${ore(g.pris - x.saldo)} for ${g.navn}.`); return; }
+  spill("gud", gren, g.niva);
   si(`${g.navn} er grisen din nå. ${virkningTekst(g.virkning)}`);
   valgtGud = nesteGud(t())?.id ?? g.id;
-  hopp(el.gudFigur);
+  hopp(el.gudBilde);
+  hopp(el.gudTopp);
+  tegnGudVindu();
 }
 
-let gudKortNokkel = "";
+let gudToppNokkel = "";
 function tegnGuder() {
   const x = t();
-  vis(el.guder, guderSynlig(x));
+  vis(el.gudTopp, guderSynlig(x));
   if (!guderSynlig(x)) return;
-  const naa = x.gud > 0 ? grein(x.gren).guder[x.gud - 1] : null;
-  const neste = nesteGud(x);
-  const nokkel = `${naa?.id}`;
-  if (nokkel !== gudKortNokkel) {
-    gudKortNokkel = nokkel;
-    el.gudFigur.innerHTML = lagGris(naa?.id ?? null, "gud-fig");
-    settTekst(el.gudNavn, naa ? `${naa.navn}, nivå ${naa.niva} av 5` : "Vanlig gris");
+  const id = grisId(x) ?? "";
+  if (id !== gudToppNokkel) {
+    gudToppNokkel = id;
+    el.gudTopp.dataset.gren = x.gren ?? "";
+    el.gudTopp.querySelector(".ikon-flis")?.remove();
+    el.gudTopp.insertAdjacentHTML("afterbegin", `<span class="ikon-flis gud-flis">${lagGris(id || null, "gud-fig")}</span>`);
+    const naa = x.gud > 0 ? grein(x.gren).guder[x.gud - 1] : null;
+    settAttr(el.gudTopp, "aria-label", naa ? `Gudegriser. Du har ${naa.navn}.` : "Gudegriser. Velg en grein.");
   }
-  settTekst(el.gudInfo, naa ? virkningTekst(mineVirkninger(x)) : "Velg en av fire greiner med fem guder hver. Hold over gudene for å lese hva de gjør.");
-  vis(el.gudKnapp, !x.gren || Boolean(neste));
-  vis(el.gudPris, Boolean(x.gren && neste));
-  if (!x.gren) {
-    settTekst(el.gudHandling, "Velg gudegris");
-    settAttr(el.gudKnapp, "aria-disabled", "false");
-  } else if (neste) {
-    settTekst(el.gudHandling, `Kjøp ${neste.navn}`);
-    settTekst(el.gudPris, ore(neste.pris));
-    settAttr(el.gudKnapp, "aria-disabled", neste.pris <= x.saldo ? "false" : "true");
-  }
+  const neste = x.gren ? nesteGud(x) : null;
+  vis(el.gudTopp.querySelector(".profil-prikk"), x.gren ? Boolean(neste && neste.pris <= x.saldo) : x.saldo >= Math.min(...GRENER.map((g) => g.guder[0].pris)));
   if (el.gudVindu.open) tegnGudVindu();
-}
-
-// Alle virkningene du har, ganget sammen, så teksten viser det du faktisk får.
-function mineVirkninger(x) {
-  const sum = {};
-  for (const g of grein(x.gren).guder.slice(0, x.gud)) {
-    for (const [k, v] of Object.entries(g.virkning)) sum[k] = k === "borteSek" ? Math.max(sum[k] ?? 0, v) : (sum[k] ?? 1) * v;
-  }
-  return sum;
 }
 
 // ---------- Prestisje ----------
@@ -348,6 +355,7 @@ export function start(a) {
     knapp.querySelector(".strategi-tekst").textContent = s.tekst;
     knapp.addEventListener("click", () => {
       if (!api.sett(velgStrategi(t(), s.id))) return;
+      spill("strategi");
       si(`Du er ${s.navn.toLowerCase()}. ${s.tekst}`);
       hopp(el.strategiMerke);
     });
@@ -357,10 +365,8 @@ export function start(a) {
 
   lagOblValg();
   byggGudVindu();
-  const apneGuder = () => { valgtGud = nesteGud(t())?.id ?? valgtGud; tegnGudVindu(); apne(el.gudVindu); };
-  el.gudKnapp.addEventListener("click", () => (t().gren ? kjopNesteGud(t().gren) : apneGuder()));
-  $("gud-se").addEventListener("click", apneGuder);
-  el.gudVinduKnapp.addEventListener("click", () => kjopNesteGud(el.gudVinduKnapp.dataset.gren));
+  el.gudTopp.addEventListener("click", () => { valgtGud = nesteGud(t())?.id ?? valgtGud; forhandsvis = null; tegnGudVindu(); apne(el.gudVindu); });
+  el.gudVinduKnapp.addEventListener("click", kjopValgtGud);
   el.prestisjeKnapp.addEventListener("click", () => {
     const x = t();
     if (!kanPrestisje(x)) return;
@@ -370,6 +376,7 @@ export function start(a) {
       setTimeout(() => { delete el.prestisjeKnapp.dataset.klar; settTekst(el.prestisjeKnapp.querySelector(".oppgrader-navn"), "Ta prestisje"); }, 4000);
       return;
     }
+    spill("prestisje");
     api.byttSpill(prestisje(x), `Prestisje ${x.prestisje + 1}! Alt gir ${ganger(prestisjeFaktor(prestisje(x)))} fra nå av.`);
   });
   flytt();

@@ -209,7 +209,7 @@ export const GUDEGRIS = {
   ares: { kropp: "#f2a092", hode: '<path d="M80 34q-2-24 18-24t18 24l-6-2-2-10h-20l-2 10z" fill="#b08d2a"/><path d="M78 14q20-18 40 0-20-6-40 0z" fill="#c0392b"/>', ting: '<circle cx="24" cy="62" r="12" fill="#b08d2a"/><circle cx="24" cy="62" r="5" fill="#c0392b"/>' },
   poseidon: { kropp: "#95d6ea", hode: KRONE("#7fd3e0"), ting: '<path d="M124 98V40M116 46q0-8 8-8t8 8M124 38v-8" fill="none" stroke="#c9a227" stroke-width="3"/><path d="M114 46l2-6 2 6zM130 46l2-6 2 6zM122 32l2-6 2 6z" fill="#c9a227"/>' },
   zevs: { kropp: "#fff1b0", hode: KRANS("#ffd84a") + LYN(116, -4, 1.1), ting: '<path d="M100 74q8 16 22 6-4-9-13-13z" fill="#f5f5f0"/>' },
-  kronos: { kropp: "#bba7ea", hode: KRONE("#2b2118") + '<path d="M118 -2h12l-6 8 6 8h-12l6-8z" fill="#ffd84a"/>', ting: '<path d="M120 98V44" fill="none" stroke="#5b4636" stroke-width="3"/><path d="M120 44q16-2 14 18-4-12-14-10z" fill="#d8dde3"/>' },
+  kronos: { kropp: "#bba7ea", hode: KRONE("#6a4fd0") + '<path d="M118 -2h12l-6 8 6 8h-12l6-8z" fill="#ffd84a"/>', ting: '<path d="M120 98V44" fill="none" stroke="#5b4636" stroke-width="3"/><path d="M120 44q16-2 14 18-4-12-14-10z" fill="#d8dde3"/>' },
   prestisje: { kropp: "#ffd84a", hode: KRONE(), ting: '<path d="M30 40q8-14 26-17" fill="none" stroke="#fff" stroke-width="4"/>' },
 };
 
@@ -266,4 +266,11 @@ export const STRATEGIMERKER = {
   avers: { tile: "#d8ecff", svg: svg('<path d="M32 8l20 7v14q0 18-20 27Q12 47 12 29V15z" fill="#3b6fd8"/><path d="M24 31l6 6 11-13" fill="none" stroke="#fff" stroke-width="3.4"/>') },
   noytral: { tile: "#f1ead8", svg: svg('<path d="M32 10v40M20 52h24M12 20h40" fill="none" stroke-width="3"/><path d="M12 20l-6 14h12zM52 20l-6 14h12z" fill="#ffd84a"/><path d="M4 34q8 6 16 0M44 34q8 6 16 0" fill="#ffd84a"/>') },
   glad: { tile: "#ffe1d6", svg: svg('<path d="M32 6q12 10 10 30H22Q20 16 32 6z" fill="#f1f5f9"/><circle cx="32" cy="22" r="4" fill="#3b6fd8"/><path d="M22 30l-8 10 8-2zM42 30l8 10-8-2z" fill="#e8553d"/><path d="M26 38q6 18 12 0z" fill="#ff9d1c"/><path d="M29 40q3 10 6 0z" fill="#ffd84a" stroke="none"/>') },
+};
+
+// Ikonene for menyene øverst til venstre.
+export const MENYIKONER = {
+  pokal: { tile: "#fff0c2", svg: svg('<path d="M20 10h24v12q0 14-12 16-12-2-12-16z" fill="#ffd84a"/><path d="M20 14h-7q0 12 10 13M44 14h7q0 12-10 13" fill="none"/><path d="M28 40h8l2 8h-12z" fill="#e9a91c"/><rect x="20" y="48" width="24" height="7" rx="2" fill="#8b5a2b"/><path d="M27 16l2 5 5 .5-4 3 1.5 5-4.5-3-4.5 3 1.5-5-4-3 5-.5z" fill="#fff6d0" stroke-width="1.4" transform="translate(5 -1)"/>') },
+  tannhjul: { tile: "#dbe8f1", svg: svg('<path d="M29 8h6l1 6 5 2 5-4 4 4-4 5 2 5 6 1v6l-6 1-2 5 4 5-4 4-5-4-5 2-1 6h-6l-1-6-5-2-5 4-4-4 4-5-2-5-6-1v-6l6-1 2-5-4-5 4-4 5 4 5-2z" fill="#8fa3b5"/><circle cx="32" cy="32" r="8" fill="#dbe8f1"/>') },
+  gris: { tile: "#fde0e6" },
 };

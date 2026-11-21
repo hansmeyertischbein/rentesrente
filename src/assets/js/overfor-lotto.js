@@ -4,6 +4,7 @@ import { LOTTO, PREMIER, runde, apen, prisRekker } from "/lib/klikker-lotto.js";
 import { formaterTall } from "/lib/format.js";
 import { $, ore, settTekst, settAttr, vis, si, annonser, hopp } from "./overfor-felles.js";
 import { naa } from "./klokke.js";
+import { spill } from "./lyd.js";
 
 const el = {
   kort: $("lotto"), tekst: $("lotto-tekst"), kjop: $("lotto-kjop"), antall: $("lotto-antall"), knapp: $("lotto-knapp"),
@@ -26,15 +27,18 @@ function kjop() {
   const t = api.hent();
   const s = sek();
   const r = runde(s);
-  if (!apen(r, s)) { si("Salget er stengt. Neste trekning kommer snart."); return; }
+  if (!apen(r, s)) { spill("feil"); si("Salget er stengt. Neste trekning kommer snart."); return; }
   const n = antall();
   const fro = crypto.getRandomValues(new Uint32Array(1))[0];
   if (!api.sett(kjopLodd(t, r.nr, n, fro))) {
     const pris = prisRekker(n);
+    spill("feil");
     si(loddI(t, r.nr) + n > LOTTO.maksRekker ? `Du kan ha inntil ${rekkerOrd(LOTTO.maksRekker)} i hver trekning.` : `Du mangler ${ore(pris - t.saldo)}.`);
     return;
   }
   annonser(`Du kjøpte ${rekkerOrd(n)} for ${ore(prisRekker(n))}.`);
+  spill("lottoKjop");
+  api.prestasjon(loddI(api.hent(), r.nr) >= 1000 ? ["lotto-1", "lotto-1000"] : ["lotto-1"]);
   hopp(el.knapp);
 }
 
@@ -49,6 +53,15 @@ function avgjor() {
   settTekst(el.resultat, tekst);
   annonser(tekst);
   if (siste.premier > 0) hopp(el.kort);
+  // Kulene spretter ut én etter én, så kommer premien.
+  for (let i = 0; i <= LOTTO.trekk; i++) setTimeout(() => spill("lottoKule", i), 90 * i);
+  const t = siste.treff;
+  setTimeout(() => spill(siste.premier > 0 ? "lottoGevinst" : "lottoTom", t["7"] > 0 || t["6+1"] > 0), 90 * (LOTTO.trekk + 1) + 150);
+  const hendelser = [];
+  if (siste.premier > 0) hendelser.push("lotto-premie");
+  if (t["6"] > 0 || t["6+1"] > 0) hendelser.push("lotto-6");
+  if (t["7"] > 0) hendelser.push("lotto-7");
+  api.prestasjon(hendelser);
 }
 
 function resultatTekst(r) {

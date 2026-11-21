@@ -19,6 +19,10 @@ sideklasse: side-klikk
       <div class="profil">
         <button type="button" class="spillikon profil-ikon" id="ikon-knapp" aria-label="Ikonet ditt"></button>
         <span class="spillikon profil-strategi" id="strategi-merke" tabindex="0" role="img" hidden></span>
+        <button type="button" class="spillikon profil-gud" id="gud-knapp-topp" aria-label="Gudegriser" hidden><span class="profil-prikk" hidden></span></button>
+        <button type="button" class="spillikon profil-pokal" id="prestasjon-knapp" aria-label="Prestasjoner"><span class="ikon-merke" id="prestasjon-antall">0</span></button>
+        <button type="button" class="spillikon profil-tannhjul" id="innstillinger-knapp" aria-label="Innstillinger"></button>
+        {% if konto.url and konto.nokkel %}<button type="button" class="profil-logg-inn" id="logg-inn-topp" hidden>Logg inn</button>{% endif %}
         <p class="lotto-merke" id="lotto-merke"></p>
       </div>
       <div class="gris-konto" id="konto">
@@ -108,14 +112,6 @@ sideklasse: side-klikk
       </div>
       <ul class="butikk-liste" id="butikk" aria-labelledby="butikk-tittel"></ul>
 
-      <div class="kort guder" id="guder" hidden>
-        <span class="gud-figur" id="gud-figur"></span>
-        <div class="gud-tekst">
-          <h3 class="kort-tittel">Gudegris <span class="gud-navn" id="gud-navn"></span></h3>
-          <p class="kort-info" id="gud-info"></p>
-        </div>
-        <p class="gud-knapper"><button type="button" class="oppgrader" id="gud-knapp"><span class="oppgrader-navn" id="gud-handling"></span><span class="pris" id="gud-pris"></span></button> <button type="button" class="lenkeknapp" id="gud-se">Se alle gudene</button></p>
-      </div>
       <div class="kort prestisje" id="prestisje" hidden>
         <h3 class="kort-tittel">Prestisje</h3>
         <p class="kort-info" id="prestisje-tekst"></p>
@@ -161,12 +157,49 @@ sideklasse: side-klikk
 </dialog>
 <dialog class="spill-intro spill-vindu gud-vindu" id="gud-vindu" aria-labelledby="gud-tittel">
   <h2 id="gud-tittel">Gudegriser</h2>
-  <p class="ingress">Velg én av fire greiner. Gudene kjøpes i rekkefølge, fem i hver grein. Hold over eller trykk på en gud for å lese hva den gjør.</p>
+  <p class="ingress">Velg én av fire greiner og kjøp gudene i rekkefølge. Hold over en gud for å lese hintet, og trykk for å velge den.</p>
+  <div class="gud-valgt" id="gud-valgt" aria-live="polite">
+    <span class="gud-valgt-bilde" id="gud-valgt-bilde"></span>
+    <div class="gud-valgt-tekst">
+      <p class="gud-valgt-topp"><span class="gud-tall" id="gud-valgt-tall"></span> <span id="gud-valgt-gren"></span></p>
+      <strong id="gud-valgt-navn"></strong>
+      <p class="gud-hint" id="gud-valgt-hint"></p>
+      <p class="gud-virkning" id="gud-valgt-virkning"></p>
+      <small id="gud-valgt-merk"></small>
+      <p class="gud-kjop"><button type="button" class="oppgrader" id="gud-vindu-knapp" hidden><span class="oppgrader-navn" id="gud-vindu-handling"></span><span class="pris" id="gud-vindu-pris"></span></button></p>
+    </div>
+  </div>
   <ul class="gud-grener" id="gud-grener"></ul>
-  <div class="gud-valgt" id="gud-valgt" aria-live="polite"><strong></strong><p></p><small></small></div>
-  <p><button type="button" class="oppgrader" id="gud-vindu-knapp" hidden><span class="oppgrader-navn" id="gud-vindu-handling"></span><span class="pris" id="gud-vindu-pris"></span></button></p>
   <form method="dialog"><button class="intro-lukk" value="lukk" aria-label="Lukk">×</button></form>
 </dialog>
+<dialog class="spill-intro spill-vindu" id="prestasjon-vindu" aria-labelledby="prestasjon-tittel">
+  <h2 id="prestasjon-tittel">Prestasjoner</h2>
+  <dl class="statistikk" id="statistikk"></dl>
+  <ul class="prestasjon-liste" id="prestasjon-liste"></ul>
+  <form method="dialog"><button class="intro-lukk" value="lukk" aria-label="Lukk">×</button></form>
+</dialog>
+<dialog class="spill-intro spill-vindu" id="innstillinger-vindu" aria-labelledby="innstillinger-tittel">
+  <h2 id="innstillinger-tittel">Innstillinger</h2>
+  {% if konto.url and konto.nokkel %}<section class="innst-del">
+    <h3>Konto</h3>
+    <p id="innst-konto-tekst">Lag en konto for å spille på telefonen og andre enheter.</p>
+    <p class="flytt-knapper"><button type="button" class="oppgrader" id="innst-konto"><span class="oppgrader-navn">Logg inn eller lag konto</span></button></p>
+  </section>{% endif %}
+  <section class="innst-del">
+    <h3>Lyd</h3>
+    <label class="bryter-rad"><span>Lydeffekter</span><input type="checkbox" id="lyd-effekter" role="switch"></label>
+    <label class="skyv-rad"><span>Volum på effekter</span><input type="range" id="lyd-effekt-volum" min="0" max="100" step="1"></label>
+    <label class="bryter-rad"><span>Musikk</span><input type="checkbox" id="lyd-musikk" role="switch"></label>
+    <label class="skyv-rad"><span>Volum på musikk</span><input type="range" id="lyd-musikk-volum" min="0" max="100" step="1"></label>
+    <p class="kort-info">All lyd lages i nettleseren mens du spiller. Valgene huskes på denne enheten.</p>
+  </section>
+  <section class="innst-del">
+    <h3>Spillet</h3>
+    <p class="flytt-knapper"><button type="button" class="lenkeknapp" id="innst-om">Om spillet og flytting med kode</button></p>
+  </section>
+  <form method="dialog"><button class="intro-lukk" value="lukk" aria-label="Lukk">×</button></form>
+</dialog>
+<div class="prestasjon-toast" id="prestasjon-toast" role="status" hidden></div>
 {% if konto.url and konto.nokkel -%}
 <dialog class="spill-intro spill-vindu" id="konto-vindu" aria-labelledby="konto-tittel" data-url="{{ konto.url }}" data-nokkel="{{ konto.nokkel }}">
   <h2 id="konto-tittel">Spill på flere enheter</h2>

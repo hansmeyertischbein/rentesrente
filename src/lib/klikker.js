@@ -3,7 +3,7 @@
 // Tilfeldighet kommer inn som en funksjon rng() som gir et tall fra 0 til 1, så testene kan styre den.
 
 import { formaterTall } from "./format.js";
-import { gudVirkning, grein, GRENER, IKONER, ikon, STRATEGI, STRATEGIER, OBLIGASJONER, OBL, PRESTISJE } from "./klikker-guder.js";
+import { gudVirkning, grein, GRENER, IKONER, ikon, STRATEGI, STRATEGIER, OBLIGASJONER, OBL, PRESTISJE, PRESTASJONER } from "./klikker-guder.js";
 import { LOTTO, prisRekker, resultat as lottoResultat, trekkTid } from "./klikker-lotto.js";
 
 const NBSP = " ";
@@ -164,6 +164,8 @@ export function nyTilstand() {
     giring: 1,      // bare for risikoglad
     prestisje: 0,
     lodd: [],       // lottorekker som venter på trekning: { runde, antall, fro }
+    prestasjoner: [], // id-ene til prestasjonene du har, blir med gjennom prestisje
+    alleTrykk: 0,   // trykk i alle spill, blir med gjennom prestisje
     uro: stille(),  // lagres ikke
   };
 }
@@ -249,7 +251,7 @@ export function klikkverdi(t, trykkSisteSek = 0) {
 /** Ett trykk på «Overfør». */
 export function trykk(t, trykkSisteSek = 0) {
   const verdi = klikkverdi(t, trykkSisteSek);
-  return { ...t, saldo: t.saldo + verdi, totalt: t.totalt + verdi, trykk: t.trykk + 1 };
+  return { ...t, saldo: t.saldo + verdi, totalt: t.totalt + verdi, trykk: t.trykk + 1, alleTrykk: (t.alleTrykk ?? 0) + 1 };
 }
 
 /** Rabatten på et selskap under et børskrakk, fra 0 til 1. */
@@ -495,6 +497,11 @@ export function investerEkstra(t, tilbud, nr = 0, rng = Math.random) {
   return { ...t, saldo: t.saldo - innsats, ventende: [...t.ventende, ventPa(t, valg.navn, innsats, sum, valg.sum, valg.vent)] };
 }
 
+/** Det du får igjen for en investering med giring: innsatsen pluss gevinsten eller tapet ganget med giringen. */
+export function giret(t, innsats, sum) {
+  return Math.floor(innsats + giring(t) * (sum - innsats));
+}
+
 /** Giringen du bruker nå: 1 uten risikoglad strategi. */
 export function giring(t) {
   return t.strategi === "glad" ? t.giring : 1;
@@ -502,9 +509,7 @@ export function giring(t) {
 
 // Et ventende beløp. Med giring låner du til resten, så gevinst og tap ganges med giringen.
 function ventPa(t, navn, innsats, sum, lovet, vent) {
-  const g = giring(t);
-  const gir = (x) => Math.floor(innsats + g * (x - innsats));
-  return { navn, sum: gir(sum), lovet: gir(lovet), pris: innsats, igjen: vent, lengde: vent };
+  return { navn, sum: giret(t, innsats, sum), lovet: giret(t, innsats, lovet), pris: innsats, igjen: vent, lengde: vent };
 }
 
 /** Om et ventende utbytte gikk dårlig, slik at du får mindre enn du ble lovet. */
@@ -642,6 +647,38 @@ export function avgjorLodd(t, sek) {
   };
 }
 
+// ---------- Prestasjoner ----------
+
+// Prestasjonene som kommer av seg selv når tilstanden er god nok.
+const MAL = {
+  "trykk-1": (t) => t.alleTrykk >= 1, "trykk-100": (t) => t.alleTrykk >= 100, "trykk-1000": (t) => t.alleTrykk >= 1000,
+  "trykk-10000": (t) => t.alleTrykk >= 1e4, "trykk-100000": (t) => t.alleTrykk >= 1e5, "trykk-1000000": (t) => t.alleTrykk >= 1e6,
+  "aksje-1": (t) => AKSJER.some((a) => t.aksjer[a.id] > 0),
+  "gf-1": (t) => AKSJER.some((a) => gfAntall(t, a.id) > 0),
+  "alle-selskaper": (t) => AKSJER.every((a) => t.aksjer[a.id] > 0),
+  "booster-1": (t) => t.boostere.length > 0,
+  "booster-alle": (t) => BOOSTERE.every((b) => har(t, b.id)),
+  "kr-1000": (t) => t.totalt >= 1e5, "kr-mill": (t) => t.totalt >= 1e8, "kr-mrd": (t) => t.totalt >= 1e11,
+  "kr-billion": (t) => t.totalt >= 1e14, "kr-billiard": (t) => t.totalt >= 1e17,
+  radgiver: (t) => t.radgiver > 0, "radgiver-maks": (t) => t.radgiver >= RADGIVER_NIVAER,
+  strategi: (t) => Boolean(t.strategi), "giring-10": (t) => t.strategi === "glad" && t.giring >= STRATEGI.giringMaks,
+  "ikon-1": (t) => t.ikoner.length > 1,
+  "ikon-alle": (t) => IKONER.every((i) => i.prestisje || t.ikoner.includes(i.id)),
+  "gud-1": (t) => t.gud >= 1, "gud-5": (t) => t.gud >= 5, kronos: (t) => t.gren === "gresk" && t.gud >= 5,
+  "prestisje-1": (t) => t.prestisje >= 1, "prestisje-3": (t) => t.prestisje >= 3,
+};
+
+/**
+ * Gir nye prestasjoner: de du har nådd, og hendelsene i listen (for eksempel «lotto-7»).
+ * Gir { tilstand, nye } der nye er prestasjonene du nettopp fikk.
+ */
+export function prestasjonerSteg(t, hendelser = []) {
+  const har = new Set(t.prestasjoner ?? []);
+  const nye = PRESTASJONER.filter((p) => !har.has(p.id) && (hendelser.includes(p.id) || MAL[p.id]?.(t)));
+  if (!nye.length) return { tilstand: t, nye };
+  return { tilstand: { ...t, prestasjoner: [...har, ...nye.map((p) => p.id)] }, nye };
+}
+
 // ---------- Prestisje ----------
 
 /** Alt som kan kjøpes: alle selskapene, alle boosterne, full rådgiver, alle ikonene og den høyeste guden. */
@@ -666,7 +703,10 @@ export function kanPrestisje(t) {
 export function prestisje(t) {
   if (!kanPrestisje(t)) return t;
   const ny = nyTilstand();
-  return { ...ny, prestisje: (t.prestisje ?? 0) + 1, ikoner: [...new Set([...t.ikoner, "fonix"])], ikon: "fonix", lodd: t.lodd };
+  return {
+    ...ny, prestisje: (t.prestisje ?? 0) + 1, ikoner: [...new Set([...t.ikoner, "fonix"])], ikon: "fonix", lodd: t.lodd,
+    prestasjoner: t.prestasjoner ?? [], alleTrykk: t.alleTrykk ?? 0,
+  };
 }
 
 // ---------- Investeringsrådgiveren ----------
@@ -801,6 +841,8 @@ export function fraLagring(obj) {
   if (tall(obj.giring)) t.giring = Math.min(STRATEGI.giringMaks, Math.max(STRATEGI.giringMin, obj.giring));
   if (obj.prestisje !== undefined && !heltall(obj.prestisje, 100)) return null;
   t.prestisje = obj.prestisje ?? 0;
+  if (Array.isArray(obj.prestasjoner)) t.prestasjoner = [...new Set(obj.prestasjoner.filter((id) => PRESTASJONER.some((p) => p.id === id)))];
+  t.alleTrykk = heltall(obj.alleTrykk, Number.MAX_SAFE_INTEGER) ? obj.alleTrykk : t.trykk;
   if (Array.isArray(obj.lodd)) {
     for (const l of obj.lodd.slice(0, 50)) {
       if (!l || !Number.isInteger(l.runde) || !heltall(l.antall, LOTTO.maksRekker) || l.antall < 1 || !heltall(l.fro, 4294967295)) return null;

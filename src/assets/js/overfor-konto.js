@@ -121,6 +121,11 @@ async function slettKonto() {
   }
 }
 
+/** Om kontoer er slått på, og e-posten til den som er logget inn. */
+export const paa = () => Boolean(el.knapp && oppsett.url && oppsett.nokkel);
+export const epost = () => okt?.epost ?? null;
+export function apneKonto() { if (paa()) { settTekst(el.status, ""); apne(el.vindu); } }
+
 function tegn() {
   if (!el.knapp) return;
   settTekst(el.knapp, okt ? "Konto" : "Logg inn");

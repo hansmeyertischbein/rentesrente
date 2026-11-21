@@ -4,6 +4,7 @@ import {
   prisAksje, maksAksje, kjopAksje, prisTrykk, kjopTrykk, nesteBoostere, andelRad, kjopBooster, generalforsamlinger, gfAntall,
   tikk, borte, maksBorte, uroFyll, urolig, uroSteg, rabatt, ekstraTilbud, ekstraAvkastning, investerEkstra, gikkDarlig, synlige, fordeler, nyeFordeler,
   tilLagring, fraLagring, radgiverTreff, prisRadgiver, kjopRadgiver, radgiverSynlig, radgiverPek, formaterTid,
+  prestasjonerSteg, giring, giret,
 } from "/lib/klikker.js";
 import { formaterTall } from "/lib/format.js";
 import { FIGURER, lagGris } from "./klikker-figurer.js";
@@ -15,6 +16,9 @@ import * as klokke from "./klokke.js";
 import * as lotto from "./overfor-lotto.js";
 import * as profil from "./overfor-profil.js";
 import * as konto from "./overfor-konto.js";
+import * as prestasjoner from "./overfor-prestasjoner.js";
+import * as innstillinger from "./overfor-innstillinger.js";
+import { spill } from "./lyd.js";
 
 const NOKKEL = "rr-overfor-2";
 const MILEPELER = [100, 1e4, 1e6, 1e8, 1e11, 1e14, 1e17];
@@ -180,8 +184,9 @@ function tegnBoostere() {
 function kjopEnBooster(b, knapp) {
   const for_ = t;
   t = kjopBooster(t, b.id);
-  if (t === for_) { si(`${b.navn}: du mangler ${ore(b.pris - t.saldo)}.`); visTips(knapp); return; }
+  if (t === for_) { spill("feil"); si(`${b.navn}: du mangler ${ore(b.pris - t.saldo)}.`); visTips(knapp); return; }
   skjulTips();
+  spill("booster");
   si(`${b.navn}. ${boosterVirkning(b)}`);
   if (b.type === "aksje") hopp(rader.get(b.mal)?.figur);
   else if (b.type === "alle") for (const r of rader.values()) if (t.aksjer[r.id] > 0) hopp(r.figur);
@@ -297,8 +302,10 @@ function kjop(id) {
   const for_ = t;
   const gfFor = gfAntall(t, id);
   t = kjopAksje(t, id, ant);
-  if (t === for_) { si(`Du mangler ${ore(prisAksje(t, id, ant) - t.saldo)}.`); return; }
+  if (t === for_) { spill("feil"); si(`Du mangler ${ore(prisAksje(t, id, ant) - t.saldo)}.`); return; }
   hopp(rader.get(id)?.figur);
+  spill("aksje", AKSJER.findIndex((a) => a.id === id));
+  if (rabatt(for_, id) > 0) gi(["krakk-kjop"]);
   if (id === pekt) pekNeste = 0;   // rådgiveren ser på nytt når du har kjøpt det han pekte på
   const n = t.aksjer[id];
   const gf = gfAntall(t, id);
@@ -307,7 +314,10 @@ function kjop(id) {
     const bonus = nye.some((f) => f.type === "bonus") ? ` Du fikk ${ore(t.totalt - for_.totalt)}.` : "";
     si(`${formaterTall(n)} ${a.fler}: ${nye.map((f) => f.tekst.toLowerCase()).join(", ")}.${bonus}`.replace(/^./, (c) => c.toUpperCase()));
     hopp(el.saldo);
-  } else if (gf > gfFor) si(`Generalforsamling i ${a.navn}: du stemte for høyere utbytte. Nå ${ganger(Math.pow(REGLER.gfFaktor, gf))} utbytte.`);
+  } else if (gf > gfFor) {
+    spill("gf");
+    si(`Generalforsamling i ${a.navn}: du stemte for høyere utbytte. Nå ${ganger(Math.pow(REGLER.gfFaktor, gf))} utbytte.`);
+  }
   else si(`${a.navn}: ${formaterTall(n)} ${flertall(a, n)}, ${perSek(aksjeRate(t, id))}.`);
   tegn();
   lagre();
@@ -376,6 +386,9 @@ el.gris.addEventListener("click", (e) => {
   const verdi = klikkverdi(t, n);
   t = trykk(t, n);
   klikk.push({ tid: naa, verdi });
+  const fart = fartFaktor(n);
+  spill("mynt", fart);
+  if (fart >= 5) gi(fart >= REGLER.fartMaks ? ["fart-5", "fart-12"] : ["fart-5"]);
   pluss(e, verdi, fartFaktor(n));
   myntInn();
   tegn();
@@ -385,7 +398,8 @@ el.gris.addEventListener("keydown", (e) => { if (e.repeat && (e.key === "Enter" 
 el.oppgrader.addEventListener("click", () => {
   const for_ = t;
   t = kjopTrykk(t, 1);
-  if (t === for_) { si(`Du mangler ${ore(prisTrykk(t, 1) - t.saldo)}.`); return; }
+  if (t === for_) { spill("feil"); si(`Du mangler ${ore(prisTrykk(t, 1) - t.saldo)}.`); return; }
+  spill("oppgrader");
   si(`Hvert trykk gir nå ${ore(grunnTrykk(t.trykkNiva))} før boostere.`);
   hopp(el.oppgrader);
   tegn();
@@ -425,7 +439,10 @@ function meldHendelse(h) {
   if (h.type === "verden") {
     const a = aksje(h.mal);
     annonser(`Verdenshendelse: ${a.uro}. ${a.navn} gir ${prosent(h.fall)} mindre utbytte i ${h.sek} sek.`);
+    spill("verden");
+    gi(["verden"]);
   } else {
+    spill("krakk");
     annonser(`Børskrakk! Aksjene er billigere i ${h.sek} sek.`);
   }
   hopp(el.uroIkon);
@@ -446,6 +463,7 @@ function tegnEkstra(naa) {
       tilbud = ekstraTilbud(t);
       if (tilbud) {
         tilbudSlutt = naa + REGLER.ekstraVisSek * 1000;
+        ekstraGiring = null;
         lagEkstraValg();
         el.ekstra.hidden = false;
         hopp(el.ekstra);
@@ -454,7 +472,9 @@ function tegnEkstra(naa) {
   }
   if (tilbud) {
     settTekst(el.ekstraNavn, `Invester ${ore(tilbud.innsats)} i en av disse`);
-    settTekst(el.ekstraVilkar, "Pengene kommer om 1 til 2 minutter. Jo høyere avkastning, jo høyere risiko.");
+    const g = giring(t);
+    settTekst(el.ekstraVilkar, "Pengene kommer om 1 til 2 minutter. Jo høyere avkastning, jo høyere risiko." + (g !== 1 ? ` Med ${ganger(g)} giring ganges gevinst og tap.` : ""));
+    tegnEkstraValg();
     for (const knapp of el.ekstraValg.children) settAttr(knapp, "aria-disabled", tilbud.innsats <= t.saldo ? "false" : "true");
     el.ekstra.style.setProperty("--igjen", Math.max(0, (tilbudSlutt - naa) / (REGLER.ekstraVisSek * 1000)).toFixed(3));
   }
@@ -502,12 +522,28 @@ function lagEkstraValg() {
     knapp.innerHTML = '<span class="ekstra-aktiv"></span><span class="ekstra-niva"></span><span class="ekstra-avk"></span><span class="pris"></span>';
     knapp.querySelector(".ekstra-aktiv").textContent = v.navn;
     knapp.querySelector(".ekstra-niva").textContent = v.niva;
-    knapp.querySelector(".ekstra-avk").textContent = `+${prosent(ekstraAvkastning(tilbud, v))}`;
-    knapp.querySelector(".pris").textContent = `Få ${ore(v.sum)}`;
-    knapp.setAttribute("aria-label", `${v.navn}, ${v.niva.toLowerCase()}: invester ${ore(tilbud.innsats)} og få ${ore(v.sum)}, ${prosent(ekstraAvkastning(tilbud, v))} avkastning.`);
     knapp.addEventListener("click", () => investerValg(nr));
     return knapp;
   }));
+  tegnEkstraValg();
+}
+
+// Med giring viser knappene det du faktisk får: gevinsten ganget med giringen.
+let ekstraGiring = null;
+function tegnEkstraValg() {
+  if (!tilbud) return;
+  const g = giring(t);
+  if (g === ekstraGiring && el.ekstraValg.dataset.n === String(tilbud.innsats)) return;
+  ekstraGiring = g;
+  el.ekstraValg.dataset.n = String(tilbud.innsats);
+  tilbud.valg.forEach((v, nr) => {
+    const knapp = el.ekstraValg.children[nr];
+    const sum = giret(t, tilbud.innsats, v.sum);
+    const avk = sum / tilbud.innsats - 1;
+    knapp.querySelector(".ekstra-avk").textContent = `+${prosent(avk)}`;
+    knapp.querySelector(".pris").textContent = `Få ${ore(sum)}`;
+    knapp.setAttribute("aria-label", `${v.navn}, ${v.niva.toLowerCase()}: invester ${ore(tilbud.innsats)} og få ${ore(sum)}, ${prosent(avk)} avkastning${g !== 1 ? ` med ${ganger(g)} giring` : ""}.`);
+  });
 }
 
 function investerValg(nr) {
@@ -515,8 +551,10 @@ function investerValg(nr) {
   const v = tilbud.valg[nr];
   const for_ = t;
   t = investerEkstra(t, tilbud, nr);
-  if (t === for_) { si(`Du mangler ${ore(tilbud.innsats - t.saldo)}.`); return; }
-  annonser(`Du investerte ${ore(tilbud.innsats)} i ${v.navn}. Går det bra, kommer ${ore(v.sum)} om 1 til 2 minutter.`);
+  if (t === for_) { spill("feil"); si(`Du mangler ${ore(tilbud.innsats - t.saldo)}.`); return; }
+  spill("invester");
+  gi(["ekstra-1"]);
+  annonser(`Du investerte ${ore(tilbud.innsats)} i ${v.navn}. Går det bra, kommer ${ore(giret(t, tilbud.innsats, v.sum))} om 1 til 2 minutter.`);
   tilbud = null;
   el.ekstra.hidden = true;
   tilbudNeste = performance.now() + tilfeldig(45, 90) * 1000;
@@ -556,7 +594,8 @@ function tegnRadgiver(naa) {
 el.radgiverKnapp.addEventListener("click", () => {
   const for_ = t;
   t = kjopRadgiver(t);
-  if (t === for_) { si(`Du mangler ${ore(prisRadgiver(t) - t.saldo)}.`); return; }
+  if (t === for_) { spill("feil"); si(`Du mangler ${ore(prisRadgiver(t) - t.saldo)}.`); return; }
+  spill("booster");
   pekNeste = 0;
   si(for_.radgiver === 0 ? "Finn Fondsen er ansatt. Han peker på én aksje om gangen." : `Finn Fondsen treffer nå ${prosent(radgiverTreff(t))} av gangene.`);
   hopp(el.radgiverFigur);
@@ -641,6 +680,8 @@ function tegn(naa = performance.now()) {
   tegnGris();
   profil.tegn();
   lotto.tegn();
+  prestasjoner.tegn();
+  innstillinger.tegn();
   tegnRadgiver(naa);
   tegnKonto();
   tegnBoostere();
@@ -680,6 +721,7 @@ function hent() {
 function velkommenTilbake(sekunder) {
   const r = borte(t, sekunder);
   t = r.tilstand;
+  if (r.gevinst > 0) gi(["borte"]);
   if (r.gevinst > 0) si(`Mens du var borte, ga aksjene ${ore(r.gevinst)} i utbytte.` + (sekunder > maksBorte(t) ? ` Bare de første ${formaterTid(maksBorte(t))} teller.` : ""));
 }
 
@@ -745,6 +787,17 @@ function tilpass() {
 addEventListener("resize", () => { clearTimeout(tilpassTid); tilpassTid = setTimeout(tilpass, 150); });
 pc.addEventListener?.("change", tilpass);
 
+// ---------- Prestasjoner ----------
+
+/** Gir prestasjonene du har nådd, og hendelsene i listen. Nye vises med en melding og en lyd. */
+function gi(hendelser = []) {
+  const r = prestasjonerSteg(t, hendelser);
+  if (!r.nye.length) return;
+  t = r.tilstand;
+  prestasjoner.vis(r.nye);
+  lagre();
+}
+
 // ---------- Delene i egne filer ----------
 
 const api = {
@@ -759,6 +812,7 @@ const api = {
   },
   byttSpill,
   lagring: () => tilLagring(t, klokke.naa()),
+  prestasjon: (hendelser) => gi(hendelser),
   /** Laster et lagret spill, for eksempel fra kontoen, og regner med tiden siden det ble lagret. */
   lastInn(obj, melding) {
     const lest = fraLagring(obj);
@@ -772,6 +826,8 @@ const api = {
 lotto.start(api);
 profil.start(api);
 konto.start(api);
+prestasjoner.start(api);
+innstillinger.start();
 
 // ---------- I gang ----------
 
@@ -798,6 +854,7 @@ klokke.synk().then(() => {
   tegn();
 });
 
+let tikkTeller = 0;
 const antallAksjer = (x) => AKSJER.reduce((s, a) => s + x.aksjer[a.id], 0);
 
 function ferdigTekst(v) {
@@ -821,6 +878,8 @@ setInterval(() => {
       const f = ferdigTekst(v);
       resultater.push({ bra: f.bra, slutt: naa + 4000, tekst: f.tekst });
       annonser(f.si);
+      spill(f.bra ? "gevinst" : v.obl ? "konkurs" : "tap");
+      if (!f.bra) gi([v.obl ? "obl-konkurs" : "ekstra-darlig"]);
       if (f.bra) hopp(el.saldo);
     }
     if (perSekund(t) > 0) {
@@ -831,7 +890,8 @@ setInterval(() => {
     if (varUrolig && !urolig(t)) annonser("Markedet er rolig igjen.");
   }
   const solgt = aksjerFor - antallAksjer(t);
-  if (solgt > 0) { si(`Tvangssalg: tapet var større enn saldoen, så ${formaterTall(solgt)} aksjer ble solgt for halv pris.`); lagre(); }
+  if (solgt > 0) { spill("tvangssalg"); gi(["tvangssalg"]); si(`Tvangssalg: tapet var større enn saldoen, så ${formaterTall(solgt)} aksjer ble solgt for halv pris.`); lagre(); }
+  if (++tikkTeller % 10 === 0) gi();
   tegn(naa);
   gulMynt(naa);
 }, 100);

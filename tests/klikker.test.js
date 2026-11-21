@@ -7,9 +7,9 @@ import {
   startHendelse, rabatt, ekstraTilbud, ekstraAvkastning, investerEkstra, gikkDarlig, synlige, fordeler, nyeFordeler, maksTrykk, radgiverTreff, prisRadgiver, kjopRadgiver,
   radgiverSynlig, rimeligst, radgiverFordeling, radgiverPek, pentBelop, tilLagring, fraLagring, formaterOre, formaterTid,
   prestisjeFaktor, maksBorte, tvangssalg, giring, oblInnsats, oblRente, kjopObligasjon, antallObl, kanVelgeStrategi, velgStrategi, settGiring,
-  kjopIkon, velgIkon, guderSynlig, nesteGud, kjopGud, kjopLodd, loddI, avgjorLodd, prestisjeMangler, kanPrestisje, prestisje,
+  kjopIkon, velgIkon, guderSynlig, nesteGud, kjopGud, kjopLodd, loddI, avgjorLodd, prestisjeMangler, kanPrestisje, prestisje, prestasjonerSteg, giret,
 } from "../src/lib/klikker.js";
-import { GRENER, IKONER, OBLIGASJONER, OBL, STRATEGI } from "../src/lib/klikker-guder.js";
+import { GRENER, IKONER, OBLIGASJONER, OBL, STRATEGI, PRESTASJONER } from "../src/lib/klikker-guder.js";
 import { LOTTO, PREMIER, MULIGE_REKKER, sjanse, runde, apen, vinnertall, gruppeFor, rekker, resultat, trekkTid, prisRekker } from "../src/lib/klikker-lotto.js";
 
 const med = (endring) => ({ ...nyTilstand(), ...endring });
@@ -576,7 +576,7 @@ test("guder: fem i hver grein, og første kjøp låser greinen", () => {
   assert.equal(GRENER.length, 4);
   for (const g of GRENER) assert.equal(g.guder.length, 5);
   assert.deepEqual(GRENER.find((g) => g.id === "gresk").guder.map((x) => x.navn), ["Hermes", "Ares", "Poseidon", "Zevs", "Kronos"]);
-  const t = med({ saldo: 2e9, totalt: 2e9 });
+  const t = med({ saldo: 2e10, totalt: 2e10 });
   assert.ok(guderSynlig(t));
   const tor = kjopGud(t, "norron");
   assert.equal(tor.gren, "norron");
@@ -620,4 +620,41 @@ test("lagring tar med ikoner, guder, strategi, prestisje og lottorekker", () => 
   const gammel = fraLagring(tilLagring(medAksjer({ limonade: 1 }), 1)).tilstand;
   assert.equal(gammel.ikon, "deg");
   assert.equal(gammel.prestisje, 0);
+});
+
+test("gudene koster mer jo bedre de er, og ingen to koster det samme", () => {
+  const priser = GRENER.flatMap((g) => g.guder.map((x) => x.pris));
+  assert.equal(new Set(priser).size, 20);
+  for (const g of GRENER) for (let i = 1; i < 5; i++) assert.ok(g.guder[i].pris > g.guder[i - 1].pris * 10, "hvert nivå er mye dyrere");
+  const kronos = GRENER.find((g) => g.id === "gresk").guder[4];
+  assert.equal(Math.max(...priser), kronos.pris, "Kronos er dyrest");
+  assert.ok(GRENER[0].guder[0].pris >= 5e9, "den første koster minst 50 mill. kr");
+});
+
+test("prestasjoner: mål gir dem av seg selv, hendelser gis når de skjer, og de blir med gjennom prestisje", () => {
+  assert.equal(new Set(PRESTASJONER.map((p) => p.id)).size, PRESTASJONER.length);
+  let t = trykk(nyTilstand());
+  const r = prestasjonerSteg(t);
+  assert.deepEqual(r.nye.map((p) => p.id), ["trykk-1"]);
+  assert.equal(prestasjonerSteg(r.tilstand).nye.length, 0, "bare én gang");
+  const lotto = prestasjonerSteg(r.tilstand, ["lotto-7", "ukjent"]);
+  assert.deepEqual(lotto.nye.map((p) => p.id), ["lotto-7"]);
+  const alt = med({
+    aksjer: Object.fromEntries(AKSJER.map((a) => [a.id, 1])), boostere: BOOSTERE.map((b) => b.id), radgiver: 6,
+    ikoner: IKONER.filter((i) => !i.prestisje).map((i) => i.id), gren: "gresk", gud: 5, prestasjoner: ["lotto-7"], alleTrykk: 500,
+  });
+  const ny = prestisje(alt);
+  assert.deepEqual(ny.prestasjoner, ["lotto-7"]);
+  assert.equal(ny.alleTrykk, 500);
+  assert.equal(trykk(ny).alleTrykk, 501);
+  assert.ok(prestasjonerSteg(ny).nye.some((p) => p.id === "prestisje-1"));
+});
+
+test("giring gjelder også investeringene som dukker opp", () => {
+  const t = medAksjer({ limonade: 10 }, { saldo: 10000, strategi: "glad", giring: 3 });
+  const tilbud = ekstraTilbud(t, () => 0);
+  const v = investerEkstra(t, tilbud, 2, () => 0.9).ventende[0];
+  assert.equal(v.sum, 1000 + 3 * 1000, "100 % avkastning blir 300 % med 3x giring");
+  assert.equal(giret(t, 1000, 2000), 4000);
+  assert.equal(giret(nyTilstand(), 1000, 2000), 2000, "uten risikoglad er det ingen giring");
 });

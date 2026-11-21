@@ -1,6 +1,7 @@
 // Felles hjelpere for grensesnittet i «Overfør»: tekst, tall, bevegelse, meldinger og tips ved ikonene.
 import { formaterOre } from "/lib/klikker.js";
 import { formaterTall } from "/lib/format.js";
+import { spill } from "./lyd.js";
 
 export const $ = (id) => document.getElementById(id);
 export const rolig = matchMedia("(prefers-reduced-motion: reduce)");
@@ -119,7 +120,7 @@ addEventListener("keydown", (e) => { if (e.key === "Escape") skjulTips(); });
 
 /** Åpner et dialogvindu. Trykk utenfor lukker det. */
 export function apne(dialog) {
-  if (typeof dialog.showModal === "function" && !dialog.open) dialog.showModal();
+  if (typeof dialog.showModal === "function" && !dialog.open) { dialog.showModal(); spill("apne"); }
 }
 for (const d of document.querySelectorAll("dialog.spill-vindu")) {
   d.addEventListener("click", (e) => { if (e.target === d) d.close(); });
