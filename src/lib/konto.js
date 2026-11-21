@@ -51,6 +51,23 @@ export function lesOkt(svar, naa) {
   };
 }
 
+/**
+ * Lenken i bekreftelsesposten sender deg tilbake med økten etter #-tegnet. Gir økten, eller null.
+ * Brukeren leses fra innholdet i tilgangsnøkkelen, som er en JWT.
+ */
+export function lesOktFraLenke(hash, naa) {
+  const p = new URLSearchParams(String(hash ?? "").replace(/^#/, ""));
+  const tilgang = p.get("access_token");
+  if (!tilgang || !p.get("refresh_token")) return null;
+  try {
+    const del = tilgang.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const innhold = JSON.parse(decodeURIComponent(escape(atob(del + "=".repeat((4 - (del.length % 4)) % 4)))));
+    return lesOkt({ access_token: tilgang, refresh_token: p.get("refresh_token"), expires_in: p.get("expires_in"), user: { id: innhold.sub, email: innhold.email } }, naa);
+  } catch {
+    return null;
+  }
+}
+
 /** Om økten må fornyes: ett minutt før den går ut. */
 export function maFornyes(okt, naa) {
   return !okt || naa > okt.utloper - 60000;

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { sjekkEpost, sjekkPassord, foresporsel, lesOkt, maFornyes, feilmelding, velgSpill } from "../src/lib/konto.js";
+import { sjekkEpost, sjekkPassord, foresporsel, lesOkt, lesOktFraLenke, maFornyes, feilmelding, velgSpill } from "../src/lib/konto.js";
 
 const oppsett = { url: "https://abc.supabase.co/", nokkel: "offentlig" };
 const okt = { bruker: "u-1", epost: "a@b.no", tilgang: "T", fornyelse: "F", utloper: 100000 };
@@ -55,4 +55,13 @@ test("ved innlogging brukes spillet som har kommet lengst", () => {
   assert.equal(velgSpill({ totalt: 9e9, prestisje: 0 }, { totalt: 1, prestisje: 1 }), "sky", "prestisje teller mest");
   assert.equal(velgSpill({ totalt: 10 }, { totalt: 5 }), "lokal");
   assert.equal(velgSpill({ totalt: 5, tid: 1 }, { totalt: 5, tid: 2 }), "sky");
+});
+
+test("lenken i bekreftelsesposten logger deg inn", () => {
+  const del = Buffer.from(JSON.stringify({ sub: "u-9", email: "æ@b.no" })).toString("base64url");
+  const o = lesOktFraLenke(`#access_token=h.${del}.s&expires_in=3600&refresh_token=R&type=signup`, 0);
+  assert.deepEqual(o, { bruker: "u-9", epost: "æ@b.no", tilgang: `h.${del}.s`, fornyelse: "R", utloper: 3600000 });
+  assert.equal(lesOktFraLenke("#error=access_denied", 0), null);
+  assert.equal(lesOktFraLenke("", 0), null);
+  assert.equal(lesOktFraLenke("#access_token=tull&refresh_token=R", 0), null);
 });

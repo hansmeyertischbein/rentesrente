@@ -1,6 +1,6 @@
 // Konto i «Overfør»: logg inn med e-post og passord, så lagres spillet hos Supabase og kan spilles på flere enheter.
 // Vises bare når src/_data/konto.json har adressen og den offentlige nøkkelen til prosjektet.
-import { sjekkEpost, sjekkPassord, foresporsel, lesOkt, maFornyes, feilmelding, velgSpill } from "/lib/konto.js";
+import { sjekkEpost, sjekkPassord, foresporsel, lesOkt, lesOktFraLenke, maFornyes, feilmelding, velgSpill } from "/lib/konto.js";
 import { $, settTekst, vis, si, apne } from "./overfor-felles.js";
 import { naa } from "./klokke.js";
 
@@ -140,6 +140,14 @@ export function start(a) {
   el.ut.addEventListener("click", loggUt);
   el.slett.addEventListener("click", slettKonto);
   okt = lesLagret();
+  // Kom du fra lenken i bekreftelsesposten, er du logget inn. Økten fjernes fra adressefeltet med en gang.
+  const fraLenke = lesOktFraLenke(location.hash, naa());
+  if (fraLenke) {
+    okt = fraLenke;
+    huskOkt();
+    si(`E-posten er bekreftet, og du er logget inn som ${okt.epost}.`);
+  }
+  if (/access_token|error_description/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
   tegn();
   if (okt) hentSpill();
   setInterval(() => lagre(), LAGRE_HVER);
