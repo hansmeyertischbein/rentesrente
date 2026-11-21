@@ -5,8 +5,12 @@ import {
   perSekund, aksjeRate, utbyttePerAksje, gfAntall, faktor, prisAksje, maksAksje, kjopAksje, prisTrykk, kjopTrykk,
   nesteBoostere, andelRad, kjopBooster, generalforsamlinger, tikk, borte, uroFyll, urolig, uroSteg, lagHendelse,
   startHendelse, rabatt, ekstraTilbud, ekstraAvkastning, investerEkstra, gikkDarlig, synlige, fordeler, nyeFordeler, maksTrykk, radgiverTreff, prisRadgiver, kjopRadgiver,
-  radgiverSynlig, rimeligst, radgiverFordeling, radgiverPek, EKSTRA_LENGST, pentBelop, tilLagring, fraLagring, formaterOre, formaterTid,
+  radgiverSynlig, rimeligst, radgiverFordeling, radgiverPek, pentBelop, tilLagring, fraLagring, formaterOre, formaterTid,
+  prestisjeFaktor, maksBorte, tvangssalg, giring, oblInnsats, oblRente, kjopObligasjon, antallObl, kanVelgeStrategi, velgStrategi, settGiring,
+  kjopIkon, velgIkon, guderSynlig, nesteGud, kjopGud, kjopLodd, loddI, avgjorLodd, prestisjeMangler, kanPrestisje, prestisje,
 } from "../src/lib/klikker.js";
+import { GRENER, IKONER, OBLIGASJONER, OBL, STRATEGI } from "../src/lib/klikker-guder.js";
+import { LOTTO, PREMIER, MULIGE_REKKER, sjanse, runde, apen, vinnertall, gruppeFor, rekker, resultat, trekkTid, prisRekker } from "../src/lib/klikker-lotto.js";
 
 const med = (endring) => ({ ...nyTilstand(), ...endring });
 const medAksjer = (a, resten = {}) => med({ ...resten, aksjer: { ...nyTilstand().aksjer, ...a } });
@@ -236,7 +240,6 @@ test("ekstraordinært utbytte: samme innsats i tre aktiva, samme ventetid, og h�
     }
   }
   naer(ekstraAvkastning(tilbud, tilbud.valg[0]), 0.15);
-  assert.equal(EKSTRA_LENGST, 120);
   assert.equal(ekstraTilbud(medAksjer({ limonade: 10 }, { saldo: 634 }), () => 0).innsats, 630, "aldri mer enn du har, rundet pent ned");
   assert.equal(ekstraTilbud(medAksjer({ limonade: 10 }, { saldo: 0 })), null);
   assert.equal(pentBelop(634), 630);
@@ -261,7 +264,7 @@ test("investeringen kan gå dårlig: risikabel oftere enn trygg, og da taper du 
   const t = medAksjer({ limonade: 10 }, { saldo: 10000 });
   const tilbud = ekstraTilbud(t, () => 0);
   const bra = investerEkstra(t, tilbud, 2, () => 0.3).ventende[0];
-  assert.deepEqual(bra, { sum: 2000, lovet: 2000, pris: 1000, igjen: 60, lengde: 60 }, "risikoen er 30 %, så 0,3 går bra");
+  assert.deepEqual(bra, { navn: "Obligasjoner fra Alis Bilopphuggeri", sum: 2000, lovet: 2000, pris: 1000, igjen: 60, lengde: 60 }, "risikoen er 30 %, så 0,3 går bra");
   assert.equal(gikkDarlig(bra), false);
   const verst = investerEkstra(t, tilbud, 2, fast(0.29, 0.9999)).ventende[0];
   assert.ok(gikkDarlig(verst));
@@ -369,7 +372,7 @@ test("lagring fra første utgave avvises, så du starter på null", () => {
 test("ødelagt eller fremmed lagring avvises", () => {
   const god = tilLagring(medAksjer({ limonade: 1 }), 1);
   for (const feil of [null, 5, "tekst", { v: 3 }, { ...god, saldo: -1 }, { ...god, saldo: "1" }, { ...god, aksjer: { limonade: 1.5 } },
-    { ...god, boostere: "fast" }, { ...god, ventende: [{ sum: -1, igjen: 2 }] }, { ...god, trykkNiva: -1 }]) {
+    { ...god, boostere: "fast" }, { ...god, ventende: [{ sum: "1", igjen: 2 }] }, { ...god, gren: "ukjent", gud: 1 }, { ...god, lodd: [{ runde: 1, antall: 0, fro: 1 }] }, { ...god, trykkNiva: -1 }]) {
     assert.equal(fraLagring(feil), null, JSON.stringify(feil));
   }
   assert.deepEqual(fraLagring({ ...god, boostere: ["ukjent", "fast", "fast"] }).tilstand.boostere, ["fast"]);
@@ -424,4 +427,197 @@ test("tid skrives kort", () => {
   assert.equal(rent(formaterTid(3 * 3600)), "3 t");
   assert.equal(rent(formaterTid(3 * 86400)), "3 døgn");
   assert.equal(formaterTid(Infinity), "");
+});
+
+// ---------- Lotto ----------
+
+test("lotto: 7 av 34, 5 kr per rekke, og sjansene stemmer med regningen", () => {
+  assert.equal(MULIGE_REKKER, 5379616);
+  assert.equal(LOTTO.pris, 500);
+  const en = (id) => Math.round(1 / PREMIER.find((p) => p.id === id).sjanse);
+  assert.equal(en("7"), 5379616);
+  assert.equal(en("6+1"), 768517);
+  assert.equal(en("6"), 29558);
+  assert.equal(en("5"), 730);
+  assert.equal(en("4"), 53);
+  const utbetaling = PREMIER.reduce((s, p) => s + p.sjanse * p.premie, 0) / LOTTO.pris;
+  assert.ok(utbetaling > 0.45 && utbetaling < 0.47, "om lag 46 % av innsatsen kommer tilbake");
+  assert.equal(PREMIER.find((p) => p.id === "7").premie % 100, 0, "premiene er hele kroner");
+  assert.equal(prisRekker(3), 1500);
+  assert.equal(prisRekker(0), Infinity);
+});
+
+test("lotto: 5 til 6 minutter mellom trekningene, salg i ett minutt, og samme tall for alle", () => {
+  for (let s = 1.7e9; s < 1.7e9 + 50000; s += 97) {
+    const r = runde(s);
+    assert.ok(r.apner <= s && s < r.neste, "tidspunktet ligger i runden");
+    assert.ok(r.neste - r.apner >= 300 && r.neste - r.apner <= 360, `${r.neste - r.apner} sek mellom`);
+    assert.equal(r.trekkes, r.apner + 60);
+    assert.equal(trekkTid(r.nr), r.trekkes);
+    assert.equal(apen(r, s), s < r.trekkes);
+  }
+  const v = vinnertall(1234);
+  assert.deepEqual(v, vinnertall(1234), "samme trekning gir samme tall");
+  assert.equal(new Set([...v.tall, v.tillegg]).size, 8);
+  assert.ok([...v.tall, v.tillegg].every((x) => x >= 1 && x <= 34));
+  assert.deepEqual(rekker(99, 3), rekker(99, 3), "rekkene regnes ut igjen av frøet");
+});
+
+test("lotto: premiegruppene og resultatet", () => {
+  const tr = { tall: [1, 2, 3, 4, 5, 6, 7], tillegg: 8 };
+  assert.equal(gruppeFor([1, 2, 3, 4, 5, 6, 7], tr).id, "7");
+  assert.equal(gruppeFor([1, 2, 3, 4, 5, 6, 8], tr).id, "6+1");
+  assert.equal(gruppeFor([1, 2, 3, 4, 5, 6, 9], tr).id, "6");
+  assert.equal(gruppeFor([1, 2, 3, 4, 5, 8, 9], tr).id, "5");
+  assert.equal(gruppeFor([1, 2, 3, 4, 8, 9, 10], tr).id, "4");
+  assert.equal(gruppeFor([1, 2, 3, 8, 9, 10, 11], tr), null);
+  const r = resultat({ runde: 5, fro: 1, antall: 2000 });
+  const fireRette = PREMIER.find((p) => p.id === "4").premie;
+  assert.ok(r.treff["4"] > 15 && r.treff["4"] < 60, "om lag én av 53 rekker har 4 rette");
+  assert.ok(r.premier >= r.treff["4"] * fireRette);
+  const avers = resultat({ runde: 5, fro: 1, antall: 2000 }, 0.2);
+  assert.ok(avers.gevinst > r.gevinst, "risikoavers får litt tilbake for rekker uten premie");
+});
+
+test("lotto: kjøp trekker fra saldoen, og premien kommer når tallene er trukket", () => {
+  const t = med({ saldo: 10000 });
+  const r = runde(1.8e9);
+  const k = kjopLodd(t, r.nr, 10, 42);
+  assert.equal(k.saldo, 5000);
+  assert.equal(loddI(k, r.nr), 10);
+  assert.equal(kjopLodd(t, r.nr, 30, 1), t, "uten råd skjer ingenting");
+  assert.equal(kjopLodd(med({ saldo: 1e12 }), r.nr, LOTTO.maksRekker + 1, 1).lodd.length, 0, "aldri flere enn grensen");
+  assert.equal(avgjorLodd(k, r.trekkes - 1).tilstand, k, "før trekningen skjer ingenting");
+  const etter = avgjorLodd(k, r.trekkes);
+  assert.equal(etter.tilstand.lodd.length, 0);
+  assert.equal(etter.resultater.length, 1);
+  assert.equal(etter.tilstand.saldo, 5000 + etter.resultater[0].gevinst);
+  assert.deepEqual(etter.resultater[0].trekning, vinnertall(r.nr));
+});
+
+// ---------- Strategi, giring og obligasjoner ----------
+
+test("strategien kan velges etter 1 mill. kr, én gang", () => {
+  assert.equal(kanVelgeStrategi(med({ totalt: STRATEGI.grense - 1 })), false);
+  const t = med({ totalt: STRATEGI.grense });
+  assert.ok(kanVelgeStrategi(t));
+  const glad = velgStrategi(t, "glad");
+  assert.equal(glad.strategi, "glad");
+  assert.equal(velgStrategi(glad, "avers"), glad, "valget står");
+  assert.equal(velgStrategi(t, "ukjent"), t);
+  assert.equal(settGiring(glad, 25).giring, 10);
+  assert.equal(settGiring(glad, 0).giring, 0.1);
+  assert.equal(settGiring(velgStrategi(t, "noytral"), 5).giring, 1, "giring bare for risikoglad");
+  assert.equal(giring(velgStrategi(t, "noytral")), 1);
+});
+
+test("risikoavers: lavere risiko på investeringer og mindre fall fra verdenshendelser", () => {
+  const vanlig = medAksjer({ limonade: 10 }, { saldo: 10000 });
+  const avers = { ...vanlig, strategi: "avers" };
+  assert.equal(ekstraTilbud(avers, () => 0).valg[2].risiko, ekstraTilbud(vanlig, () => 0).valg[2].risiko * 0.75);
+  const uro = { fyll: 0, verden: { mal: "limonade", fall: 0.4, igjen: 10 }, krakk: null };
+  naer(utbyttePerAksje({ ...avers, uro }, "limonade"), 10 * (1 - 0.3));
+});
+
+test("obligasjoner: staten betaler alltid, selskaper kan gå konkurs, og risikonøytral får 1,5 ganger renten", () => {
+  const t = medAksjer({ limonade: 10 }, { saldo: 100000 });
+  assert.equal(oblInnsats(t), 6000, "ett minutt utbytte");
+  const stat = kjopObligasjon(t, "stat", () => 0);
+  assert.equal(stat.saldo, 94000);
+  assert.deepEqual(stat.ventende[0], { navn: "Statsobligasjon", sum: 6300, lovet: 6300, pris: 6000, igjen: OBL.lopetid, lengde: OBL.lopetid, obl: true });
+  const vekst = kjopObligasjon(t, "vekst", () => 0.05).ventende[0];
+  assert.equal(vekst.sum, 3000, "konkurs: halvparten tilbake");
+  assert.equal(kjopObligasjon(t, "vekst", () => 0.1).ventende[0].sum, 6900, "90 % sikker");
+  assert.equal(kjopObligasjon(t, "kraft", () => 0.06).ventende[0].sum, 6600, "95 % sikker");
+  naer(oblRente({ ...t, strategi: "noytral" }, OBLIGASJONER[0]), 0.075);
+  let mange = t;
+  for (let i = 0; i < 5; i++) mange = kjopObligasjon(mange, "stat", () => 0);
+  assert.equal(antallObl(mange), OBL.maksSamtidig);
+  const forfalt = tikk(stat, OBL.lopetid);
+  assert.equal(forfalt.ventende.length, 0);
+  assert.equal(forfalt.saldo, 94000 + 6300 + 10 * 10 * OBL.lopetid);
+});
+
+test("giring ganger gevinst og tap, og tvangssalg dekker et tap større enn saldoen", () => {
+  const t = medAksjer({ limonade: 10 }, { saldo: 100000, totalt: 1e8, strategi: "glad", giring: 10 });
+  const vekst = kjopObligasjon(t, "vekst", () => 0.05).ventende[0];
+  assert.equal(vekst.sum, 6000 + 10 * (3000 - 6000), "taper ti ganger så mye");
+  const bra = kjopObligasjon(t, "vekst", () => 0.5).ventende[0];
+  assert.equal(bra.sum, 6000 + 10 * 900);
+  const gjeld = tvangssalg(medAksjer({ limonade: 3, blomst: 1 }, { saldo: -400 }));
+  assert.equal(gjeld.aksjer.blomst, 0, "den dyreste selges først");
+  assert.equal(gjeld.aksjer.limonade, 3);
+  assert.equal(gjeld.saldo, 100, "solgt for halvparten av prisen");
+  const alt = tvangssalg(medAksjer({ limonade: 1 }, { saldo: -1e9 }));
+  assert.equal(alt.saldo, 0, "resten av gjelden slettes");
+  assert.equal(alt.aksjer.limonade, 0);
+  const tap = tikk({ ...medAksjer({ blomst: 2 }, { saldo: 0 }), ventende: [{ sum: -500, lovet: 100, pris: 100, igjen: 1, lengde: 1 }] }, 1);
+  assert.equal(tap.aksjer.blomst, 1);
+  assert.equal(tap.totalt, 100, "tap trekkes ikke fra det som har kommet inn");
+});
+
+// ---------- Ikoner, guder og prestisje ----------
+
+test("ikoner: det første er gratis, resten koster fra 500 000 kr og blir dyrere", () => {
+  assert.equal(IKONER[0].pris, 0);
+  assert.equal(IKONER[1].pris, 5e7);
+  for (let i = 2; i < IKONER.length; i++) assert.ok(IKONER[i].pris > IKONER[i - 1].pris);
+  const t = med({ saldo: 6e7 });
+  const k = kjopIkon(t, "gra");
+  assert.equal(k.saldo, 1e7);
+  assert.equal(k.ikon, "gra");
+  assert.equal(kjopIkon(k, "gra"), k, "kjøpes bare én gang");
+  assert.equal(kjopIkon(t, "fonix"), t, "fønix får du bare ved prestisje");
+  assert.equal(velgIkon(k, "deg").ikon, "deg");
+  assert.equal(velgIkon(k, "drage"), k);
+});
+
+test("guder: fem i hver grein, og første kjøp låser greinen", () => {
+  assert.equal(GRENER.length, 4);
+  for (const g of GRENER) assert.equal(g.guder.length, 5);
+  assert.deepEqual(GRENER.find((g) => g.id === "gresk").guder.map((x) => x.navn), ["Hermes", "Ares", "Poseidon", "Zevs", "Kronos"]);
+  const t = med({ saldo: 2e9, totalt: 2e9 });
+  assert.ok(guderSynlig(t));
+  const tor = kjopGud(t, "norron");
+  assert.equal(tor.gren, "norron");
+  assert.equal(tor.gud, 1);
+  assert.equal(trykkverdi(tor), 20, "Loke dobler trykket");
+  assert.equal(nesteGud(tor, "gresk"), null, "de andre greinene er stengt");
+  assert.equal(nesteGud(tor).navn, "Heimdall");
+  assert.equal(kjopGud(tor), tor, "uten råd skjer ingenting");
+  const roma = med({ gren: "romersk", gud: 5, aksjer: { ...nyTilstand().aksjer, limonade: 1 } });
+  naer(perSekund(roma), 10 * 1.5 * 1.5 * 2 * 2 * 5);
+  assert.equal(maksBorte(med({ gren: "egyptisk", gud: 3 })), 12 * 3600);
+  assert.equal(maksBorte(nyTilstand()), REGLER.maksBorteSek);
+});
+
+test("prestisje: når alt er kjøpt, starter du på nytt med dobbelt av alt", () => {
+  const alt = med({
+    aksjer: Object.fromEntries(AKSJER.map((a) => [a.id, 1])), boostere: BOOSTERE.map((b) => b.id), radgiver: 6,
+    ikoner: IKONER.filter((i) => !i.prestisje).map((i) => i.id), gren: "gresk", gud: 5, saldo: 5,
+  });
+  assert.deepEqual(prestisjeMangler(alt), []);
+  assert.ok(kanPrestisje(alt));
+  assert.ok(prestisjeMangler({ ...alt, gud: 4 }).includes("den høyeste guden"));
+  const ny = prestisje(alt);
+  assert.equal(ny.prestisje, 1);
+  assert.equal(ny.saldo, 0);
+  assert.equal(ny.gren, null);
+  assert.equal(ny.ikon, "fonix");
+  assert.equal(prestisjeFaktor(ny), 2);
+  assert.equal(trykkverdi(ny), 20);
+  naer(utbyttePerAksje(ny, "limonade"), 20);
+  const t = medAksjer({ limonade: 10 }, { saldo: 10000, prestisje: 1 });
+  naer(ekstraAvkastning(ekstraTilbud(t, () => 0), ekstraTilbud(t, () => 0).valg[0]), 0.3);
+  assert.equal(prestisje({ ...alt, gud: 4 }).prestisje, 0, "uten alt skjer ingenting");
+});
+
+test("lagring tar med ikoner, guder, strategi, prestisje og lottorekker", () => {
+  const t = med({ ikon: "smil", ikoner: ["deg", "smil"], gren: "norron", gud: 2, strategi: "glad", giring: 3.5, prestisje: 2,
+    lodd: [{ runde: 7, antall: 3, fro: 99 }], ventende: [{ navn: "Statsobligasjon", sum: -200, lovet: 400, pris: 100, igjen: 100, lengde: 180, obl: true }] });
+  const lest = fraLagring(JSON.parse(JSON.stringify(tilLagring(t, 1)))).tilstand;
+  for (const k of ["ikon", "ikoner", "gren", "gud", "strategi", "giring", "prestisje", "lodd", "ventende"]) assert.deepEqual(lest[k], t[k], k);
+  const gammel = fraLagring(tilLagring(medAksjer({ limonade: 1 }), 1)).tilstand;
+  assert.equal(gammel.ikon, "deg");
+  assert.equal(gammel.prestisje, 0);
 });

@@ -16,6 +16,11 @@ sideklasse: side-klikk
 
     <div class="klikk-scene" id="scene">
       <canvas class="by" id="by" aria-hidden="true"></canvas>
+      <div class="profil">
+        <button type="button" class="spillikon profil-ikon" id="ikon-knapp" aria-label="Ikonet ditt"></button>
+        <span class="spillikon profil-strategi" id="strategi-merke" tabindex="0" role="img" hidden></span>
+        <p class="lotto-merke" id="lotto-merke"></p>
+      </div>
       <div class="gris-konto" id="konto">
         <p class="konto-merke">I sparegrisen</p>
         <p class="konto-saldo" id="saldo">0 øre</p>
@@ -45,6 +50,17 @@ sideklasse: side-klikk
 
       <div class="meldinger">
         <p class="hendelse" id="hendelse" hidden></p>
+        <div class="lotto" id="lotto" role="group" aria-labelledby="lotto-tittel" hidden>
+          <p class="lotto-tittel" id="lotto-tittel">Lotto</p>
+          <p class="ekstra-vilkar" id="lotto-tekst"></p>
+          <div class="lotto-kjop" id="lotto-kjop">
+            <label class="lotto-antall"><span class="skjult">Antall rekker</span><input id="lotto-antall" type="number" inputmode="numeric" min="1" max="10000" step="1" value="1"></label>
+            <span class="lotto-raske"><button type="button" data-n="1">1</button><button type="button" data-n="10">10</button><button type="button" data-n="100">100</button></span>
+            <button type="button" class="oppgrader" id="lotto-knapp"><span class="oppgrader-navn" id="lotto-handling">Kjøp 1 rekke</span><span class="pris" id="lotto-pris"></span></button>
+          </div>
+          <ol class="lotto-baller" id="lotto-baller" hidden></ol>
+          <p class="lotto-resultat" id="lotto-resultat" hidden></p>
+        </div>
         <div class="ekstra" id="ekstra" role="group" aria-labelledby="ekstra-navn" hidden>
           <p class="ekstra-navn" id="ekstra-navn">Invester i en av disse</p>
           <p class="ekstra-vilkar" id="ekstra-vilkar"></p>
@@ -67,6 +83,21 @@ sideklasse: side-klikk
           </div>
         </fieldset>
       </div>
+      <div class="kort strategi-valg" id="strategi-valg" hidden>
+        <h3 class="kort-tittel">Velg strategi</h3>
+        <p class="kort-info">Du har hatt 1 mill. kr innom grisen. Velg hvordan du vil ta risiko. Valget står til du tar prestisje.</p>
+        <div class="strategi-knapper" id="strategi-knapper"></div>
+      </div>
+      <div class="kort giring" id="giring" hidden>
+        <label class="giring-rad" for="giring-skyv"><span class="kort-tittel">Giring</span> <b id="giring-tall">1x</b></label>
+        <input type="range" id="giring-skyv" min="0" max="1000" step="1" value="500">
+        <p class="kort-info">Du låner til resten av investeringen og obligasjonen. Gevinst og tap ganges med giringen. Taper du mer enn du har, selges aksjene dine for halv pris.</p>
+      </div>
+      <div class="kort obl" id="obl" hidden>
+        <h3 class="kort-tittel">Obligasjoner</h3>
+        <p class="kort-info" id="obl-tekst"></p>
+        <div class="ekstra-valg" id="obl-valg"></div>
+      </div>
       <div class="radgiver" id="radgiver" hidden>
         <span class="radgiver-figur" id="radgiver-figur"></span>
         <div class="radgiver-tekst">
@@ -77,6 +108,20 @@ sideklasse: side-klikk
       </div>
       <ul class="butikk-liste" id="butikk" aria-labelledby="butikk-tittel"></ul>
 
+      <div class="kort guder" id="guder" hidden>
+        <span class="gud-figur" id="gud-figur"></span>
+        <div class="gud-tekst">
+          <h3 class="kort-tittel">Gudegris <span class="gud-navn" id="gud-navn"></span></h3>
+          <p class="kort-info" id="gud-info"></p>
+        </div>
+        <p class="gud-knapper"><button type="button" class="oppgrader" id="gud-knapp"><span class="oppgrader-navn" id="gud-handling"></span><span class="pris" id="gud-pris"></span></button> <button type="button" class="lenkeknapp" id="gud-se">Se alle gudene</button></p>
+      </div>
+      <div class="kort prestisje" id="prestisje" hidden>
+        <h3 class="kort-tittel">Prestisje</h3>
+        <p class="kort-info" id="prestisje-tekst"></p>
+        <button type="button" class="oppgrader" id="prestisje-knapp" hidden><span class="oppgrader-navn">Ta prestisje</span></button>
+      </div>
+
       <p class="klikk-husk"><label><input type="checkbox" id="husk"> <span>Husk spillet på denne enheten</span></label></p>
       <p class="spill-omstart"><button type="button" class="lenkeknapp" id="omstart">Start på nytt</button> <button type="button" class="lenkeknapp" id="om-spillet">Om spillet</button></p>
     </div>
@@ -85,12 +130,19 @@ sideklasse: side-klikk
 
 </div>
 
-<dialog class="spill-intro" id="intro" aria-labelledby="intro-tittel">
+<dialog class="spill-intro spill-vindu" id="intro" aria-labelledby="intro-tittel">
   <h2 id="intro-tittel">Overfør</h2>
   <p class="ingress">Hvert trykk på grisen overfører {{ r.trykkStart | ore }}. Kjøp aksjer som gir utbytte hvert sekund, fra limonadeboden på hjørnet til de store selskapene.</p>
   <form method="dialog"><button class="knapp knapp-hoved intro-start" value="start">Start å spille</button></form>
   <h3>Lagring</h3>
   <p>Ingenting lagres før du krysser av for «Husk spillet på denne enheten». Da legges spillet i nettleserens lager på enheten din, og det sendes ikke til oss. Fjerner du krysset, slettes det. Mens siden er lukket, gir aksjene utbytte i inntil {{ r.maksBorteSek | tid }}. <a href="/personvern/">Les mer om personvern</a>.</p>
+  <h3>Flytt spillet til en annen enhet</h3>
+  <p>Lag en kode her og lim den inn på telefonen eller en annen PC. Koden er hele spillet ditt, så del den bare med deg selv.</p>
+  <p class="flytt-knapper"><button type="button" class="oppgrader" id="flytt-lag"><span class="oppgrader-navn">Lag kode</span></button></p>
+  <textarea class="flytt-kode" id="flytt-kode" rows="3" readonly hidden aria-label="Koden for spillet ditt"></textarea>
+  <label class="flytt-inn"><span>Har du en kode fra en annen enhet?</span><textarea id="flytt-inn" rows="2" autocapitalize="none" autocorrect="off" spellcheck="false"></textarea></label>
+  <p class="flytt-knapper"><button type="button" class="oppgrader" id="flytt-hent"><span class="oppgrader-navn">Hent spillet</span></button></p>
+  <p class="flytt-status" id="flytt-status" role="status"></p>
   <h3>Les også</h3>
   <ul class="intro-lenker">
     <li><a href="/spill/tjue-ar/">Tjue år</a> Et spill om buffer, fond og regninger, der valgene dine teller.</li>
@@ -98,6 +150,21 @@ sideklasse: side-klikk
     <li><a href="/forklart/renters-rente/">Hva er renters rente?</a> Hvorfor tiden betyr mer enn beløpet.</li>
     <li><a href="/ikke-radgivning/">Generell informasjon, ikke personlig rådgivning</a></li>
   </ul>
+  <form method="dialog"><button class="intro-lukk" value="lukk" aria-label="Lukk">×</button></form>
+</dialog>
+<dialog class="spill-intro spill-vindu" id="ikon-vindu" aria-labelledby="ikon-tittel">
+  <h2 id="ikon-tittel">Hvem er du?</h2>
+  <p class="ingress">Ikonet står øverst til venstre. Det første er gratis. De andre er dyre, og jo kulere, jo dyrere.</p>
+  <ul class="ikon-liste" id="ikon-liste"></ul>
+  <p class="flytt-status" id="ikon-status" role="status"></p>
+  <form method="dialog"><button class="intro-lukk" value="lukk" aria-label="Lukk">×</button></form>
+</dialog>
+<dialog class="spill-intro spill-vindu gud-vindu" id="gud-vindu" aria-labelledby="gud-tittel">
+  <h2 id="gud-tittel">Gudegriser</h2>
+  <p class="ingress">Velg én av fire greiner. Gudene kjøpes i rekkefølge, fem i hver grein. Hold over eller trykk på en gud for å lese hva den gjør.</p>
+  <ul class="gud-grener" id="gud-grener"></ul>
+  <div class="gud-valgt" id="gud-valgt" aria-live="polite"><strong></strong><p></p><small></small></div>
+  <p><button type="button" class="oppgrader" id="gud-vindu-knapp" hidden><span class="oppgrader-navn" id="gud-vindu-handling"></span><span class="pris" id="gud-vindu-pris"></span></button></p>
   <form method="dialog"><button class="intro-lukk" value="lukk" aria-label="Lukk">×</button></form>
 </dialog>
 <div class="tips" id="tips" role="tooltip" hidden></div>

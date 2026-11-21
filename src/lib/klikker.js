@@ -3,6 +3,8 @@
 // Tilfeldighet kommer inn som en funksjon rng() som gir et tall fra 0 til 1, så testene kan styre den.
 
 import { formaterTall } from "./format.js";
+import { gudVirkning, grein, GRENER, IKONER, ikon, STRATEGI, STRATEGIER, OBLIGASJONER, OBL, PRESTISJE } from "./klikker-guder.js";
+import { LOTTO, prisRekker, resultat as lottoResultat, trekkTid } from "./klikker-lotto.js";
 
 const NBSP = " ";
 
@@ -154,11 +156,25 @@ export function nyTilstand() {
     boostere: [],   // id-ene til kjøpte boostere
     ventende: [],   // ekstraordinære utbytter: { sum, igjen }
     radgiver: 0,    // 0 er ikke ansatt, 1 er 30 % treff, og hvert nivå over gir 10 prosentpoeng mer
+    ikon: "deg",    // ikonet øverst til venstre
+    ikoner: ["deg"],
+    gren: null,     // greinen av gudegriser du har valgt
+    gud: 0,         // hvor mange guder du har i greinen
+    strategi: null, // «avers», «noytral» eller «glad»
+    giring: 1,      // bare for risikoglad
+    prestisje: 0,
+    lodd: [],       // lottorekker som venter på trekning: { runde, antall, fro }
     uro: stille(),  // lagres ikke
   };
 }
 
 const har = (t, id) => t.boostere.includes(id);
+
+/** Det prestisje ganger med: 2 for første gang, 4 for andre. */
+export function prestisjeFaktor(t) {
+  return Math.pow(PRESTISJE.faktor, t.prestisje ?? 0);
+}
+const avers = (t) => (t.strategi === "avers" ? STRATEGI.aversRisiko : 1);
 
 /** Antall generalforsamlinger du har stemt på i et selskap: én for hver 50. aksje. */
 export function gfAntall(t, id) {
@@ -179,13 +195,13 @@ export function faktor(t, id) {
 /** Hvor mye en verdenshendelse trekker fra utbyttet, fra 0 til 1. */
 export function fall(t, id) {
   const v = t.uro?.verden;
-  return v && v.mal === id ? v.fall : 0;
+  return v && v.mal === id ? v.fall * gudVirkning(t, "verdenFall") * avers(t) : 0;
 }
 
 /** Utbytte per aksje i sekundet, i øre. Det samme for hver aksje du kjøper. */
 export function utbyttePerAksje(t, id) {
   const a = aksje(id);
-  return a ? a.rate * faktor(t, id) * (1 - fall(t, id)) : 0;
+  return a ? a.rate * faktor(t, id) * (1 - fall(t, id)) * gudVirkning(t, "utbytte") * prestisjeFaktor(t) : 0;
 }
 
 /** Utbytte fra ett selskap i sekundet, i øre. */
@@ -210,7 +226,7 @@ export function trykkAndel(t) {
 
 /** Verdien av ett trykk i rolig tempo, i øre. */
 export function trykkverdi(t) {
-  return (grunnTrykk(t.trykkNiva) + trykkAndel(t) * perSekund(t)) * fordelFaktor(t, "trykkGanger");
+  return (grunnTrykk(t.trykkNiva) * gudVirkning(t, "trykk") * prestisjeFaktor(t) + trykkAndel(t) * perSekund(t)) * fordelFaktor(t, "trykkGanger");
 }
 
 /**
@@ -238,7 +254,7 @@ export function trykk(t, trykkSisteSek = 0) {
 
 /** Rabatten på et selskap under et børskrakk, fra 0 til 1. */
 export function rabatt(t, id) {
-  return t.uro?.krakk ? aksje(id)?.krakk ?? 0 : 0;
+  return t.uro?.krakk ? Math.min(0.9, (aksje(id)?.krakk ?? 0) * gudVirkning(t, "krakk")) : 0;
 }
 
 function sumPriser(grunnpris, vekst, fra, antall, ganger = 1) {
@@ -335,22 +351,47 @@ export function generalforsamlinger(t) {
 export function tikk(t, sekunder) {
   if (!(sekunder > 0) || !Number.isFinite(sekunder)) return t;
   const utbytte = perSekund(t) * sekunder;
-  let ekstra = 0;
+  let inn = 0, ut = 0;
   const ventende = [];
   for (const v of t.ventende) {
     const igjen = v.igjen - sekunder;
-    if (igjen <= 0) ekstra += v.sum;
-    else ventende.push({ ...v, igjen });
+    if (igjen > 0) ventende.push({ ...v, igjen });
+    else if (v.sum >= 0) inn += v.sum;
+    else ut -= v.sum;   // med giring kan du tape mer enn du satte inn
   }
   const nedtell = (h) => (h && h.igjen - sekunder > 0 ? { ...h, igjen: h.igjen - sekunder } : null);
   const uro = t.uro ? { ...t.uro, verden: nedtell(t.uro.verden), krakk: nedtell(t.uro.krakk) } : stille();
-  const inn = utbytte + ekstra;
-  return { ...t, saldo: t.saldo + inn, totalt: t.totalt + inn, ventende, uro };
+  const etter = { ...t, saldo: t.saldo + utbytte + inn - ut, totalt: t.totalt + utbytte + inn, ventende, uro };
+  return etter.saldo < 0 ? tvangssalg(etter) : etter;
+}
+
+/** Lengste tid aksjene gir utbytte mens du er borte. Noen guder gjør den lengre. */
+export function maksBorte(t) {
+  return Math.max(REGLER.maksBorteSek, gudVirkning(t, "borteSek") ?? 0);
+}
+
+/**
+ * Når saldoen er under null, selges aksjer til den er null eller mer. Den dyreste aksjen selges først,
+ * for halvparten av det den kostet. Rekker ikke aksjene, slettes resten av gjelden.
+ */
+export function tvangssalg(t) {
+  if (!(t.saldo < 0)) return t;
+  const aksjer = { ...t.aksjer };
+  let saldo = t.saldo;
+  const sistePris = (a) => Math.ceil(a.pris * Math.pow(REGLER.prisvekst, aksjer[a.id] - 1));
+  while (saldo < 0) {
+    const eide = AKSJER.filter((a) => aksjer[a.id] > 0);
+    if (!eide.length) break;
+    const a = eide.reduce((x, y) => (sistePris(y) > sistePris(x) ? y : x));
+    saldo += Math.floor(sistePris(a) * 0.5);
+    aksjer[a.id]--;
+  }
+  return { ...t, saldo: Math.max(0, saldo), aksjer };
 }
 
 /** Tiden du har vært borte teller, men aldri mer enn to timer. Hendelser er over når du kommer tilbake. */
 export function borte(t, sekunder) {
-  const sek = Math.min(Math.max(0, Number.isFinite(sekunder) ? sekunder : 0), REGLER.maksBorteSek);
+  const sek = Math.min(Math.max(0, Number.isFinite(sekunder) ? sekunder : 0), maksBorte(t));
   const rolig = { ...t, uro: { ...stille(), fyll: t.uro?.fyll ?? 0 } };
   const etter = tikk(rolig, sek);
   return { tilstand: etter, sekunder: sek, gevinst: etter.totalt - t.totalt };
@@ -407,8 +448,6 @@ export function startHendelse(t, h) {
 
 // ---------- Ekstraordinært utbytte ----------
 
-export const EKSTRA_LENGST = REGLER.ekstraVent[1];
-
 /** Runder ned til to gjeldende siffer, så beløpet blir pent: 634 øre blir 630 øre, 12 345 blir 12 000. */
 export function pentBelop(ore) {
   if (!(ore > 0) || !Number.isFinite(ore)) return 0;
@@ -424,13 +463,14 @@ export function pentBelop(ore) {
 export function ekstraTilbud(t, rng = Math.random) {
   const innsats = pentBelop(Math.min(perSekund(t) * REGLER.ekstraMaksSek, t.saldo));
   if (!(innsats > 0)) return null;
-  const risiko = fordelFaktor(t, "risiko");
-  const vent = Math.round(mellom(REGLER.ekstraVent, rng()));
+  const risiko = fordelFaktor(t, "risiko") * gudVirkning(t, "risiko") * avers(t);
+  const avk = gudVirkning(t, "ekstraAvk") * prestisjeFaktor(t);
+  const vent = Math.round(mellom(REGLER.ekstraVent, rng()) * gudVirkning(t, "vent"));
   return {
     innsats,
     valg: REGLER.ekstraValg.map((v) => {
       const navn = v.navn[Math.min(v.navn.length - 1, Math.floor(rng() * v.navn.length))];
-      return { navn, niva: v.niva, sum: Math.floor(innsats * (1 + mellom(v.avkastning, rng()))), vent, risiko: v.risiko * risiko };
+      return { navn, niva: v.niva, sum: Math.floor(innsats * (1 + mellom(v.avkastning, rng()) * avk)), vent, risiko: v.risiko * risiko };
     }),
   };
 }
@@ -450,13 +490,183 @@ export function investerEkstra(t, tilbud, nr = 0, rng = Math.random) {
   const innsats = tilbud?.innsats;
   if (!valg || !(innsats > 0) || !(innsats <= t.saldo)) return t;
   const darlig = rng() < (valg.risiko ?? 0);
-  const sum = darlig ? Math.floor(innsats * (1 - mellom(REGLER.ekstraTap, rng()))) : valg.sum;
-  return { ...t, saldo: t.saldo - innsats, ventende: [...t.ventende, { sum, lovet: valg.sum, pris: innsats, igjen: valg.vent, lengde: valg.vent }] };
+  const tap = Math.min(1, mellom(REGLER.ekstraTap, rng()) * prestisjeFaktor(t));
+  const sum = darlig ? Math.floor(innsats * (1 - tap)) : valg.sum;
+  return { ...t, saldo: t.saldo - innsats, ventende: [...t.ventende, ventPa(t, valg.navn, innsats, sum, valg.sum, valg.vent)] };
+}
+
+/** Giringen du bruker nå: 1 uten risikoglad strategi. */
+export function giring(t) {
+  return t.strategi === "glad" ? t.giring : 1;
+}
+
+// Et ventende beløp. Med giring låner du til resten, så gevinst og tap ganges med giringen.
+function ventPa(t, navn, innsats, sum, lovet, vent) {
+  const g = giring(t);
+  const gir = (x) => Math.floor(innsats + g * (x - innsats));
+  return { navn, sum: gir(sum), lovet: gir(lovet), pris: innsats, igjen: vent, lengde: vent };
 }
 
 /** Om et ventende utbytte gikk dårlig, slik at du får mindre enn du ble lovet. */
 export function gikkDarlig(v) {
   return v.lovet !== undefined && v.sum < v.lovet;
+}
+
+// ---------- Obligasjoner ----------
+
+/** Om obligasjonene vises. */
+export function oblSynlig(t) {
+  return t.totalt >= OBL.grense;
+}
+
+/** Beløpet du setter inn i en obligasjon nå: ett minutt utbytte, men aldri mer enn du har. */
+export function oblInnsats(t) {
+  return pentBelop(Math.min(perSekund(t) * OBL.maksSek, t.saldo));
+}
+
+/** Renten på en obligasjon, med strategi, guder og prestisje. */
+export function oblRente(t, o) {
+  const noytral = t.strategi === "noytral" ? STRATEGI.noytralObl : 1;
+  return o.rente * noytral * gudVirkning(t, "oblRente") * prestisjeFaktor(t);
+}
+
+/** Sjansen for at utstederen går konkurs før obligasjonen forfaller. */
+export function oblRisiko(t, o) {
+  return (1 - o.sikker) * avers(t);
+}
+
+export function antallObl(t) {
+  return t.ventende.filter((v) => v.obl).length;
+}
+
+/** Kjøper en obligasjon. Utfallet trekkes nå og kommer når løpetiden er over. */
+export function kjopObligasjon(t, id, rng = Math.random) {
+  const o = OBLIGASJONER.find((x) => x.id === id);
+  const innsats = oblInnsats(t);
+  if (!o || !(innsats > 0) || innsats > t.saldo || antallObl(t) >= OBL.maksSamtidig) return t;
+  const lovet = Math.floor(innsats * (1 + oblRente(t, o)) + 1e-6);
+  const konkurs = rng() < oblRisiko(t, o);
+  const tap = Math.min(1, (1 - OBL.gjenvinning) * prestisjeFaktor(t));
+  const sum = konkurs ? Math.floor(innsats * (1 - tap)) : lovet;
+  const vent = Math.round(OBL.lopetid * gudVirkning(t, "vent"));
+  return { ...t, saldo: t.saldo - innsats, ventende: [...t.ventende, { ...ventPa(t, o.navn, innsats, sum, lovet, vent), obl: true }] };
+}
+
+// ---------- Strategi ----------
+
+/** Om du kan velge strategi: når du har hatt 1 mill. kr innom grisen og ikke har valgt. */
+export function kanVelgeStrategi(t) {
+  return !t.strategi && t.totalt >= STRATEGI.grense;
+}
+
+export function velgStrategi(t, id) {
+  if (!kanVelgeStrategi(t) || !STRATEGIER.some((s) => s.id === id)) return t;
+  return { ...t, strategi: id, giring: 1 };
+}
+
+export function settGiring(t, x) {
+  if (t.strategi !== "glad" || !Number.isFinite(x)) return t;
+  const g = Math.round(Math.min(STRATEGI.giringMaks, Math.max(STRATEGI.giringMin, x)) * 10) / 10;
+  return g === t.giring ? t : { ...t, giring: g };
+}
+
+// ---------- Ikoner ----------
+
+export function kjopIkon(t, id) {
+  const i = ikon(id);
+  if (!i || i.prestisje || t.ikoner.includes(id) || !(i.pris <= t.saldo)) return t;
+  return { ...t, saldo: t.saldo - i.pris, ikoner: [...t.ikoner, id], ikon: id };
+}
+
+export function velgIkon(t, id) {
+  return t.ikoner.includes(id) && t.ikon !== id ? { ...t, ikon: id } : t;
+}
+
+// ---------- Gudegriser ----------
+
+/** Om gudene vises: når du har en, eller har tjent halve prisen på den første. */
+export function guderSynlig(t) {
+  return t.gud > 0 || t.totalt >= GRENER[0].guder[0].pris * REGLER.visFra;
+}
+
+/** Neste gud du kan kjøpe i en grein, eller null. Har du valgt grein, er de andre stengt. */
+export function nesteGud(t, gren = t.gren) {
+  if (t.gren && gren !== t.gren) return null;
+  return grein(gren)?.guder[t.gren ? t.gud : 0] ?? null;
+}
+
+/** Kjøper neste gud. Første kjøp velger greinen for godt, helt til prestisje. */
+export function kjopGud(t, gren = t.gren) {
+  const g = nesteGud(t, gren);
+  if (!g || !(g.pris <= t.saldo)) return t;
+  return { ...t, saldo: t.saldo - g.pris, gren, gud: g.niva };
+}
+
+// ---------- Lotto ----------
+
+/** Kjøper rekker i en trekning. UI sjekker at salget er åpent etter den felles klokka. */
+export function kjopLodd(t, runde, antall, fro) {
+  const pris = prisRekker(antall);
+  const har = t.lodd.filter((l) => l.runde === runde).reduce((s, l) => s + l.antall, 0);
+  if (!Number.isInteger(runde) || !(pris <= t.saldo) || har + antall > LOTTO.maksRekker) return t;
+  return { ...t, saldo: t.saldo - pris, lodd: [...t.lodd, { runde, antall, fro: fro >>> 0 }] };
+}
+
+/** Rekker i trekningen du har kjøpt. */
+export function loddI(t, runde) {
+  return t.lodd.filter((l) => l.runde === runde).reduce((s, l) => s + l.antall, 0);
+}
+
+/**
+ * Trekker alle kjøp der tallene er trukket ved tidspunktet sek (sekunder etter 1970, fra den felles klokka).
+ * Gir den nye tilstanden og ett resultat per trekning.
+ */
+export function avgjorLodd(t, sek) {
+  const ferdige = t.lodd.filter((l) => trekkTid(l.runde) <= sek);
+  if (!ferdige.length) return { tilstand: t, resultater: [] };
+  const tilbake = t.strategi === "avers" ? LOTTO.aversTilbake : 0;
+  const perRunde = new Map();
+  for (const l of ferdige) {
+    const r = lottoResultat(l, tilbake);
+    const sum = perRunde.get(l.runde) ?? { runde: l.runde, trekning: r.trekning, antall: 0, pris: 0, gevinst: 0, premier: 0, treff: {}, beste: null, besteRette: -1 };
+    sum.antall += l.antall; sum.pris += r.pris; sum.gevinst += r.gevinst; sum.premier += r.premier;
+    for (const [k, n] of Object.entries(r.treff)) sum.treff[k] = (sum.treff[k] ?? 0) + n;
+    if (r.besteRette > sum.besteRette) { sum.beste = r.beste; sum.besteRette = r.besteRette; }
+    perRunde.set(l.runde, sum);
+  }
+  const resultater = [...perRunde.values()];
+  const gevinst = resultater.reduce((s, r) => s + r.gevinst, 0);
+  return {
+    tilstand: { ...t, saldo: t.saldo + gevinst, totalt: t.totalt + gevinst, lodd: t.lodd.filter((l) => !ferdige.includes(l)) },
+    resultater,
+  };
+}
+
+// ---------- Prestisje ----------
+
+/** Alt som kan kjøpes: alle selskapene, alle boosterne, full rådgiver, alle ikonene og den høyeste guden. */
+export function prestisjeMangler(t) {
+  const mangler = [];
+  const aksjer = AKSJER.filter((a) => !(t.aksjer[a.id] > 0)).length;
+  if (aksjer) mangler.push(`${aksjer} selskap${aksjer === 1 ? "" : "er"}`);
+  const boostere = BOOSTERE.filter((b) => !har(t, b.id)).length;
+  if (boostere) mangler.push(`${boostere} booster${boostere === 1 ? "" : "e"}`);
+  if ((t.radgiver ?? 0) < RADGIVER_NIVAER) mangler.push("full rådgiver");
+  const ikoner = IKONER.filter((i) => !i.prestisje && !t.ikoner.includes(i.id)).length;
+  if (ikoner) mangler.push(`${ikoner} ikon${ikoner === 1 ? "" : "er"}`);
+  if ((t.gud ?? 0) < 5) mangler.push("den høyeste guden");
+  return mangler;
+}
+
+export function kanPrestisje(t) {
+  return prestisjeMangler(t).length === 0;
+}
+
+/** Nytt spill med dobbelt av alt. Ikonene og lottorekkene du har betalt for, blir med. */
+export function prestisje(t) {
+  if (!kanPrestisje(t)) return t;
+  const ny = nyTilstand();
+  return { ...ny, prestisje: (t.prestisje ?? 0) + 1, ikoner: [...new Set([...t.ikoner, "fonix"])], ikon: "fonix", lodd: t.lodd };
 }
 
 // ---------- Investeringsrådgiveren ----------
@@ -566,13 +776,36 @@ export function fraLagring(obj) {
   if (!heltall(radgiver, RADGIVER_NIVAER)) return null;
   t.radgiver = radgiver;
   if (!Array.isArray(obj.ventende)) return null;
+  const endelig = (x) => typeof x === "number" && Number.isFinite(x);
   for (const v of obj.ventende.slice(0, 20)) {
-    if (!v || !tall(v.sum) || !tall(v.igjen)) return null;
-    const lovet = tall(v.lovet) ? Math.max(v.lovet, v.sum) : v.sum;
+    if (!v || !endelig(v.sum) || !tall(v.igjen)) return null;
+    const lovet = endelig(v.lovet) ? Math.max(v.lovet, v.sum) : v.sum;
     const pris = tall(v.pris) ? v.pris : 0;
-    const igjen = Math.min(v.igjen, EKSTRA_LENGST);
-    const lengde = tall(v.lengde) ? Math.min(Math.max(v.lengde, igjen), EKSTRA_LENGST) : igjen;
-    t.ventende.push({ sum: v.sum, lovet, pris, igjen, lengde });
+    const igjen = Math.min(v.igjen, OBL.lopetid);
+    const lengde = tall(v.lengde) ? Math.min(Math.max(v.lengde, igjen), OBL.lopetid) : igjen;
+    const ny = { sum: v.sum, lovet, pris, igjen, lengde };
+    if (typeof v.navn === "string") ny.navn = v.navn.slice(0, 60);
+    if (v.obl === true) ny.obl = true;
+    t.ventende.push(ny);
+  }
+  if (typeof obj.ikoner !== "undefined") {
+    if (!Array.isArray(obj.ikoner)) return null;
+    t.ikoner = [...new Set(["deg", ...obj.ikoner.filter((id) => ikon(id))])];
+  }
+  if (t.ikoner.includes(obj.ikon)) t.ikon = obj.ikon;
+  if (obj.gren !== undefined && obj.gren !== null) {
+    if (!grein(obj.gren) || !heltall(obj.gud, 5)) return null;
+    t.gren = obj.gren; t.gud = obj.gud;
+  }
+  if (STRATEGIER.some((s) => s.id === obj.strategi)) t.strategi = obj.strategi;
+  if (tall(obj.giring)) t.giring = Math.min(STRATEGI.giringMaks, Math.max(STRATEGI.giringMin, obj.giring));
+  if (obj.prestisje !== undefined && !heltall(obj.prestisje, 100)) return null;
+  t.prestisje = obj.prestisje ?? 0;
+  if (Array.isArray(obj.lodd)) {
+    for (const l of obj.lodd.slice(0, 50)) {
+      if (!l || !Number.isInteger(l.runde) || !heltall(l.antall, LOTTO.maksRekker) || l.antall < 1 || !heltall(l.fro, 4294967295)) return null;
+      t.lodd.push({ runde: l.runde, antall: l.antall, fro: l.fro });
+    }
   }
   return { tilstand: t, tid };
 }

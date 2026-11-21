@@ -636,10 +636,9 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 
 /* Scenen: saldo øverst, boostere til venstre, grisen i midten, uro-streken til høyre. */
 .klikk-scene {
-  display: grid; grid-template-columns: 3.5rem minmax(0, 1fr) 3.5rem;
-  grid-template-areas: "konto konto konto" "boost gris uro" "oppg oppg oppg" "meld meld meld"; gap: 1rem 0.5rem; align-items: start;
+  position: relative; display: grid; grid-template-columns: 3.5rem minmax(0, 1fr) 3.5rem;
+  grid-template-areas: "prof prof prof" "konto konto konto" "boost gris uro" "oppg oppg oppg" "meld meld meld"; gap: 1rem 0.5rem; align-items: start;
 }
-.klikk-scene { position: relative; }
 .klikk-scene > :not(.by) { position: relative; z-index: 1; }
 /* Byen: én figur for hver aksje du eier, svakt i bakgrunnen og borte bak grisen. */
 .by {
@@ -935,6 +934,123 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
   .konto-saldo { font-size: 3.5rem; }
   .spillikon { width: 4.25rem; height: 4.25rem; }
   .uro-strek { height: 15rem; }
+}
+
+/* Profilen øverst: ikonet ditt, strategien og når neste lotto er. */
+.profil { grid-area: prof; display: flex; align-items: center; gap: 0.5rem; margin-bottom: -0.5rem; }
+.profil .spillikon { width: 2.75rem; height: 2.75rem; }
+.profil-strategi { cursor: help; }
+.lotto-merke {
+  margin: 0 0 0 auto; padding: 0.2rem 0.65rem; border: 2px solid var(--g-kant); border-radius: 999px; background: var(--g-kort);
+  font-size: 0.75rem; font-weight: 700; color: var(--g-dempet); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.lotto-merke.apen { border-color: var(--g-blekk); background: #ffd84a; color: #2b2118; }
+
+/* Lotto */
+.lotto { position: relative; display: grid; justify-items: center; gap: 0.35rem; width: min(100%, 26rem); padding: 0.65rem 0.75rem 0.85rem; overflow: hidden;
+  border: 2px solid var(--g-blekk); border-radius: 1rem; background: var(--g-kort); box-shadow: 0 3px 0 var(--g-blekk); }
+.lotto::after { content: ""; position: absolute; left: 0; bottom: 0; width: 100%; height: 4px; background: #ffd84a; transform: scaleX(var(--igjen, 0)); transform-origin: left; }
+.lotto-tittel { font-weight: 800; font-stretch: var(--wide); }
+.lotto-kjop { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.4rem; }
+.lotto-antall input {
+  width: 5.5rem; min-height: 2.75rem; padding: 0 0.6rem; border: 2px solid var(--g-blekk); border-radius: 0.7rem; background: var(--g-bak); color: var(--ink);
+  font: inherit; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: center;
+}
+.lotto-raske { display: inline-flex; gap: 0.25rem; }
+.lotto-raske button {
+  min-width: 2.75rem; min-height: 2.75rem; padding: 0 0.5rem; border: 2px solid var(--g-kant); border-radius: 0.7rem; background: var(--g-bak); color: var(--ink);
+  font: inherit; font-size: 0.8125rem; font-weight: 750; cursor: pointer; touch-action: manipulation;
+}
+.lotto-raske button:active { transform: scale(0.95); }
+.lotto-baller { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.3rem; margin: 0.2rem 0 0; padding: 0; }
+.lotto-baller li {
+  display: grid; place-items: center; width: 2.1rem; height: 2.1rem; border: 2px solid var(--g-blekk); border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #fff 0 18%, #ffe6ee 45%, #f7b3c2 100%); color: #2b2118; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.lotto-baller li.tillegg { margin-left: 0.5rem; background: radial-gradient(circle at 38% 32%, #fff 0 18%, #e3f0ff 45%, #9fc5f0 100%); }
+.lotto-baller li.treff { box-shadow: 0 0 0 3px var(--g-bak), 0 0 0 5px var(--g-gronn); }
+.lotto-resultat { font-size: var(--t-small); font-weight: 650; max-width: 24rem; }
+@media (prefers-reduced-motion: no-preference) {
+  .lotto-baller li { animation: ball-inn 360ms var(--ease-out) both; animation-delay: calc(var(--n) * 90ms); }
+  @keyframes ball-inn { from { opacity: 0; transform: translateY(-0.6rem) scale(0.9); } }
+}
+
+/* Kort i butikken: strategi, giring, obligasjoner, guder og prestisje */
+.kort { display: grid; gap: 0.4rem; margin-bottom: 0.85rem; padding: 0.75rem 0.85rem 0.85rem; border: 2px solid var(--g-kant); border-radius: 1.1rem; background: var(--g-kort); }
+.kort-tittel { font-size: 1rem; font-weight: 750; font-stretch: var(--wide); }
+.kort-info { font-size: 0.8125rem; line-height: 1.4; color: var(--g-dempet); }
+.kort .ekstra-valg { margin-top: 0.2rem; }
+.strategi-valg { border-color: var(--g-blekk); box-shadow: 0 3px 0 var(--g-blekk); }
+.strategi-knapper { display: grid; gap: 0.45rem; margin-top: 0.25rem; }
+.strategi-knapp {
+  display: grid; grid-template-columns: 2.75rem minmax(0, 1fr); grid-template-areas: "bilde navn" "bilde tekst"; column-gap: 0.7rem; align-items: center;
+  padding: 0.55rem 0.7rem; border: 2px solid var(--g-blekk); border-radius: 0.9rem; background: var(--g-bak); color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+  transition: transform 140ms var(--ease-out);
+}
+.strategi-knapp:active { transform: scale(0.98); }
+.strategi-bilde { grid-area: bilde; display: block; width: 2.75rem; height: 2.75rem; }
+.strategi-knapp b { grid-area: navn; font-weight: 800; }
+.strategi-tekst { grid-area: tekst; font-size: 0.8125rem; line-height: 1.35; color: var(--g-dempet); }
+.giring-rad { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.giring-rad b { font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.giring input { width: 100%; height: 2.75rem; margin: 0; accent-color: #e8553d; touch-action: pan-y; cursor: pointer; }
+.guder { grid-template-columns: 4.5rem minmax(0, 1fr); align-items: center; column-gap: 0.85rem; }
+.gud-figur { display: block; width: 4.5rem; }
+.gud-fig { display: block; width: 100%; height: auto; overflow: visible; }
+.gud-navn { display: block; font-size: 0.8125rem; font-weight: 650; font-stretch: normal; color: var(--g-dempet); }
+.gud-knapper { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; }
+.prestisje { border-style: dashed; border-color: #c9a227; }
+.prestisje .oppgrader { justify-self: start; background: #ffd84a; color: #2b2118; }
+
+/* Vinduene for ikoner og guder */
+.ikon-liste { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); gap: 0.6rem; margin: 1rem 0 0; padding: 0; }
+.ikon-valg {
+  display: grid; justify-items: center; gap: 0.3rem; width: 100%; padding: 0.6rem 0.35rem; border: 2px solid var(--g-kant); border-radius: 1rem;
+  background: var(--g-bak); color: var(--ink); font: inherit; cursor: pointer; transition: transform 140ms var(--ease-out);
+}
+.ikon-valg:active { transform: scale(0.97); }
+.ikon-valg[aria-disabled="false"] { border-color: var(--g-blekk); }
+.ikon-valg.valgt { box-shadow: 0 0 0 3px var(--g-kort), 0 0 0 5px var(--g-gronn); }
+.ikon-valg[aria-disabled="true"] .ikon-flis { filter: grayscale(0.6) brightness(0.85); }
+.ikon-valg-bilde { display: block; width: 3.5rem; height: 3.5rem; }
+.ikon-valg-navn { font-size: 0.8125rem; font-weight: 750; }
+.ikon-valg-pris { font-size: 0.75rem; font-weight: 750; color: var(--g-dempet); }
+.ikon-valg-pris.pris { color: var(--g-pris-tekst); }
+.gud-vindu { width: min(100% - 2rem, 46rem); }
+.gud-grener { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 0.75rem; margin: 1rem 0 0; padding: 0; }
+.gud-gren-navn { font-size: 0.875rem; }
+.gud-gren-navn b { font-weight: 800; }
+.gud-gren-navn span { color: var(--g-dempet); font-size: 0.75rem; font-weight: 650; }
+.gud-rekke { list-style: none; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.25rem; margin: 0.35rem 0 0; padding: 0; }
+.gud-ikon {
+  display: grid; justify-items: center; gap: 0.1rem; width: 100%; min-height: 2.75rem; padding: 0.3rem 0.1rem; border: 2px solid var(--g-kant); border-radius: 0.75rem;
+  background: var(--g-bak); color: var(--ink); font: inherit; cursor: pointer;
+}
+.gud-portrett { display: block; width: 100%; max-width: 3.25rem; }
+.gud-ikon-navn { max-width: 100%; overflow: hidden; font-size: 0.625rem; font-weight: 750; line-height: 1.2; letter-spacing: -0.01em; white-space: nowrap; text-overflow: clip; }
+.gud-ikon[data-status="eid"] { border-color: var(--g-gronn); background: var(--g-gronn-bak); }
+.gud-ikon[data-status="neste"] { border-color: var(--g-blekk); }
+.gud-ikon[data-status="stengt"] { opacity: 0.4; }
+.gud-ikon[data-status="senere"] .gud-fig, .gud-ikon[data-status="stengt"] .gud-fig { filter: grayscale(0.7); }
+.gud-valgt { min-height: 6.5rem; margin-top: 1rem; padding: 0.75rem 0.85rem; border: 2px dashed var(--g-kant); border-radius: 0.9rem; }
+.gud-valgt strong { font-weight: 800; }
+.gud-valgt p { margin-top: 0.25rem; line-height: 1.4; }
+.gud-valgt small { display: block; margin-top: 0.35rem; font-size: 0.75rem; color: var(--g-dempet); }
+.gud-vindu > p:has(.oppgrader) { margin-top: 0.75rem; }
+@media (min-width: 44rem) { .gud-grener { grid-template-columns: repeat(4, minmax(0, 1fr)); } .gud-rekke { grid-template-columns: minmax(0, 1fr); } }
+@media (min-width: 44rem) { .gud-ikon { grid-template-columns: 2.5rem minmax(0, 1fr); justify-items: start; align-items: center; column-gap: 0.4rem; padding: 0.25rem 0.4rem; } .gud-ikon-navn { font-size: 0.8125rem; } }
+
+/* Flytt spillet */
+.flytt-knapper { margin-top: 0.6rem; }
+.flytt-kode, .flytt-inn textarea {
+  display: block; width: 100%; margin-top: 0.5rem; padding: 0.5rem 0.6rem; border: 2px solid var(--g-kant); border-radius: 0.7rem; background: var(--g-bak); color: var(--ink);
+  font: 16px/1.35 ui-monospace, monospace; word-break: break-all; resize: vertical;
+}
+.flytt-inn { display: block; margin-top: 0.75rem; font-size: var(--t-small); font-weight: 650; }
+.flytt-status { min-height: 1.35em; margin-top: 0.35rem; font-size: var(--t-small); color: var(--g-dempet); }
+.boble.obl .boble-mynt { border-radius: 0.3rem; }
+@media (hover: hover) and (pointer: fine) {
+  .strategi-knapp:hover, .ikon-valg[aria-disabled="false"]:hover, .gud-ikon:hover { transform: translateY(-1px); }
 }
 
 /* Figurene lever når du eier selskapet */
