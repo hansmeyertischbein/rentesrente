@@ -1049,6 +1049,13 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .flytt-inn { display: block; margin-top: 0.75rem; font-size: var(--t-small); font-weight: 650; }
 .flytt-status { min-height: 1.35em; margin-top: 0.35rem; font-size: var(--t-small); color: var(--g-dempet); }
 .boble.obl .boble-mynt { border-radius: 0.3rem; }
+.konto-skjema { display: grid; gap: 0.6rem; margin-top: 1rem; }
+.konto-felt { display: grid; gap: 0.25rem; font-size: var(--t-small); font-weight: 650; }
+.konto-felt input {
+  min-height: 2.75rem; padding: 0 0.75rem; border: 2px solid var(--g-blekk); border-radius: 0.7rem; background: var(--g-bak); color: var(--ink); font: inherit; font-size: 16px;
+}
+#konto-innlogget { margin-top: 1rem; }
+.konto-personvern { margin-top: 1rem; font-size: 0.75rem; color: var(--g-dempet); }
 @media (hover: hover) and (pointer: fine) {
   .strategi-knapp:hover, .ikon-valg[aria-disabled="false"]:hover, .gud-ikon:hover { transform: translateY(-1px); }
 }

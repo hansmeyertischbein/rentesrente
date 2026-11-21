@@ -123,7 +123,7 @@ sideklasse: side-klikk
       </div>
 
       <p class="klikk-husk"><label><input type="checkbox" id="husk"> <span>Husk spillet på denne enheten</span></label></p>
-      <p class="spill-omstart"><button type="button" class="lenkeknapp" id="omstart">Start på nytt</button> <button type="button" class="lenkeknapp" id="om-spillet">Om spillet</button></p>
+      <p class="spill-omstart"><button type="button" class="lenkeknapp" id="omstart">Start på nytt</button> <button type="button" class="lenkeknapp" id="om-spillet">Om spillet</button>{% if konto.url and konto.nokkel %} <button type="button" class="lenkeknapp" id="konto-knapp" hidden>Logg inn</button>{% endif %}</p>
     </div>
 
   </section>
@@ -167,5 +167,23 @@ sideklasse: side-klikk
   <p><button type="button" class="oppgrader" id="gud-vindu-knapp" hidden><span class="oppgrader-navn" id="gud-vindu-handling"></span><span class="pris" id="gud-vindu-pris"></span></button></p>
   <form method="dialog"><button class="intro-lukk" value="lukk" aria-label="Lukk">×</button></form>
 </dialog>
+{% if konto.url and konto.nokkel -%}
+<dialog class="spill-intro spill-vindu" id="konto-vindu" aria-labelledby="konto-tittel" data-url="{{ konto.url }}" data-nokkel="{{ konto.nokkel }}">
+  <h2 id="konto-tittel">Spill på flere enheter</h2>
+  <p class="ingress">Med en konto lagres spillet ditt, så du kan fortsette på telefonen eller en annen PC.</p>
+  <form class="konto-skjema" id="konto-skjema" novalidate>
+    <label class="konto-felt"><span>E-post</span><input id="konto-epost" type="email" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" required></label>
+    <label class="konto-felt"><span>Passord, minst 8 tegn</span><input id="konto-passord" type="password" autocomplete="current-password" minlength="8" maxlength="72" required></label>
+    <p class="flytt-knapper"><button type="submit" class="oppgrader" id="konto-inn"><span class="oppgrader-navn">Logg inn</span></button> <button type="button" class="lenkeknapp" id="konto-ny">Lag ny konto</button></p>
+  </form>
+  <div id="konto-innlogget" hidden>
+    <p id="konto-hvem"></p>
+    <p class="flytt-knapper"><button type="button" class="oppgrader" id="konto-ut"><span class="oppgrader-navn">Logg ut</span></button> <button type="button" class="lenkeknapp" id="konto-slett">Slett kontoen</button></p>
+  </div>
+  <p class="flytt-status" id="konto-status" role="status"></p>
+  <p class="konto-personvern">Vi lagrer e-posten din, et kryptert passord og spillet. Ingenting annet. <a href="/personvern/#kontoer">Les mer om personvern</a>.</p>
+  <form method="dialog"><button class="intro-lukk" value="lukk" aria-label="Lukk">×</button></form>
+</dialog>
+{% endif -%}
 <div class="tips" id="tips" role="tooltip" hidden></div>
 <div class="mini" id="mini" aria-hidden="true"><span>I grisen <b id="mini-saldo">0 øre</b></span><span>Inntekt <b id="mini-rate">0 øre/sek</b></span></div>

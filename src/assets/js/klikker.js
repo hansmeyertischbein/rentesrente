@@ -14,6 +14,7 @@ import {
 import * as klokke from "./klokke.js";
 import * as lotto from "./overfor-lotto.js";
 import * as profil from "./overfor-profil.js";
+import * as konto from "./overfor-konto.js";
 
 const NOKKEL = "rr-overfor-2";
 const MILEPELER = [100, 1e4, 1e6, 1e8, 1e11, 1e14, 1e17];
@@ -758,9 +759,19 @@ const api = {
   },
   byttSpill,
   lagring: () => tilLagring(t, klokke.naa()),
+  /** Laster et lagret spill, for eksempel fra kontoen, og regner med tiden siden det ble lagret. */
+  lastInn(obj, melding) {
+    const lest = fraLagring(obj);
+    if (!lest) return false;
+    byttSpill(lest.tilstand, melding);
+    const borteSek = lest.tid ? (klokke.naa() - lest.tid) / 1000 : 0;
+    if (borteSek > 5) { velkommenTilbake(borteSek); tegn(); lagre(); }
+    return true;
+  },
 };
 lotto.start(api);
 profil.start(api);
+konto.start(api);
 
 // ---------- I gang ----------
 

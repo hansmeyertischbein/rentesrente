@@ -2,7 +2,8 @@
 layout: tekst.njk
 tittel: Personvern
 beskrivelse: Rentesrente bruker ingen informasjonskapsler og ingen sporing. Tallene du skriver i kalkulatorene, blir i nettleseren din.
-ingress: Rentesrente samler ikke inn personopplysninger om deg. Her er det som skjer når du bruker siden.
+eleventyComputed:
+  ingress: "{% if konto.url and konto.nokkel %}Rentesrente samler ikke inn personopplysninger om deg, med mindre du selv lager en konto i spillet Overfør. Her er det som skjer når du bruker siden.{% else %}Rentesrente samler ikke inn personopplysninger om deg. Her er det som skjer når du bruker siden.{% endif %}"
 permalink: /personvern/
 oppdatert: 2026-11-15
 ---
@@ -18,6 +19,19 @@ Kalkulatorene regner i nettleseren din. Tallene du skriver inn, sendes ikke til 
 
 Spillet [Overfør](/spill/overfor/) kan huske hvor langt du har kommet. Det skjer bare hvis du selv krysser av for «Husk spillet på denne enheten». Da lagres saldoen og kjøpene dine i nettleserens lager på enheten din. Det som lagres, sier ingenting om hvem du er, og det sendes ikke til oss eller andre. Fjerner du krysset, slettes det. Spillet [Tjue år](/spill/tjue-ar/) lagrer ingenting.
 
+{% if konto.url and konto.nokkel -%}
+<h2 id="kontoer">Konto i spillet Overfør</h2>
+
+Du kan lage en konto i [Overfør](/spill/overfor/) for å spille på flere enheter. Det er frivillig, og spillet virker uten.
+
+- **Hva vi lagrer:** e-postadressen din, passordet ditt i kryptert form og spillet ditt (saldo, kjøp og tidspunktet det ble lagret). Ingenting annet.
+- **Hvorfor:** for at du skal kunne logge inn og fortsette spillet på en annen enhet. Grunnlaget er avtalen du inngår når du lager kontoen.
+- **Hvor:** hos Supabase, som drifter databasen for oss på servere i EU. Supabase behandler opplysningene bare på våre vegne. Innloggingen huskes i nettleserens lager på enheten din, ikke i informasjonskapsler.
+- **E-post:** du får bare e-post for å bekrefte adressen eller bytte passord, aldri nyhetsbrev eller reklame.
+- **Hvor lenge:** til du sletter kontoen. Trykk «Slett kontoen» i spillet, så slettes e-posten, passordet og spillet med en gang.
+- **Rettighetene dine:** du kan be om innsyn, retting og sletting, og du kan klage til Datatilsynet.
+
+{% endif -%}
 ## Skrift og innhold
 
 Skriften og alt annet innhold lastes fra rentesrente.no, ikke fra eksterne tjenester.
