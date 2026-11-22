@@ -6,6 +6,7 @@ import { beregnSparing, lagForhandsvalg, simuler, skattesatsFor } from "./src/li
 import { andeler, lagTekster } from "./src/lib/tekster.js";
 import { feilIAktive, reklameoversikt } from "./src/lib/partnere.js";
 import { REGLER, utfallStatistikk } from "./src/lib/spill.js";
+import ordjaktData from "./src/assets/js/ordjakt-data.js";
 import { REGLER as KLIKKREGLER, AKSJER, BOOSTERE, formaterOre, formaterTid } from "./src/lib/klikker.js";
 
 // Alle skriptfiler deler ett versjonsnummer, regnet av innholdet i dem alle. Når én fil endres,
@@ -72,6 +73,9 @@ export default function (eleventyConfig) {
 
   // Reglene i spillet «Overfør», så teksten på siden bruker de samme tallene som motoren.
   eleventyConfig.addGlobalData("klikkdata", () => ({ regler: KLIKKREGLER, aksjer: AKSJER, boostere: BOOSTERE }));
+
+  // Kilden og perioden for tallene i «Ordjakt», så teksten under spillet viser det samme som dataene.
+  eleventyConfig.addGlobalData("ordjakt", () => ({ kilde: ordjaktData.kilde, periode: ordjaktData.periode, hentet: ordjaktData.hentet, antall: ordjaktData.kategorier.length }));
 
   // Annonselenker: en partner som er slått på, men mangler merking, tillatelse eller gyldig avtale, stopper byggingen.
   eleventyConfig.addGlobalData("reklame", () => {

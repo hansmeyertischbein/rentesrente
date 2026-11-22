@@ -1,0 +1,74 @@
+---
+layout: base.njk
+tittel: "Ordjakt: finn de sjeldne ordene"
+beskrivelse: Skriv ti ord i en kategori. Jo sjeldnere ordet er, jo flere poeng. Spill alene eller mot en venn på en annen PC.
+permalink: /spill/ordjakt/
+skript: /assets/js/ordjakt.js
+sideklasse: side-ordjakt
+---
+<div class="spillside">
+  <h1 class="skjult">Ordjakt</h1>
+  <noscript><p class="forbehold">Spillet trenger JavaScript.</p></noscript>
+
+  <section class="oj" id="oj" aria-label="Spillet"{% if konto.url and konto.nokkel %} data-url="{{ konto.url }}" data-nokkel="{{ konto.nokkel }}"{% endif %}>
+    <canvas class="oj-lerret" id="lerret" aria-hidden="true"></canvas>
+    <div class="oj-korn" aria-hidden="true"></div>
+
+    <header class="oj-himmel">
+      <p class="oj-kategori"><span class="oj-merke">Kategori</span> <b id="kategori">…</b></p>
+      <div class="oj-tavle">
+        <p class="oj-total"><span class="oj-merke">Totalt</span> <b id="total">0,0</b></p>
+        <p class="oj-teller"><span class="oj-merke">Svar</span> <b id="teller">0/10</b></p>
+      </div>
+      <p class="oj-motstander" id="motstander" hidden></p>
+    </header>
+
+    <form class="oj-skjema" id="skjema" autocomplete="off" hidden>
+      <label class="skjult" for="svar">Skriv et ord i kategorien</label>
+      <input class="oj-felt" id="svar" name="svar" type="text" maxlength="40" spellcheck="false" autocapitalize="off" enterkeyhint="send" placeholder="Skriv et ord …">
+      <button class="oj-knapp oj-fyr" type="submit">Fyr!</button>
+    </form>
+    <p class="oj-melding" id="melding" role="status" aria-live="polite"></p>
+
+    <ol class="oj-logg" id="logg" aria-label="Svarene dine i denne runden"></ol>
+
+    <div class="oj-panel" id="start">
+      <h2 class="oj-tittel">Ordjakt</h2>
+      <p>Skriv ti ord i en kategori. Jo <b>sjeldnere</b> ordet er, jo flere poeng får du.</p>
+      <div class="oj-valg">
+        <button class="oj-knapp" type="button" id="alene">Spill alene</button>
+        <button class="oj-knapp" type="button" id="lag-rom">Lag rom for to</button>
+      </div>
+      <form class="oj-bli-med" id="bli-med">
+        <label for="kode">Har du en kode?</label>
+        <input class="oj-felt oj-kode" id="kode" maxlength="4" autocapitalize="characters" spellcheck="false" placeholder="ABCD">
+        <button class="oj-knapp" type="submit">Bli med</button>
+      </form>
+      <p class="oj-feil" id="kode-feil" role="alert"></p>
+    </div>
+
+    <div class="oj-panel" id="venter" hidden>
+      <h2 class="oj-tittel">Rom <span id="rom-kode"></span></h2>
+      <p>Skriv koden på den andre PC-en, eller åpne <a id="rom-lenke" href="#">denne lenken</a> der.</p>
+      <p id="rom-status">Venter på motspiller …</p>
+      <button class="oj-knapp" type="button" id="start-na">Start nå</button>
+    </div>
+
+    <div class="oj-panel" id="slutt" hidden>
+      <h2 class="oj-tittel" id="slutt-tittel">Runden er over</h2>
+      <p id="slutt-tekst"></p>
+      <p class="oj-sjeldne" id="sjeldne"></p>
+      <button class="oj-knapp" type="button" id="neste">Neste kategori</button>
+    </div>
+  </section>
+
+  <div class="tekst oj-regler">
+    <h2>Slik regner vi poengene</h2>
+    <p>Hvert ord får poeng etter hvor lite det ble lest om siste år. Vi legger sammen sidevisningene for alle ordene i kategorien. Ordet ditt får 100 minus sin andel i prosent.</p>
+    <p>Eksempel: Ble det lest 100 ganger om alle dyrene til sammen, og 10 av dem var om løve, gir løve 100 − 10 = 90 poeng. Et sjeldent dyr gir nesten 100.</p>
+    <p>Ord som ikke står på listen gir 0 poeng, men teller som ett av de ti svarene. Samme ord to ganger teller ikke. Små skrivefeil og bøyinger som «løver» godtas.</p>
+    <p>Spiller dere to, skriver den ene «Lag rom» og den andre koden. Dere får samme kategorier og ser hverandres poeng mens dere spiller.</p>
+    <p class="oj-kilde">Kilde: {{ ordjakt.kilde }}, {{ ordjakt.periode.fra | dato }} til {{ ordjakt.periode.til | dato }}. Hentet {{ ordjakt.hentet | dato }}. Sidevisninger er et mål på hvor mye folk leser om et ord, ikke hvor ofte det sies. Har et ord ingen egen artikkel, regner vi det som like sjeldent som det sjeldneste ordet i kategorien.</p>
+    <p>Flere spill finner du under <a href="/spill/">Spill</a>. Vil du heller se hvordan sjeldne kroner vokser? Prøv <a href="/kalkulatorer/renters-rente/">Hvor mye blir sparingen din verdt?</a></p>
+  </div>
+</div>

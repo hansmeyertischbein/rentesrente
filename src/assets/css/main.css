@@ -1243,3 +1243,85 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 }
 @keyframes side-ut { to { opacity: 0; transform: translateY(-0.5rem); } }
 @keyframes side-inn { from { opacity: 0; transform: translateY(0.75rem); } }
+
+/* ---------- Spillet «Ordjakt» ---------- */
+/* Pikselscene med piratskute: en firedel himmel, tre firedeler hav. Scenen tegnes i lerretet,
+   tekst og felt ligger oppå. Fargene er spillets egne og betyr ingenting om penger. */
+.side-ordjakt main { max-width: 90rem; }
+.side-ordjakt .spillside { padding-top: 0.75rem; }
+.oj {
+  --oj-blekk: #fff8e6; --oj-skygge: #08131c; --oj-tre: #6b3f1d; --oj-tre-lys: #9a6232; --oj-gull: #ffd34d; --oj-rod: #ff6f5e;
+  position: relative; overflow: hidden; height: clamp(34rem, 80svh, 52rem);
+  margin-inline: calc(-1 * var(--gutter)); background: #0d3d63; color: var(--oj-blekk);
+  font-stretch: var(--wide); isolation: isolate; touch-action: manipulation;
+}
+@media (min-width: 40rem) { .oj { margin-inline: 0; border: 4px solid #08131c; box-shadow: 6px 6px 0 rgb(8 19 28 / 0.35); } }
+.oj-lerret { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
+.oj-korn { position: absolute; inset: -50%; pointer-events: none; opacity: 0.22; mix-blend-mode: overlay; animation: oj-korn 0.5s steps(4) infinite; }
+@keyframes oj-korn { 0% { transform: translate(0, 0); } 25% { transform: translate(-7%, 4%); } 50% { transform: translate(5%, -6%); } 75% { transform: translate(-3%, -2%); } }
+
+.oj :is(p, h2, b, label) { text-shadow: 2px 2px 0 var(--oj-skygge); }
+.oj-merke { display: block; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.9; }
+
+.oj-himmel { position: absolute; inset: 0 0 auto; height: 25%; display: grid; justify-items: center; align-content: start; gap: 0.25rem; padding: 0.6rem 24% 0; text-align: center; z-index: 2; pointer-events: none; }
+.oj-kategori { margin: 0; font-size: clamp(1rem, 2.4vw, 1.5rem); line-height: 1.15; }
+.oj-kategori b { font-weight: 800; }
+.oj-tavle { display: flex; gap: 0.5rem; align-items: stretch; }
+.oj-tavle p { margin: 0; padding: 0.2rem 0.7rem 0.3rem; background: rgb(8 19 28 / 0.55); border: 3px solid var(--oj-skygge); box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.12); min-width: 5.5rem; }
+.oj-tavle b { display: block; font-size: clamp(1.35rem, 3.2vw, 2.1rem); font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1.05; color: var(--oj-gull); }
+.oj-teller b { color: var(--oj-blekk); }
+.oj-total.pulser b { animation: oj-pulser 380ms var(--ease-out); }
+@keyframes oj-pulser { 0% { transform: scale(1.35); } 100% { transform: scale(1); } }
+.oj-motstander { margin: 0; font-size: 0.875rem; font-weight: 700; padding: 0.1rem 0.5rem; background: rgb(120 20 20 / 0.55); border: 2px solid var(--oj-skygge); }
+
+.oj-skjema { position: absolute; z-index: 3; left: 50%; top: 37%; transform: translateX(-50%); width: min(30rem, calc(100% - 2rem)); display: flex; }
+.oj-felt {
+  flex: 1; min-width: 0; font: inherit; font-size: 1.25rem; font-weight: 700; color: #1b130c; padding: 0.65rem 0.8rem;
+  background: #f2e3c2; border: 4px solid var(--oj-skygge); border-right: 0; border-radius: 0;
+  box-shadow: inset 3px 3px 0 #fff4d9, inset -3px -3px 0 #c9b083;
+}
+.oj-felt::placeholder { color: #7a6748; }
+.oj-felt:focus-visible { outline: 3px solid var(--oj-gull); outline-offset: 2px; }
+.oj-knapp {
+  font: inherit; font-weight: 900; font-size: 1rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--oj-blekk); cursor: pointer;
+  padding: 0.65rem 1.1rem; background: var(--oj-tre-lys); border: 4px solid var(--oj-skygge); border-radius: 0;
+  box-shadow: inset 3px 3px 0 #c58a4f, inset -3px -3px 0 var(--oj-tre); text-shadow: 2px 2px 0 var(--oj-skygge);
+}
+.oj-knapp:active:not(:disabled) { box-shadow: inset -3px -3px 0 #c58a4f, inset 3px 3px 0 var(--oj-tre); transform: translateY(1px); }
+.oj-knapp:disabled { filter: grayscale(0.7) brightness(0.8); cursor: wait; }
+.oj-knapp:focus-visible { outline: 3px solid var(--oj-gull); outline-offset: 2px; }
+.oj-fyr { background: #b3321f; box-shadow: inset 3px 3px 0 #e0624c, inset -3px -3px 0 #6f1c10; font-size: 1.15rem; }
+@media (hover: hover) and (pointer: fine) { .oj-knapp:hover:not(:disabled) { filter: brightness(1.12); } }
+
+.oj-melding { position: absolute; z-index: 3; left: 50%; bottom: calc(63% + 0.6rem); transform: translateX(-50%); margin: 0; width: min(30rem, calc(100% - 2rem)); text-align: center; font-weight: 700; min-height: 1.5em; }
+.oj-melding.bom { color: #ffb4a6; }
+
+.oj-logg { position: absolute; z-index: 2; left: 0; right: 0; bottom: 4.5%; margin: 0; padding: 0 1rem; list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.35rem; }
+.oj-logg li { font-size: 0.8125rem; font-weight: 700; padding: 0.15rem 0.45rem; background: rgb(8 19 28 / 0.6); border: 2px solid var(--oj-skygge); }
+.oj-logg li b { color: var(--oj-gull); font-variant-numeric: tabular-nums; }
+.oj-logg li.null { opacity: 0.7; }
+.oj-logg li.null b { color: #ffb4a6; }
+
+.oj-panel {
+  position: absolute; z-index: 4; left: 50%; top: 30%; transform: translateX(-50%); width: min(30rem, calc(100% - 2rem));
+  padding: 1.1rem 1.25rem 1.25rem; background: rgb(17 40 58 / 0.92); border: 4px solid var(--oj-skygge);
+  box-shadow: inset 0 0 0 3px #2f6a8e, 6px 6px 0 rgb(0 0 0 / 0.35); text-align: center; display: grid; gap: 0.75rem;
+}
+.oj-panel p { margin: 0; }
+.oj-panel a { color: var(--oj-gull); }
+.oj-tittel { margin: 0; font-size: 2rem; font-weight: 900; letter-spacing: 0.04em; color: var(--oj-gull); }
+.oj-valg { display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap; }
+.oj-bli-med { display: flex; gap: 0; justify-content: center; align-items: center; flex-wrap: wrap; row-gap: 0.4rem; }
+.oj-bli-med label { width: 100%; font-weight: 700; }
+.oj-kode { flex: 0 1 8rem; text-transform: uppercase; letter-spacing: 0.2em; text-align: center; }
+.oj-feil { color: #ffb4a6; font-weight: 700; min-height: 1.2em; }
+.oj-sjeldne { font-size: 0.9375rem; opacity: 0.95; }
+.oj-regler { margin-top: 2rem; }
+.oj-kilde { font-size: var(--t-small); color: var(--muted); }
+@media (max-width: 40rem) {
+  .oj-himmel { padding-inline: 4.5rem; }
+  .oj-tavle p { min-width: 4.5rem; padding-inline: 0.45rem; }
+  .oj-skjema { top: 34%; }
+  .oj-melding { bottom: calc(66% + 0.6rem); font-size: 0.875rem; }
+}
+@media (prefers-reduced-motion: reduce) { .oj-korn { animation: none; } .oj-total.pulser b { animation: none; } }
