@@ -278,6 +278,7 @@ function oppdater(dt) {
     }
   }
   for (let i = tall.length - 1; i >= 0; i--) if (tall[i].ferdig) tall.splice(i, 1);
+  if (spill.sluttTidligst && !tall.length && !kuler.length && Date.now() >= spill.sluttTidligst) { spill.sluttTidligst = 0; visSlutt(); }
   rist = Math.max(0, rist - dt);
 }
 
@@ -360,7 +361,7 @@ function lagKorn() {
 /* ---------------- Spillet ---------------- */
 const KATEGORIER = data.kategorier;
 const meg = Math.random().toString(36).slice(2, 10);
-const spill = { kode: null, rekkefolge: [], runde: 0, svar: [], brukt: new Set(), total: 0, vist: 0, ferdig: false, låst: false, frist: 0, klokke: null };
+const spill = { kode: null, rekkefolge: [], runde: 0, svar: [], brukt: new Set(), total: 0, vist: 0, ferdig: false, låst: false, frist: 0, klokke: null, sluttTidligst: 0, sluttTittel: "" };
 let rom = null;
 const motspiller = { id: null, runde: 0, total: 0, svar: 0, ferdig: false };
 
@@ -402,16 +403,16 @@ function avsluttRunde(tidenUte) {
   clearInterval(spill.klokke);
   vis("skjema", false);
   $("melding").classList.remove("bom");
-  $("melding").textContent = "";
+  $("melding").textContent = tidenUte ? "Tiden er ute!" : "";
   spill.sluttTittel = tidenUte ? "Tiden er ute!" : "Runden er over";
   if (tidenUte) $("tid").textContent = "0";
   spillFanfare();
   sendStatus();
-  visSlutt();
+  // Oppsummeringen kommer når fanfaren (3,3 s) er ferdig og alle tallene har fordampet.
+  spill.sluttTidligst = Date.now() + 3300;
 }
 
 function vedAnkomst(poeng) {
-  if (spill.ferdig) return; // sluttsummen står allerede
   spill.vist = Math.round((spill.vist + poeng) * 10) / 10;
   $("total").textContent = fmt(spill.vist);
   const p = $("total").parentElement;
@@ -459,6 +460,7 @@ $("skjema").addEventListener("submit", (e) => {
 });
 
 function visSlutt() {
+  $("melding").textContent = "";
   spill.vist = spill.total;
   $("total").textContent = fmt(spill.total);
   const ord = kategori().ord;
