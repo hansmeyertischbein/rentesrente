@@ -174,6 +174,12 @@ const LYDER = {
     bjelle(hz(96 - ned), t0 + 0.08, { volum: 0.06, lengde: 0.9 });
     bjelle(hz(100 - ned), t0 + 0.1, { volum: 0.05, lengde: 0.9 });
   },
+  // Ny etasje: heisen plinger.
+  heis() {
+    const t0 = ctx.currentTime + 0.25;
+    bjelle(hz(88), t0, { volum: 0.06, lengde: 1.1 });
+    bjelle(hz(84), t0 + 0.28, { volum: 0.06, lengde: 1.5 });
+  },
   // Booster: en arpeggio som stiger, med glitter på toppen.
   booster() {
     const t0 = ctx.currentTime;

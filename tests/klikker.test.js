@@ -353,7 +353,7 @@ test("bare første selskap og én skygge vises i starten, og nye åpnes når du 
 });
 
 test("en lagret tilstand kommer likt tilbake, uten uro", () => {
-  let t = medAksjer({ limonade: 12, geitan: 3 }, { saldo: 1234.5, totalt: 99999, trykk: 40, trykkNiva: 5, boostere: ["fast", "tangent"], ventende: [{ sum: 500, lovet: 600, pris: 450, igjen: 20, lengde: 40 }], radgiver: 3 });
+  let t = medAksjer({ limonade: 12, geitan: 3 }, { forstekjop: ["limonade", "geitan"], saldo: 1234.5, totalt: 99999, trykk: 40, trykkNiva: 5, boostere: ["fast", "tangent"], ventende: [{ sum: 500, lovet: 600, pris: 450, igjen: 20, lengde: 40 }], radgiver: 3 });
   t = startHendelse(t, { type: "krakk", sek: 30 });
   const lagret = JSON.parse(JSON.stringify(tilLagring(t, 1000)));
   assert.equal(lagret.uro, undefined);

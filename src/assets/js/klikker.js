@@ -6,6 +6,7 @@ import {
   tilLagring, fraLagring, radgiverTreff, prisRadgiver, kjopRadgiver, radgiverSynlig, radgiverPek, formaterTid,
   prestasjonerSteg, giring, giret,
 } from "/lib/klikker.js";
+import { etasje } from "/lib/byutsikt.js";
 import { formaterTall } from "/lib/format.js";
 import { FIGURER, lagGris } from "./klikker-figurer.js";
 import {
@@ -19,6 +20,7 @@ import * as konto from "./overfor-konto.js";
 import * as prestasjoner from "./overfor-prestasjoner.js";
 import * as innstillinger from "./overfor-innstillinger.js";
 import * as vakt from "./overfor-vakt.js";
+import * as utsikt from "./overfor-utsikt.js";
 import { spill } from "./lyd.js";
 
 const NOKKEL = "rr-overfor-2";
@@ -34,7 +36,7 @@ const el = {
   hendelse: $("hendelse"), ekstra: $("ekstra"), ekstraVilkar: $("ekstra-vilkar"), ekstraNavn: $("ekstra-navn"), ekstraValg: $("ekstra-valg"), ventende: $("ventende"), status: $("status"), annonse: $("annonse"),
   butikk: $("butikk"), husk: $("husk"), omstart: $("omstart"),
   mini: $("mini"), miniSaldo: $("mini-saldo"), miniRate: $("mini-rate"),
-  scene: $("scene"), by: $("by"), side: document.querySelector(".spillside"), meldinger: document.querySelector(".meldinger"),
+  scene: $("scene"), side: document.querySelector(".spillside"), meldinger: document.querySelector(".meldinger"),
   intro: $("intro"), omSpillet: $("om-spillet"),
   radgiver: $("radgiver"), radgiverFigur: $("radgiver-figur"), radgiverInfo: $("radgiver-info"),
   radgiverKnapp: $("radgiver-knapp"), radgiverHandling: $("radgiver-handling"), radgiverPris: $("radgiver-pris"),
@@ -306,6 +308,8 @@ function kjop(id) {
   if (t === for_) { spill("feil"); si(`Du mangler ${ore(prisAksje(t, id, ant) - t.saldo)}.`); return; }
   hopp(rader.get(id)?.figur);
   spill("aksje", AKSJER.findIndex((a) => a.id === id));
+  const opp = etasje(t) > etasje(for_);
+  if (opp) spill("heis");
   if (rabatt(for_, id) > 0) gi(["krakk-kjop"]);
   if (id === pekt) { pekNeste = 0; gi(["radgiver-lytt"]); }   // rådgiveren ser på nytt når du har kjøpt det han pekte på
   const n = t.aksjer[id];
@@ -319,7 +323,7 @@ function kjop(id) {
     spill("gf");
     si(`Generalforsamling i ${a.navn}: du stemte for høyere utbytte. Nå ${ganger(Math.pow(REGLER.gfFaktor, gf))} utbytte.`);
   }
-  else si(`${a.navn}: ${formaterTall(n)} ${flertall(a, n)}, ${perSek(aksjeRate(t, id))}.`);
+  else si(`${a.navn}: ${formaterTall(n)} ${flertall(a, n)}, ${perSek(aksjeRate(t, id))}.${opp ? ` Du flyttet opp til ${etasje(t) + 1}. etasje.` : ""}`);
   tegn();
   lagre();
 }
@@ -606,79 +610,6 @@ el.radgiverKnapp.addEventListener("click", () => {
   lagre();
 });
 
-// ---------- Byen i bakgrunnen: én figur for hver aksje, bod og butikk du eier ----------
-
-const bilder = {};
-let byNokkel = "";
-
-function bilde(id) {
-  if (!bilder[id]) {
-    const img = new Image();
-    const kode = FIGURER[id].svg.replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" ');
-    img.onload = () => { byNokkel = ""; };
-    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(kode);
-    bilder[id] = img;
-  }
-  return bilder[id];
-}
-
-// Byen bygges fra bakken og opp. Innen hver rad er rekkefølgen fast, men stokket, så figurene står på samme sted fra gang til gang.
-function rekkefolge(kol, rad) {
-  let fro = 20261117;
-  const neste = () => { fro = (fro * 1664525 + 1013904223) % 4294967296; return fro / 4294967296; };
-  const liste = [];
-  for (let r = rad - 1; r >= 0; r--) {
-    const kolonner = Array.from({ length: kol }, (_, i) => i);
-    for (let i = kol - 1; i > 0; i--) { const j = Math.floor(neste() * (i + 1)); [kolonner[i], kolonner[j]] = [kolonner[j], kolonner[i]]; }
-    for (const k of kolonner) liste.push({ k, r, dx: neste() - 0.5, dy: neste() - 0.5 });
-  }
-  return liste;
-}
-
-function tegnBy() {
-  // Byen står under saldoen, så tallene alltid er lette å lese.
-  const topp = el.konto.offsetTop + el.konto.offsetHeight + 8;
-  const b = el.scene.clientWidth, h = Math.max(0, el.scene.clientHeight - topp);
-  if (el.by.style.top !== `${topp}px`) { el.by.style.top = `${topp}px`; el.by.style.height = `${h}px`; }
-  const eide = AKSJER.filter((a) => t.aksjer[a.id] > 0).map((a) => ({ id: a.id, n: t.aksjer[a.id] }));
-  const nokkel = `${b}x${h}:` + eide.map((e) => `${e.id}${e.n}`).join(",");
-  if (nokkel === byNokkel || !b || !h) return;
-  byNokkel = nokkel;
-  const dpr = Math.min(2, devicePixelRatio || 1);
-  el.by.width = Math.round(b * dpr);
-  el.by.height = Math.round(h * dpr);
-  const ctx = el.by.getContext("2d");
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, b, h);
-  const totalt = eide.reduce((s, e) => s + e.n, 0);
-  if (!totalt) return;
-  const rute = Math.max(13, Math.min(34, Math.floor(Math.sqrt((b * h) / totalt))));
-  const kol = Math.floor(b / rute), rad = Math.floor(h / rute);
-  const plasser = kol * rad;
-  // Er det flere enn det er plass til, får hvert selskap plass etter hvor mange du eier, men minst én.
-  const tegnes = totalt <= plasser ? eide : eide.map((e) => ({ ...e, n: Math.max(1, Math.floor((e.n / totalt) * plasser)) }));
-  const rekke = rekkefolge(kol, rad);
-  const kant = (b - kol * rute) / 2;
-  const luft = Math.max(1.5, rute * 0.08);
-  const str = rute - 2 * luft;
-  let i = 0;
-  for (const e of tegnes) {
-    const img = bilde(e.id);
-    const tile = FIGURER[e.id].tile;
-    for (let k = 0; k < e.n && i < plasser; k++, i++) {
-      const p = rekke[i];
-      const x = kant + p.k * rute + luft + p.dx * luft;
-      const y = h - (rad - p.r) * rute + luft + p.dy * luft;
-      ctx.fillStyle = tile;
-      ctx.beginPath();
-      ctx.roundRect ? ctx.roundRect(x, y, str, str, str * 0.25) : ctx.rect(x, y, str, str);
-      ctx.fill();
-      if (img.complete && img.naturalWidth) ctx.drawImage(img, x, y, str, str);
-    }
-  }
-}
-if ("ResizeObserver" in window) new ResizeObserver(() => { byNokkel = ""; tegnBy(); }).observe(el.scene);
-
 function tegn(naa = performance.now()) {
   tegnGris();
   profil.tegn();
@@ -693,7 +624,7 @@ function tegn(naa = performance.now()) {
   tegnUro();
   tegnEkstra(naa);
   tegnMilepel();
-  tegnBy();
+  utsikt.tegn();
   oppdaterTips();
 }
 
@@ -785,7 +716,6 @@ function tilpass() {
   const plass = innerHeight - Math.min(topp, 90) - 24;
   const z = Math.max(0.5, Math.min(1.2, plass / scene));
   el.side.style.zoom = z.toFixed(3);
-  byNokkel = "";
 }
 addEventListener("resize", () => { clearTimeout(tilpassTid); tilpassTid = setTimeout(tilpass, 150); });
 pc.addEventListener?.("change", tilpass);
@@ -832,6 +762,7 @@ konto.start(api);
 prestasjoner.start(api);
 innstillinger.start();
 vakt.start();
+utsikt.start360(api);
 
 // ---------- I gang ----------
 

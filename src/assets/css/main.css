@@ -639,14 +639,28 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
   position: relative; display: grid; grid-template-columns: 3.5rem minmax(0, 1fr) 3.5rem;
   grid-template-areas: "prof prof prof" "konto konto konto" "boost gris uro" "oppg oppg oppg" "meld meld meld"; gap: 1rem 0.5rem; align-items: start;
 }
-.klikk-scene > :not(.by) { position: relative; z-index: 1; }
-/* Byen: én figur for hver aksje du eier, svakt i bakgrunnen og borte bak grisen. */
-.by {
-  position: absolute; z-index: 0; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.4;
-  -webkit-mask-image: radial-gradient(ellipse 44% 36% at 50% 30%, transparent 55%, #000 100%);
-  mask-image: radial-gradient(ellipse 44% 36% at 50% 30%, transparent 55%, #000 100%);
+.klikk-scene { z-index: 1; }
+.klikk-scene > * { position: relative; z-index: 1; }
+/* Utsikten: byen rundt deg i 360 grader, bak hele spillet. Ruta blir stående mens du ruller. */
+.utsikt { position: absolute; inset: 0; z-index: 0; overflow: clip; border-radius: inherit; pointer-events: none; }
+.utsikt-rute { position: sticky; top: 0; height: 100svh; overflow: clip; }
+.utsikt-lag { position: absolute; top: 0; left: 0; display: flex; width: max-content; will-change: transform; }
+.utsikt-lag canvas { display: block; flex: none; image-rendering: pixelated; }
+.utsikt-korn { position: absolute; inset: -20%; z-index: 2; opacity: 0.04; mix-blend-mode: overlay; background-size: 288px; image-rendering: pixelated; }
+@media (prefers-reduced-motion: no-preference) {
+  .utsikt-korn { animation: utsikt-korn 4s step-end infinite; }
+  @keyframes utsikt-korn { 25% { transform: translate(-5%, 4%); } 50% { transform: translate(4%, -6%); } 75% { transform: translate(-3%, -2%); } }
 }
-@media (prefers-color-scheme: dark) { .by { opacity: 0.3; } }
+.klikk > .butikk { position: relative; z-index: 1; }
+/* Tekst som står rett på utsikten, får papir bak seg. */
+.gris-konto, .fart, .boostere .panel-tittel, .butikk-hode, .klikk-husk, .spill-omstart, .meldinger .status:not(:empty) {
+  background: color-mix(in srgb, var(--g-kort) 88%, transparent); border-radius: 1rem;
+}
+.gris-konto { justify-self: center; padding: 0.5rem 1.25rem 0.6rem; border: 2px solid var(--g-blekk); }
+.fart { padding: 0.25rem 0.8rem 0.4rem; }
+.boostere .panel-tittel { padding: 0.05rem 0.45rem; border-radius: 999px; }
+.butikk-hode, .klikk-husk, .spill-omstart { padding: 0.5rem 0.85rem; }
+.meldinger .status:not(:empty) { padding: 0.2rem 0.8rem; }
 .gris-konto { grid-area: konto; text-align: center; }
 .konto-merke { font-size: var(--t-small); font-weight: 650; color: var(--g-dempet); }
 .konto-saldo { font-size: 2.25rem; font-weight: 750; font-stretch: var(--widest); line-height: 1.1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; }

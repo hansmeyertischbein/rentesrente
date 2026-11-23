@@ -266,7 +266,7 @@ function kjopValgtGud() {
   tegnGudVindu();
 }
 
-let gudToppNokkel = "";
+let gudToppNokkel = null;   // ikonet er ikke tegnet ennå
 function tegnGuder() {
   const x = t();
   vis(el.gudTopp, guderSynlig(x));

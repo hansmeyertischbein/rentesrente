@@ -154,6 +154,7 @@ export function nyTilstand() {
     trykkNiva: 0,
     aksjer: Object.fromEntries(AKSJER.map((a) => [a.id, 0])),
     boostere: [],   // id-ene til kjøpte boostere
+    forstekjop: [], // selskapene du har kjøpt i, i rekkefølge. Hvert av dem gir deg en etasje høyere utsikt.
     ventende: [],   // ekstraordinære utbytter: { sum, igjen }
     radgiver: 0,    // 0 er ikke ansatt, 1 er 30 % treff, og hvert nivå over gir 10 prosentpoeng mer
     ikon: "deg",    // ikonet øverst til venstre
@@ -295,7 +296,11 @@ export function maksAksje(t, id) {
 export function kjopAksje(t, id, antall = 1) {
   const pris = prisAksje(t, id, antall);
   if (!(pris <= t.saldo)) return t;
-  const etter = { ...t, saldo: t.saldo - pris, aksjer: { ...t.aksjer, [id]: t.aksjer[id] + antall } };
+  const for_ = t.forstekjop ?? [];
+  const etter = {
+    ...t, saldo: t.saldo - pris, aksjer: { ...t.aksjer, [id]: t.aksjer[id] + antall },
+    forstekjop: for_.includes(id) ? for_ : [...for_, id],
+  };
   const bonus = FORDELER.filter((f) => f.type === "bonus" && !harFordel(t, f) && harFordel(etter, f))
     .reduce((sum, f) => sum + f.verdi * trykkverdi(etter), 0);
   return bonus > 0 ? { ...etter, saldo: etter.saldo + bonus, totalt: etter.totalt + bonus } : etter;
@@ -821,6 +826,9 @@ export function fraLagring(obj) {
     if (!heltall(n, 1e5)) return null;
     t.aksjer[a.id] = n;
   }
+  // Eldre lagringer mangler rekkefølgen. Da regnes selskapene du eier som kjøpt.
+  const kjopt = Array.isArray(obj.forstekjop) ? obj.forstekjop.filter((id) => aksje(id)) : [];
+  t.forstekjop = [...new Set([...kjopt, ...AKSJER.filter((a) => t.aksjer[a.id] > 0).map((a) => a.id)])];
   if (!Array.isArray(obj.boostere) || !obj.boostere.every((id) => typeof id === "string")) return null;
   t.boostere = [...new Set(obj.boostere.filter((id) => booster(id)))];
   const radgiver = obj.radgiver ?? 0;
