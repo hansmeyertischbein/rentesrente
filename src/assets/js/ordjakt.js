@@ -1,10 +1,17 @@
 // Ordjakt: grensesnitt og pikselscene. Regnelogikken ligger i /lib/ordjakt.js.
-import { SVAR_PER_RUNDE, SEKUNDER_PER_RUNDE, vurder, totalt, rekkefolge, nyKode, gyldigKode, simulerSpillere, toppProsent } from "/lib/ordjakt.js";
-import { lasOpp, settLyd, spillFanfare } from "./ordjakt-lyd.js";
+import { SVAR_PER_RUNDE, SEKUNDER_PER_RUNDE, vurder, rekkefolge, nyKode, gyldigKode, simulerSpillere, toppProsent, BOOST_SEKUNDER, boostFaktor, nesteRekke, medBoost } from "/lib/ordjakt.js";
+import { kommentar } from "/lib/ordjakt-kommentarer.js";
+import { lasOpp, settLyd, spillFanfare, spillSkudd, spillTreff, spillPlask } from "./ordjakt-lyd.js";
+import { VARER, FLERE, EKSTRA_SEKUNDER, nyKasse, lesKasse, tjen, mynterFor, kjop, velg, bruk } from "/lib/ordjakt-butikk.js";
+import { BREDDE, HOYDE, nyBorg, igjen as steinerIgjen, sikt, knus } from "/lib/ordjakt-borg.js";
 import data from "./ordjakt-data.js";
 import { kobleTilRom } from "./ordjakt-rom.js";
 
 const $ = (id) => document.getElementById(id);
+// Pengene huskes bare på denne enheten, og bare når spilleren har krysset av for det.
+let kasse = nyKasse(), husk = false;
+try { const lagret = localStorage.getItem("rr-ordjakt-kasse"); if (lagret) { kasse = lesKasse(lagret); husk = true; } } catch { /* lageret er stengt */ }
+
 const scene = $("oj");
 const lerret = $("lerret");
 const ctx = lerret.getContext("2d");
@@ -51,8 +58,8 @@ let H = 200, vann = 50, bunn = 190, bak = null;
 const mål = { kanonX: 0, kanonY: 0, treff: [0, 0], hvile: [160, 110], total: [160, 20], skipX: 10 };
 
 const STEIN = [[118, 118, 122], [96, 96, 102], [140, 138, 140]];
-const kystY = () => Math.round(H * 0.06);
-const veggX = (y) => Math.round(B * 0.83) + Math.floor(hash(0, Math.floor(y / 5), 3) * 5) + (y > vann ? Math.floor((y - vann) / 14) : 0);
+const kystY = () => vann - Math.max(6, Math.round(vann * 0.2));
+const veggX = (y) => Math.round(B * 0.8) + Math.floor(hash(0, Math.floor(y / 5), 3) * 5) + (y > vann ? Math.floor((y - vann) / 14) : 0);
 const bunnY = (x) => bunn - Math.round(3 * Math.sin(x / 23) + 2 * Math.sin(x / 7 + 1));
 
 function lagBakgrunn() {
@@ -132,7 +139,9 @@ function tegnTang(t) {
   }
 }
 
+const vare = (type) => VARER.find((v) => v.id === kasse.valgt[type]);
 function tegnSkip(t) {
+  const seilfarge = vare("seil")?.farge ?? [238, 228, 200];
   const x = mål.skipX, dy = Math.round(Math.sin(t * 1.6) * 1.2);
   const dekk = vann - 7 + dy, L = 66;
   // skrog
@@ -168,7 +177,7 @@ function tegnSkip(t) {
         const bule = Math.round(Math.sin((yy / seilH) * Math.PI) * 2);
         for (let xx = -sb / 2 - bule; xx < sb / 2 + bule; xx++) {
           const n = (hash(mx + xx, sy + yy, 41) - 0.5) * 16;
-          ctx.fillStyle = `rgb(${238 + n} ${228 + n} ${200 + n})`;
+          ctx.fillStyle = `rgb(${seilfarge[0] + n} ${seilfarge[1] + n} ${seilfarge[2] + n})`;
           ctx.fillRect(mx + 1 + xx, sy + yy, 1, 1);
         }
       }
@@ -182,6 +191,42 @@ function tegnSkip(t) {
   }
   // vann over den nederste delen av skroget
   ctx.fillStyle = "rgb(38 128 178 / 0.55)"; ctx.fillRect(x - 2, vann + 1, L + 8, 6);
+}
+
+/* Borgen står på land. Steinene er rutene i /lib/ordjakt-borg.js. */
+let borg = nyBorg();
+const rute = () => Math.max(2, Math.min(4, Math.floor((kystY() - 2) / HOYDE)));
+function stein(s) {
+  const r = rute();
+  return [Math.round(B * 0.82) + Math.floor((B * 0.18 - BREDDE * r) / 2) + s.x * r, kystY() + 3 - (HOYDE - s.y) * r];
+}
+function tegnBorg(t) {
+  const r = rute();
+  for (const s of borg) {
+    if (!s.hel) continue;
+    const [x, y] = stein(s);
+    const n = (hash(s.x, s.y, 50) - 0.5) * 34;
+    ctx.fillStyle = s.type === "D" ? `rgb(${94 + n / 2} ${58 + n / 2} ${30 + n / 3})` : `rgb(${164 + n} ${156 + n} ${144 + n})`;
+    ctx.fillRect(x, y, r, r);
+    ctx.fillStyle = "rgb(40 34 30 / 0.4)";
+    ctx.fillRect(x, y + r - 1, r, 1); ctx.fillRect(x + r - 1, y, 1, r);
+    if (s.type === "V") { ctx.fillStyle = "#1c1512"; ctx.fillRect(x + (r >> 2), y, Math.max(1, r >> 1), r); }
+  }
+  const topp = borg.find((s) => s.x === 6 && s.y === 0);
+  if (topp.hel) {
+    const [x, y] = stein(topp);
+    ctx.fillStyle = "#4a2a12"; ctx.fillRect(x + 1, y - 6, 1, 6);
+    ctx.fillStyle = "#c22f2f"; ctx.fillRect(x + 2, y - 6, 5 + (Math.sin(t * 2) > 0 ? 1 : 0), 3);
+  }
+}
+function knusBorg(mål) {
+  if (!mål) return;
+  const r = rute(), start = borg.length;
+  const antall = Math.ceil((start / SVAR_PER_RUNDE) * (kasse.valgt.kanon ? 1.8 : 1));
+  for (const s of knus(borg, mål, antall)) {
+    const [x, y] = stein(s);
+    for (let i = 0; i < 3; i++) partikkel(x + Math.random() * r, y + Math.random() * r, -10 - Math.random() * 60, -20 - Math.random() * 70, i ? "#a49c90" : "#7d756b", 1.6, { s: i ? 1 : 2 });
+  }
 }
 
 function tegnOverflate(t) {
@@ -208,16 +253,20 @@ function sprut(x, n = 12) {
 }
 
 function skyt(treff, vedNedslag) {
+  spillSkudd();
   const x0 = mål.kanonX, y0 = mål.kanonY;
-  const [tx, ty] = treff ? mål.treff : [Math.round(x0 + (veggX(vann) - x0) * (0.45 + Math.random() * 0.2)), vann];
+  const stn = treff ? sikt(borg) : null;
+  const [tx, ty] = treff ? (stn ? stein(stn) : [Math.round(B * 0.9), kystY()]) : [Math.round(x0 + (veggX(vann) - x0) * (0.45 + Math.random() * 0.2)), vann];
   const T = 0.6 / FART, g = 260;
-  kuler.push({ x: x0, y: y0, vx: (tx - x0) / T, vy: (ty - y0 - 0.5 * g * T * T) / T, g, t: 0, T, treff, vedNedslag });
+  kuler.push({ x: x0, y: y0, vx: (tx - x0) / T, vy: (ty - y0 - 0.5 * g * T * T) / T, g, t: 0, T, treff, stn, vedNedslag });
   for (let i = 0; i < 10; i++) partikkel(x0 + 1, y0 + 1, 40 + Math.random() * 60, (Math.random() - 0.7) * 50, i < 4 ? "#ffd34d" : "#ff8a3d", 0.18, { g: 0 });
   for (let i = 0; i < 8; i++) partikkel(x0, y0, 10 + Math.random() * 25, -8 - Math.random() * 14, "#d9d9d9", 0.9 + Math.random() * 0.5, { g: -10, s: 2 });
 }
 
+let plass = 0; // seks plasser under feltet, så tall som kommer raskt, ikke dekker hverandre
 function nyttTall(tekst, poeng, x, y, farge, synkerBare) {
-  tall.push({ tekst, poeng, farge, x, y, vx: -35 - Math.random() * 25, vy: -70, fase: "fall", t: 0, frø: Math.floor(Math.random() * 1000), synkerBare, hvileX: mål.hvile[0] + Math.round((Math.random() - 0.5) * 30) });
+  tall.push({ tekst, poeng, farge, x, y, vx: -35 - Math.random() * 25, vy: -70, fase: "fall", t: 0, frø: Math.floor(Math.random() * 1000), synkerBare, hvileX: mål.hvile[0] + [0, -56, 56][plass % 3], rad: plass >= 3 ? 14 : 0 });
+  plass = (plass + 1) % 6;
 }
 
 const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
@@ -225,16 +274,18 @@ const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 function oppdater(dt) {
   for (const k of kuler) {
     k.t += dt; k.x += k.vx * dt; k.vy += k.g * dt; k.y += k.vy * dt;
-    if (Math.random() < 0.6) partikkel(k.x, k.y, 0, -4, "rgb(220 220 220 / 0.7)", 0.4, { g: 0 });
+    if (Math.random() < 0.6) partikkel(k.x, k.y, 0, -4, vare("kule")?.farge ?? "rgb(220 220 220 / 0.7)", 0.4, { g: 0, s: vare("kule") ? 2 : 1 });
     if (k.t >= k.T) {
       k.ferdig = true;
       if (k.treff) {
         rist = roligere ? 0 : 0.25;
+        spillTreff();
+        knusBorg(k.stn);
         for (let i = 0; i < 18; i++) partikkel(k.x, k.y, -20 - Math.random() * 80, -30 - Math.random() * 80, rgb(STEIN[i % 3]), 1.4, { s: 1 + (i % 2) });
         for (let i = 0; i < 8; i++) partikkel(k.x, k.y, -10 - Math.random() * 20, -5 - Math.random() * 15, "#c9c2b8", 0.9, { g: -6, s: 2 });
         for (let i = 0; i < 6; i++) partikkel(k.x, k.y, -30 - Math.random() * 40, -20 - Math.random() * 40, "#ffd34d", 0.25, { g: 0 });
-      } else sprut(k.x, 16);
-      k.vedNedslag?.(k.x, k.y);
+      } else { sprut(k.x, 16); spillPlask(); }
+      k.vedNedslag?.(k.treff ? Math.min(k.x, veggX(vann) - 6) : k.x, k.y);
     }
   }
   for (let i = kuler.length - 1; i >= 0; i--) if (kuler[i].ferdig) kuler.splice(i, 1);
@@ -255,11 +306,11 @@ function oppdater(dt) {
     } else if (n.fase === "synk") {
       const k = Math.min(1, n.t / 1.4), e = 1 - (1 - k) ** 3;
       n.x = n.sx + (n.hvileX - n.sx) * e + Math.sin(n.t * 5) * 2 * (1 - k);
-      n.y = n.sy + (mål.hvile[1] - n.sy) * e;
+      n.y = n.sy + (mål.hvile[1] + n.rad - n.sy) * e;
       if (Math.random() < 0.15) partikkel(n.x, n.y - 4, 0, -18, "#bfe9ff", 2, { boble: true });
       if (k >= 1) { n.fase = "hvil"; n.t = 0; }
     } else if (n.fase === "hvil") {
-      n.y = mål.hvile[1] + Math.round(Math.sin(n.t * 3) * 1);
+      n.y = mål.hvile[1] + n.rad + Math.round(Math.sin(n.t * 3) * 1);
       if (n.t > 0.8) { n.fase = n.synkerBare ? "løs" : "stig"; n.t = 0; n.sy = n.y; }
     } else if (n.fase === "løs") {
       if (n.t > 0.8) n.ferdig = true;
@@ -288,9 +339,10 @@ function tegn(t) {
   ctx.drawImage(bak, 0, 0);
   tegnSkyer(sistDt);
   tegnTang(t);
+  tegnBorg(t);
   tegnSkip(t);
   tegnOverflate(t);
-  for (const k of kuler) { ctx.fillStyle = "#111"; ctx.fillRect(Math.round(k.x) - 1, Math.round(k.y) - 1, 3, 3); ctx.fillStyle = "#666"; ctx.fillRect(Math.round(k.x) - 1, Math.round(k.y) - 1, 1, 1); }
+  for (const k of kuler) { ctx.fillStyle = vare("kule")?.farge ?? "#111"; ctx.fillRect(Math.round(k.x) - 1, Math.round(k.y) - 1, 3, 3); ctx.fillStyle = "#666"; ctx.fillRect(Math.round(k.x) - 1, Math.round(k.y) - 1, 1, 1); }
   for (const p of partikler) {
     ctx.globalAlpha = Math.max(0, Math.min(1, p.liv / p.maks + 0.2));
     ctx.fillStyle = p.farge; ctx.fillRect(Math.round(p.x), Math.round(p.y), p.s, p.s);
@@ -329,7 +381,6 @@ function tilpass() {
   vann = Math.round(H * 0.25);
   bunn = H - 8;
   bak = lagBakgrunn();
-  mål.treff = [veggX(vann - Math.round(vann * 0.4)) - 1, vann - Math.round(vann * 0.4)];
   mål.skipX = Math.max(4, Math.round(B * 0.03));
   oppdaterMål();
   tegn(performance.now() / 1000); // endret størrelse tømmer lerretet
@@ -361,7 +412,9 @@ function lagKorn() {
 /* ---------------- Spillet ---------------- */
 const KATEGORIER = data.kategorier;
 const meg = Math.random().toString(36).slice(2, 10);
-const spill = { kode: null, rekkefolge: [], runde: 0, svar: [], brukt: new Set(), total: 0, vist: 0, ferdig: false, låst: false, frist: 0, klokke: null, sluttTidligst: 0, sluttTittel: "" };
+const spill = { kode: null, rekkefolge: [], runde: 0, svar: [], brukt: new Set(), total: 0, vist: 0, ferdig: false, låst: false, frist: 0, klokke: null, sluttTidligst: 0, sluttTittel: "", rekke: 0, sisteTreff: 0, hjelp: false };
+let frøMitt = Math.random().toString(36).slice(2, 10); // rekkefølgen av kategorier; i rom avtales den mellom dere
+let startet = false;
 let rom = null;
 const motspiller = { id: null, runde: 0, total: 0, svar: 0, ferdig: false };
 
@@ -369,6 +422,10 @@ const kategori = () => KATEGORIER[spill.rekkefolge[spill.runde % KATEGORIER.leng
 const vis = (id, på) => { $(id).hidden = !på; };
 
 function startRunde() {
+  startet = true;
+  if (!rom) sett.push(spill.rekkefolge[spill.runde % KATEGORIER.length]);
+  borg = nyBorg();
+  spill.rekke = 0; spill.sisteTreff = 0; spill.hjelp = false; spill.sluttTidligst = 0;
   tall.length = 0; kuler.length = 0; // tall fra forrige runde skal ikke telle i denne
   spill.svar = []; spill.brukt = new Set(); spill.total = 0; spill.vist = 0; spill.ferdig = false;
   $("kategori").textContent = kategori().navn;
@@ -376,7 +433,7 @@ function startRunde() {
   $("teller").textContent = `0/${SVAR_PER_RUNDE}`;
   $("logg").replaceChildren();
   $("melding").textContent = "";
-  for (const id of ["start", "venter", "slutt"]) vis(id, false);
+  for (const id of ["start", "venter", "slutt", "butikk"]) vis(id, false);
   vis("skjema", true);
   oppdaterMål();
   $("svar").value = "";
@@ -386,6 +443,8 @@ function startRunde() {
   clearInterval(spill.klokke);
   spill.klokke = setInterval(tikk, 100);
   tikk();
+  visHjelp();
+  visMotspiller();
   sendStatus();
 }
 
@@ -394,14 +453,25 @@ function tikk() {
   const igjen = Math.max(0, Math.ceil((spill.frist - Date.now()) / 1000));
   $("tid").textContent = String(igjen);
   $("tid").parentElement.classList.toggle("snart", igjen <= 10);
+  visBoost();
   if (igjen === 0) avsluttRunde(true);
+}
+
+// Boost-måleren viser hva neste treff ganges med, og hvor lenge det er igjen å svare.
+function visBoost() {
+  const siden = (Date.now() - spill.sisteTreff) / 1000;
+  const aktiv = !spill.ferdig && spill.sisteTreff > 0 && siden <= BOOST_SEKUNDER;
+  $("boost").hidden = !aktiv;
+  if (!aktiv) return;
+  $("boost-tekst").textContent = `Boost ×${fmt(boostFaktor(nesteRekke(spill.rekke, siden)))}`;
+  $("boost-fyll").style.transform = `scaleX(${Math.max(0, 1 - siden / BOOST_SEKUNDER)})`;
 }
 
 function avsluttRunde(tidenUte) {
   if (spill.ferdig) return;
   spill.ferdig = true;
   clearInterval(spill.klokke);
-  vis("skjema", false);
+  vis("skjema", false); vis("boost", false); vis("hjelp", false);
   $("melding").classList.remove("bom");
   $("melding").textContent = tidenUte ? "Tiden er ute!" : "";
   spill.sluttTittel = tidenUte ? "Tiden er ute!" : "Runden er over";
@@ -443,16 +513,23 @@ $("skjema").addEventListener("submit", (e) => {
   setTimeout(() => { spill.låst = false; }, 700 / FART);
   if (r.status === "treff") {
     spill.brukt.add(r.indeks);
+    const nå = Date.now();
+    spill.rekke = nesteRekke(spill.rekke, spill.sisteTreff ? (nå - spill.sisteTreff) / 1000 : Infinity);
+    spill.sisteTreff = nå;
+    const boost = boostFaktor(spill.rekke);
+    r.poeng = medBoost(r.poeng, spill.rekke);
     spill.total = Math.round((spill.total + r.poeng) * 10) / 10;
     const andel = Math.round(r.andel * 1000) / 10;
-    melding.textContent = `Treff! «${r.ord}» er ${fmt(andel)} % av lesingen. ${fmt(r.poeng)} poeng.`;
+    melding.textContent = `Treff! «${r.ord}» er ${fmt(andel)} % av lesingen. ${fmt(r.poeng)} poeng${boost > 1 ? ` med boost ×${fmt(boost)}` : ""}.`;
     loggRad(r.ord, r.poeng, false);
     skyt(true, (x, y) => nyttTall("+" + fmt(r.poeng), r.poeng, x, y, "#ffd34d", false));
   } else {
     melding.textContent = `«${tekst}» står ikke på lista. 0 poeng.`;
+    spill.rekke = 0; spill.sisteTreff = 0;
     loggRad(tekst, 0, true);
     skyt(false, (x) => nyttTall("0", 0, x, vann, "#ff8a7a", true));
   }
+  visBoost();
   spill.svar.push(r);
   $("teller").textContent = `${spill.svar.length}/${SVAR_PER_RUNDE}`;
   if (spill.svar.length >= SVAR_PER_RUNDE) avsluttRunde(false);
@@ -464,13 +541,12 @@ function visSlutt() {
   spill.vist = spill.total;
   $("total").textContent = fmt(spill.total);
   const ord = kategori().ord;
-  const sum = totalt(ord);
-  const ubrukte = ord.map((o, i) => ({ o, i })).filter(({ o, i }) => !spill.brukt.has(i) && !o[2]);
-  const sjeldne = [...ubrukte].sort((a, b) => a.o[1] - b.o[1]).slice(0, 3).map(({ o }) => o[0]);
-  const vanligst = [...ord].sort((a, b) => b[1] - a[1])[0];
-  $("sjeldne").textContent = `Sjeldne ord du kunne tatt: ${sjeldne.join(", ")}. Mest lest om var ${vanligst[0]} (${fmt((vanligst[1] / sum) * 100)} %).`;
   const topp = toppProsent(simulerSpillere(ord, kategori().navn), spill.total);
+  $("kommentar").textContent = kommentar(topp);
   $("rang").textContent = `Du er blant de ${topp} % beste`;
+  $("rang-felt").textContent = spill.hjelp ? "mot 2 000 simulerte spillere uten hjelpemidler" : "mot 2 000 simulerte spillere";
+  settKasse(tjen(kasse, spill.total));
+  $("tjent").textContent = `+${mynter(mynterFor(spill.total))}. Du har ${mynter(kasse.mynter)}.`;
   oppdaterSlutt();
   vis("slutt", true);
   $("neste").focus();
@@ -501,7 +577,7 @@ const konto = { url: scene.dataset.url, nokkel: scene.dataset.nokkel };
 if (!konto.url) { $("lag-rom").hidden = true; $("bli-med").hidden = true; }
 
 function sendStatus() {
-  rom?.sendMelding("status", { id: meg, runde: spill.runde, total: spill.total, svar: spill.svar.length, ferdig: spill.ferdig });
+  rom?.sendMelding("status", { id: meg, fro: frøMitt, startet, runde: spill.runde, total: spill.total, svar: spill.svar.length, ferdig: spill.ferdig });
 }
 
 function visMotspiller() {
@@ -515,19 +591,23 @@ function visMotspiller() {
 
 function gåInnIRom(kode) {
   spill.kode = kode;
-  spill.rekkefolge = rekkefolge(KATEGORIER.length, kode);
-  spill.runde = 0;
+  motspiller.id = null;
+  startet = false;
+  frøMitt = Math.random().toString(36).slice(2, 10);
+  settRekkefølge(frøMitt, 0);
+  $("start-na").disabled = true;
+  $("rom-status").textContent = "Kobler til …";
+  visMotspiller();
   history.replaceState(null, "", "#rom=" + kode);
   $("rom-kode").textContent = kode;
   $("rom-lenke").href = location.href;
   $("rom-lenke").textContent = "denne lenken";
   vis("start", false); vis("venter", true);
-  $("start-na").focus();
   rom?.lukk();
   rom = kobleTilRom({
     ...konto, kode,
     vedStatus: (s) => {
-      if (s === "tilkoblet") { rom.sendMelding("hei", { id: meg }); sendStatus(); if (!motspiller.id) $("rom-status").textContent = "Koblet til. Venter på motspiller …"; }
+      if (s === "tilkoblet") { rom.sendMelding("hei", { id: meg, fro: frøMitt, startet, runde: spill.runde }); sendStatus(); if (!motspiller.id) $("rom-status").textContent = "Koblet til. Venter på motspiller …"; }
       if (s === "frakoblet") $("rom-status").textContent = "Mistet forbindelsen. Prøver igjen …";
     },
     vedMelding: (hendelse, m) => {
@@ -536,6 +616,8 @@ function gåInnIRom(kode) {
       if (hendelse === "hei" || hendelse === "status") {
         if (!motspiller.id) $("rom-status").textContent = "Motspilleren er med! Trykk Start når dere er klare.";
         motspiller.id = m.id;
+        avtalRekkefølge(m);
+        $("start-na").disabled = false;
         if (hendelse === "status") Object.assign(motspiller, { runde: m.runde | 0, total: +m.total || 0, svar: m.svar | 0, ferdig: !!m.ferdig });
         visMotspiller();
         if (spill.ferdig) oppdaterSlutt();
@@ -544,9 +626,25 @@ function gåInnIRom(kode) {
   });
 }
 
+function settRekkefølge(frø, runde) {
+  frøMitt = frø;
+  spill.rekkefolge = rekkefolge(KATEGORIER.length, frø);
+  spill.runde = runde;
+}
+// Samme kategorier på begge PC-ene, men nye hver gang: er den andre i gang, følger du den.
+// Ellers brukes det laveste av de to tilfeldige frøene, som begge kjenner.
+function avtalRekkefølge(m) {
+  if (startet || typeof m.fro !== "string" || !/^[a-z0-9]{1,12}$/.test(m.fro)) return;
+  if (m.startet) settRekkefølge(m.fro, Math.max(0, m.runde | 0));
+  else if (m.fro < frøMitt) settRekkefølge(m.fro, 0);
+}
+
+// Alene trekkes kategoriene uten gjentak til alle 100 er brukt.
+let sett = [];
 $("alene").addEventListener("click", () => {
-  spill.kode = nyKode();
-  spill.rekkefolge = rekkefolge(KATEGORIER.length, spill.kode);
+  const ny = rekkefolge(KATEGORIER.length, Math.random().toString(36));
+  if (sett.length >= KATEGORIER.length) sett = [];
+  spill.rekkefolge = [...ny.filter((i) => !sett.includes(i)), ...ny.filter((i) => sett.includes(i))];
   spill.runde = 0;
   startRunde();
 });
@@ -560,6 +658,85 @@ $("bli-med").addEventListener("submit", (e) => {
 });
 $("start-na").addEventListener("click", () => startRunde());
 
+/* ---------------- Hovedmeny, penger og butikk ---------------- */
+const LAGER = "rr-ordjakt-kasse";
+const mynter = (n) => `${n.toLocaleString("nb-NO")} ${n === 1 ? "mynt" : "mynter"}`;
+function settKasse(ny) {
+  kasse = ny;
+  if (husk) try { localStorage.setItem(LAGER, JSON.stringify(kasse)); } catch { /* lageret er stengt */ }
+  $("menymynter").textContent = mynter(kasse.mynter);
+  visButikk(); visHjelp();
+}
+
+function visButikk() {
+  $("butikk-mynter").textContent = `Du har ${mynter(kasse.mynter)}`;
+  const aktiv = document.activeElement?.dataset?.vare;
+  $("varer").replaceChildren(...VARER.map((v) => {
+    const li = document.createElement("li"), om = document.createElement("div"), navn = document.createElement("b"), tekst = document.createElement("span"), knapp = document.createElement("button");
+    const eier = kasse.eier.includes(v.id), valgt = kasse.valgt[v.type] === v.id;
+    navn.textContent = v.navn + (FLERE(v) && kasse.antall[v.id] ? ` (har ${kasse.antall[v.id]})` : "");
+    tekst.textContent = v.tekst;
+    knapp.type = "button"; knapp.className = "oj-knapp"; knapp.dataset.vare = v.id;
+    knapp.textContent = eier ? (valgt ? "Legg bort" : "Bruk") : mynter(v.pris);
+    knapp.setAttribute("aria-label", eier ? `${knapp.textContent} ${v.navn}` : `Kjøp ${v.navn} for ${mynter(v.pris)}`);
+    knapp.disabled = !eier && kasse.mynter < v.pris;
+    knapp.addEventListener("click", () => settKasse(eier ? velg(kasse, v.id) : kjop(kasse, v.id)));
+    om.append(navn, tekst); li.append(om, knapp);
+    return li;
+  }));
+  if (aktiv) $("varer").querySelector(`[data-vare="${aktiv}"]:not(:disabled)`)?.focus();
+}
+
+function visHjelp() {
+  const kan = !rom && startet && !spill.ferdig;
+  for (const id of ["timeglass", "kikkert"]) {
+    const n = kasse.antall[id];
+    $("bruk-" + id).hidden = !n;
+    $("bruk-" + id).textContent = `${VARER.find((v) => v.id === id).navn} (${n})`;
+  }
+  vis("hjelp", kan && (kasse.antall.timeglass > 0 || kasse.antall.kikkert > 0));
+}
+$("bruk-timeglass").addEventListener("click", () => {
+  if (rom || spill.ferdig || !kasse.antall.timeglass) return;
+  spill.frist += EKSTRA_SEKUNDER * 1000; spill.hjelp = true;
+  settKasse(bruk(kasse, "timeglass"));
+  tikk(); $("svar").focus();
+});
+$("bruk-kikkert").addEventListener("click", () => {
+  if (rom || spill.ferdig || !kasse.antall.kikkert) return;
+  const ledige = kategori().ord.map((o, i) => ({ o, i })).filter(({ o, i }) => !spill.brukt.has(i) && !o[2]).sort((a, b) => a.o[1] - b.o[1]);
+  if (!ledige.length) return;
+  const ord = ledige[Math.floor(Math.random() * Math.min(5, ledige.length))].o[0];
+  spill.hjelp = true;
+  settKasse(bruk(kasse, "kikkert"));
+  $("melding").classList.remove("bom");
+  $("melding").textContent = `Kikkerten ser et sjeldent ord som starter på «${ord.slice(0, 3)}», ${ord.length} tegn.`;
+  $("svar").focus();
+});
+
+function tilMeny() {
+  clearInterval(spill.klokke);
+  startet = false; spill.ferdig = true; spill.sluttTidligst = 0;
+  tall.length = 0; kuler.length = 0;
+  borg = nyBorg();
+  rom?.lukk(); rom = null; motspiller.id = null;
+  history.replaceState(null, "", location.pathname + location.search);
+  for (const id of ["skjema", "venter", "slutt", "butikk", "boost", "hjelp"]) vis(id, false);
+  $("melding").textContent = ""; $("logg").replaceChildren();
+  $("kategori").textContent = "…"; $("total").textContent = fmt(0); $("teller").textContent = `0/${SVAR_PER_RUNDE}`;
+  $("tid").textContent = String(SEKUNDER_PER_RUNDE); $("tid").parentElement.classList.remove("snart");
+  visMotspiller();
+  vis("start", true);
+  $("alene").focus();
+}
+for (const id of ["meny", "slutt-meny", "venter-meny"]) $(id).addEventListener("click", tilMeny);
+$("apne-butikk").addEventListener("click", () => { vis("start", false); vis("butikk", true); visButikk(); $("lukk-butikk").focus(); });
+$("lukk-butikk").addEventListener("click", () => { vis("butikk", false); vis("start", true); $("apne-butikk").focus(); });
+$("husk").addEventListener("change", (e) => {
+  husk = e.target.checked;
+  try { if (husk) localStorage.setItem(LAGER, JSON.stringify(kasse)); else localStorage.removeItem(LAGER); } catch { /* lageret er stengt */ }
+});
+
 let lydPå = true;
 $("lyd").addEventListener("click", () => {
   lydPå = !lydPå;
@@ -569,6 +746,8 @@ $("lyd").addEventListener("click", () => {
 });
 
 /* ---------------- Oppstart ---------------- */
+$("husk").checked = husk;
+settKasse(kasse);
 lagKorn();
 tilpass();
 new ResizeObserver(tilpass).observe(scene);

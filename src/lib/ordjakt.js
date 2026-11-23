@@ -131,9 +131,19 @@ export function rekkefolge(antall, kode) {
   return ut;
 }
 
+// Boost: treff rett etter hverandre. Hvert treff innen seks sekunder etter forrige gir 10 % mer,
+// opptil 50 %. En bom eller en lengre pause nullstiller.
+export const BOOST_SEKUNDER = 6;
+export const BOOST_TAK = 5;
+export const boostFaktor = (rekke) => 1 + Math.min(BOOST_TAK, Math.max(0, rekke)) / 10;
+export function nesteRekke(rekke, sekunderSiden) {
+  return sekunderSiden <= BOOST_SEKUNDER ? Math.min(BOOST_TAK, rekke + 1) : 0;
+}
+export const medBoost = (poeng, rekke) => Math.round(poeng * boostFaktor(rekke) * 10) / 10;
+
 // Rangeringen måles mot simulerte spillere, ikke ekte: spillet lagrer ingen resultater.
 // Forutsetninger: en spiller rekker 1 til 10 svar på ett minutt (i snitt rundt seks), treffer lista
-// på 55 til 95 % av dem, og velger oftest kjente ord. Alt trekkes med frø, så samme kategori gir samme felt.
+// på 55 til 95 % av dem, velger oftest kjente ord og får boost etter samme regler. Alt trekkes med frø, så samme kategori gir samme felt.
 export function simulerSpillere(ordliste, frøtekst, antall = ANTALL_SIMULERTE) {
   const r = tilfeldig(frø(frøtekst));
   const sum = totalt(ordliste);
@@ -145,12 +155,15 @@ export function simulerSpillere(ordliste, frøtekst, antall = ANTALL_SIMULERTE) 
     const treff = 0.55 + 0.4 * dyktighet;
     const kjent = 1.1 - 0.7 * dyktighet; // dyktige velger sjeldnere ord
     const vekter = ordliste.map(([, n]) => Math.pow(Math.max(1, n), kjent));
-    let igjen = vekter.reduce((a, b) => a + b, 0), total = 0;
+    let igjen = vekter.reduce((a, b) => a + b, 0), total = 0, rekke = 0, pause = Infinity;
     for (let k = 0; k < svar; k++) {
-      if (r() > treff) continue;
+      pause += (SEKUNDER_PER_RUNDE / svar) * (0.4 + 1.2 * r()); // tiden fordeles ujevnt på svarene
+      if (r() > treff) { rekke = 0; pause = Infinity; continue; }
+      rekke = nesteRekke(rekke, pause);
+      pause = 0;
       let mål = r() * igjen, i = 0;
       while (i < vekter.length - 1 && (mål -= vekter[i]) > 0) i++;
-      total += poeng[i];
+      total += medBoost(poeng[i], rekke);
       igjen -= vekter[i];
       vekter[i] = 0;
     }

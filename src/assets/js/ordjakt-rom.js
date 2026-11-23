@@ -12,6 +12,7 @@ export function kobleTilRom({ url, nokkel, kode, vedMelding, vedStatus }) {
   };
 
   function apne() {
+    if (stengt) return;
     vedStatus?.("kobler");
     ws = new WebSocket(adresse);
     ws.onopen = () => {

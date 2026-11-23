@@ -24,7 +24,10 @@ sideklasse: side-ordjakt
       <p class="oj-motstander" id="motstander" hidden></p>
     </header>
 
-    <button class="oj-lyd" id="lyd" type="button" aria-pressed="true">Lyd på</button>
+    <div class="oj-hjorne">
+      <button class="oj-lyd" id="meny" type="button">Hovedmeny</button>
+      <button class="oj-lyd" id="lyd" type="button" aria-pressed="true">Lyd på</button>
+    </div>
 
     <form class="oj-skjema" id="skjema" autocomplete="off" hidden>
       <label class="skjult" for="svar">Skriv et ord i kategorien</label>
@@ -33,14 +36,21 @@ sideklasse: side-ordjakt
     </form>
     <p class="oj-melding" id="melding" role="status" aria-live="polite"></p>
 
+    <div class="oj-boost" id="boost" hidden><b id="boost-tekst"></b><span class="oj-boost-strek" aria-hidden="true"><i id="boost-fyll"></i></span></div>
+    <div class="oj-hjelp" id="hjelp" hidden>
+      <button class="oj-lyd" id="bruk-timeglass" type="button"></button>
+      <button class="oj-lyd" id="bruk-kikkert" type="button"></button>
+    </div>
+
     <ol class="oj-logg" id="logg" aria-label="Svarene dine i denne runden"></ol>
 
     <div class="oj-panel" id="start">
       <h2 class="oj-tittel">Ordjakt</h2>
-      <p>Du har <b>ett minutt</b> og opptil ti svar. Jo <b>sjeldnere</b> ordet er, jo flere poeng får du.</p>
+      <p>Du har <b>ett minutt</b> og opptil ti svar. Jo <b>sjeldnere</b> ordet er, jo flere poeng får du. Svar raskt etter hverandre for <b>boost</b>.</p>
       <div class="oj-valg">
         <button class="oj-knapp" type="button" id="alene">Spill alene</button>
         <button class="oj-knapp" type="button" id="lag-rom">Lag rom for to</button>
+        <button class="oj-knapp" type="button" id="apne-butikk">Butikk · <span id="menymynter">0 mynter</span></button>
       </div>
       <form class="oj-bli-med" id="bli-med">
         <label for="kode">Har du en kode?</label>
@@ -54,15 +64,26 @@ sideklasse: side-ordjakt
       <h2 class="oj-tittel">Rom <span id="rom-kode"></span></h2>
       <p>Skriv koden på den andre PC-en, eller åpne <a id="rom-lenke" href="#">denne lenken</a> der.</p>
       <p id="rom-status">Venter på motspiller …</p>
-      <button class="oj-knapp" type="button" id="start-na">Start nå</button>
+      <button class="oj-knapp" type="button" id="start-na" disabled>Start nå</button>
+      <button class="oj-knapp" type="button" id="venter-meny">Hovedmeny</button>
     </div>
 
     <div class="oj-panel" id="slutt" hidden>
       <h2 class="oj-tittel" id="slutt-tittel">Runden er over</h2>
       <p id="slutt-tekst"></p>
-      <p class="oj-rang"><b id="rang"></b><span>mot 2 000 simulerte spillere</span></p>
-      <p class="oj-sjeldne" id="sjeldne"></p>
+      <p class="oj-rang"><b id="rang"></b><span id="rang-felt"></span></p>
+      <p class="oj-tjent" id="tjent"></p>
+      <p class="oj-kommentar" id="kommentar"></p>
       <button class="oj-knapp" type="button" id="neste">Neste kategori</button>
+      <button class="oj-knapp" type="button" id="slutt-meny">Hovedmeny</button>
+    </div>
+
+    <div class="oj-panel oj-butikk" id="butikk" hidden>
+      <h2 class="oj-tittel">Butikk</h2>
+      <p id="butikk-mynter"></p>
+      <ul class="oj-varer" id="varer"></ul>
+      <label class="oj-husk"><input type="checkbox" id="husk"> Husk pengene og kjøpene på denne enheten</label>
+      <button class="oj-knapp" type="button" id="lukk-butikk">Tilbake</button>
     </div>
   </section>
 
@@ -72,10 +93,13 @@ sideklasse: side-ordjakt
     <p>Eksempel: Ble det lest 100 ganger om alle dyrene til sammen, og 10 av dem var om løve, gir løve 100 − 10 = 90 poeng. Et sjeldent dyr gir nesten 100.</p>
     <p>Ord som ikke står på listen gir 0 poeng, men teller som ett av de ti svarene. Samme ord to ganger teller ikke. Skrivefeil og bøyinger som «løver» godtas: én feil i korte ord, to fra sju bokstaver og tre fra elleve. Det holder med etternavnet på personer.</p>
     <p>Runden varer i ett minutt, eller til du har brukt ti svar.</p>
+    <p>Boost: Hvert treff innen seks sekunder etter forrige treff gir ti prosent mer, opptil femti prosent. En bom eller en lengre pause nullstiller boosten.</p>
+    <h2>Penger og butikk</h2>
+    <p>Når runden er ferdig, blir hvert hele poeng til én mynt. Myntene er lekepenger og kan bare brukes i butikken i hovedmenyen. Utseende virker alltid. Timeglass og kikkert virker bare når du spiller alene, så en runde mot en venn er lik for begge.</p>
     <h2>Slik regner vi rangeringen</h2>
-    <p>Plassen din måles mot 2 000 spillere som er simulert, ikke ekte. Spillet lagrer ingen resultater, så vi vet ikke hva andre har fått. Vi forutsetter at en spiller rekker 1 til 10 svar, treffer lista på 55 til 95 prosent av dem og oftest velger ord mange kjenner.</p>
+    <p>Plassen din måles mot 2 000 spillere som er simulert, ikke ekte. Spillet lagrer ingen resultater, så vi vet ikke hva andre har fått. Vi forutsetter at en spiller rekker 1 til 10 svar, treffer lista på 55 til 95 prosent av dem og oftest velger ord mange kjenner. De får boost etter samme regler som deg.</p>
     <h2>Spill mot en venn</h2>
-    <p>Spiller dere to, skriver den ene «Lag rom» og den andre koden. Dere får samme kategorier og ser hverandres poeng mens dere spiller.</p>
+    <p>Spiller dere to, skriver den ene «Lag rom» og den andre koden. Dere får samme kategorier i tilfeldig rekkefølge og ser hverandres poeng mens dere spiller.</p>
     <p class="oj-kilde">Kilde: {{ ordjakt.kilde }}, {{ ordjakt.periode.fra | dato }} til {{ ordjakt.periode.til | dato }}. Hentet {{ ordjakt.hentet | dato }}. Sidevisninger er et mål på hvor mye folk leser om et ord, ikke hvor ofte det sies. Har et ord ingen egen artikkel, regner vi det som like sjeldent som det sjeldneste ordet i kategorien. Peker ordet til flere artikler, bruker vi midterste tall i kategorien. Noen ord deler artikkel med noe annet, så tallet kan gjelde en annen betydning enn den du tenkte på.</p>
     <p>Flere spill finner du under <a href="/spill/">Spill</a>. Vil du heller se hvordan sjeldne kroner vokser? Prøv <a href="/kalkulatorer/renters-rente/">Hvor mye blir sparingen din verdt?</a></p>
   </div>

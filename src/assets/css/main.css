@@ -1271,7 +1271,8 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .oj-tavle b { display: block; font-size: clamp(1.35rem, 3.2vw, 2.1rem); font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1.05; color: var(--oj-gull); }
 .oj-teller b, .oj-tid b { color: var(--oj-blekk); }
 .oj-tavle .oj-tid.snart { background: #8c1f12; }
-.oj-lyd { position: absolute; z-index: 5; top: 0.6rem; right: 0.6rem; font: inherit; font-size: 0.8125rem; font-weight: 700; min-height: 2.5rem; padding: 0.25rem 0.6rem; color: var(--oj-blekk); background: rgb(8 19 28 / 0.75); border: 3px solid var(--oj-skygge); border-radius: 0; cursor: pointer; }
+.oj-hjorne { position: absolute; z-index: 5; right: 0.5rem; bottom: 0.5rem; display: flex; gap: 0.4rem; }
+.oj-lyd { font: inherit; font-size: 0.8125rem; font-weight: 700; min-height: 2.5rem; padding: 0.25rem 0.6rem; color: var(--oj-blekk); background: rgb(8 19 28 / 0.75); border: 3px solid var(--oj-skygge); border-radius: 0; cursor: pointer; }
 .oj-lyd:focus-visible { outline: 3px solid var(--oj-gull); outline-offset: 2px; }
 .oj-rang b { display: block; font-size: 1.375rem; font-weight: 900; color: var(--oj-gull); }
 .oj-rang span { font-size: 0.875rem; }
@@ -1301,7 +1302,7 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .oj-melding { position: absolute; z-index: 3; left: 50%; bottom: calc(63% + 0.6rem); transform: translateX(-50%); margin: 0; width: min(30rem, calc(100% - 2rem)); text-align: center; font-weight: 700; min-height: 1.5em; }
 .oj-melding.bom { color: #ffb4a6; }
 
-.oj-logg { position: absolute; z-index: 2; left: 0; right: 0; bottom: 4.5%; margin: 0; padding: 0 1rem; list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.35rem; }
+.oj-logg { position: absolute; z-index: 2; left: 0; right: 0; bottom: 3.75rem; margin: 0; padding: 0 1rem; list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.35rem; }
 .oj-logg li { font-size: 0.8125rem; font-weight: 700; padding: 0.15rem 0.45rem; background: rgb(8 19 28 / 0.6); border: 2px solid var(--oj-skygge); }
 .oj-logg li b { color: var(--oj-gull); font-variant-numeric: tabular-nums; }
 .oj-logg li.null { opacity: 0.7; }
@@ -1320,7 +1321,21 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .oj-bli-med label { width: 100%; font-weight: 700; }
 .oj-kode { flex: 0 1 8rem; text-transform: uppercase; letter-spacing: 0.2em; text-align: center; }
 .oj-feil { color: #ffb4a6; font-weight: 700; min-height: 1.2em; }
-.oj-sjeldne { font-size: 0.9375rem; opacity: 0.95; }
+.oj-kommentar { font-size: 1.125rem; font-weight: 700; }
+.oj-boost { position: absolute; z-index: 3; left: 50%; top: calc(37% + 4rem); transform: translateX(-50%); width: min(30rem, calc(100% - 2rem)); display: flex; align-items: center; gap: 0.6rem; color: var(--oj-gull); }
+.oj-boost-strek { flex: 1; height: 0.6rem; background: rgb(8 19 28 / 0.6); border: 2px solid var(--oj-skygge); }
+.oj-boost-strek i { display: block; height: 100%; background: var(--oj-gull); transform-origin: left; }
+.oj-hjelp { position: absolute; z-index: 3; left: 0; right: 0; top: 64%; display: flex; justify-content: center; gap: 0.4rem; }
+.oj :is(.oj-boost, .oj-hjelp, .oj-panel)[hidden] { display: none; }
+.oj-tjent { font-weight: 800; color: var(--oj-gull); }
+.oj-butikk { top: 8%; max-height: 84%; overflow-y: auto; overscroll-behavior: contain; z-index: 6; }
+.oj-varer { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.4rem; text-align: left; }
+.oj-varer li { display: grid; grid-template-columns: 1fr auto; gap: 0.6rem; align-items: center; padding: 0.4rem 0.5rem; background: rgb(8 19 28 / 0.5); }
+.oj-varer b, .oj-varer span { display: block; }
+.oj-varer span { font-size: 0.875rem; }
+.oj-varer .oj-knapp { font-size: 0.8125rem; padding: 0.4rem 0.6rem; }
+.oj-husk { display: flex; gap: 0.5rem; align-items: center; justify-content: center; min-height: 2.75rem; }
+.oj-husk input { width: 1.25rem; height: 1.25rem; }
 .oj-regler { margin-top: 2rem; }
 .oj-kilde { font-size: var(--t-small); color: var(--muted); }
 @media (max-width: 40rem) {
@@ -1328,7 +1343,7 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
   .oj-tavle { gap: 0.25rem; }
   .oj-tavle p { min-width: 3.4rem; padding-inline: 0.35rem; }
   .oj-tavle b { font-size: 1.2rem; }
-  .oj-lyd { right: 0.4rem; padding-inline: 0.4rem; font-size: 0.75rem; }
+  .oj-butikk li { grid-template-columns: 1fr; }
   .oj-skjema { top: 34%; }
   .oj-melding { bottom: calc(66% + 0.6rem); font-size: 0.875rem; }
 }

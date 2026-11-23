@@ -83,7 +83,7 @@ test("simulerte spillere er like hver gang, sortert og innenfor mulige poeng i a
   for (const k of data.kategorier) {
     const r = simulerSpillere(k.ord, k.navn, 300);
     assert.equal(r.length, 300);
-    assert.ok(r[0] >= 0 && r.at(-1) <= 100 * SVAR_PER_RUNDE, k.navn);
+    assert.ok(r[0] >= 0 && r.at(-1) <= 150 * SVAR_PER_RUNDE, k.navn);
     assert.ok(r.every((x, i) => i === 0 || x >= r[i - 1]));
     assert.ok(toppProsent(r, r[Math.floor(r.length / 2)]) <= 60, k.navn);
   }
