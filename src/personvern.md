@@ -29,7 +29,7 @@ Du kan lage en konto i [Overfør](/spill/overfor/) for å spille på flere enhet
 - **Hva vi lagrer:** e-postadressen din, passordet ditt i kryptert form og spillet ditt (saldo, kjøp og tidspunktet det ble lagret). Ingenting annet.
 - **Hvorfor:** for at du skal kunne logge inn og fortsette spillet på en annen enhet. Grunnlaget er avtalen du inngår når du lager kontoen.
 - **Hvor:** hos Supabase, som drifter databasen for oss på servere i EU. Supabase behandler opplysningene bare på våre vegne. Innloggingen huskes i nettleserens lager på enheten din, ikke i informasjonskapsler.
-- **E-post:** du får bare e-post for å bekrefte adressen eller bytte passord, aldri nyhetsbrev eller reklame. E-posten sendes gjennom Brevo, et fransk selskap som får e-postadressen din for å levere den. Brevo registrerer om e-posten blir åpnet, og om du trykker på lenken.
+- **E-post:** du får bare e-post for å bekrefte adressen eller bytte passord, aldri nyhetsbrev eller reklame. E-posten sendes gjennom Brevo, et fransk selskap som får e-postadressen din for å levere den. Brevo teller åpninger og trykk på lenken, men knytter dem ikke til e-postadressen din.
 - **Hvor lenge:** til du sletter kontoen. Trykk «Slett kontoen» i spillet, så slettes e-posten, passordet og spillet med en gang.
 - **Rettighetene dine:** du kan be om innsyn, retting og sletting, og du kan klage til Datatilsynet.
 
