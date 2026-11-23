@@ -1,7 +1,7 @@
 ---
 layout: base.njk
 tittel: "Ordjakt: finn de sjeldne ordene"
-beskrivelse: Skriv ti ord i en kategori. Jo sjeldnere ordet er, jo flere poeng. Spill alene eller mot en venn på en annen PC.
+beskrivelse: Du har ett minutt og ti svar i en kategori. Jo sjeldnere ordet er, jo flere poeng. Spill alene eller mot en venn på en annen PC.
 permalink: /spill/ordjakt/
 skript: /assets/js/ordjakt.js
 sideklasse: side-ordjakt
@@ -18,10 +18,13 @@ sideklasse: side-ordjakt
       <p class="oj-kategori"><span class="oj-merke">Kategori</span> <b id="kategori">…</b></p>
       <div class="oj-tavle">
         <p class="oj-total"><span class="oj-merke">Totalt</span> <b id="total">0,0</b></p>
+        <p class="oj-tid"><span class="oj-merke">Tid</span> <b id="tid">60</b></p>
         <p class="oj-teller"><span class="oj-merke">Svar</span> <b id="teller">0/10</b></p>
       </div>
       <p class="oj-motstander" id="motstander" hidden></p>
     </header>
+
+    <button class="oj-lyd" id="lyd" type="button" aria-pressed="true">Lyd på</button>
 
     <form class="oj-skjema" id="skjema" autocomplete="off" hidden>
       <label class="skjult" for="svar">Skriv et ord i kategorien</label>
@@ -34,7 +37,7 @@ sideklasse: side-ordjakt
 
     <div class="oj-panel" id="start">
       <h2 class="oj-tittel">Ordjakt</h2>
-      <p>Skriv ti ord i en kategori. Jo <b>sjeldnere</b> ordet er, jo flere poeng får du.</p>
+      <p>Du har <b>ett minutt</b> og opptil ti svar. Jo <b>sjeldnere</b> ordet er, jo flere poeng får du.</p>
       <div class="oj-valg">
         <button class="oj-knapp" type="button" id="alene">Spill alene</button>
         <button class="oj-knapp" type="button" id="lag-rom">Lag rom for to</button>
@@ -57,6 +60,7 @@ sideklasse: side-ordjakt
     <div class="oj-panel" id="slutt" hidden>
       <h2 class="oj-tittel" id="slutt-tittel">Runden er over</h2>
       <p id="slutt-tekst"></p>
+      <p class="oj-rang"><b id="rang"></b><span>mot 2 000 simulerte spillere</span></p>
       <p class="oj-sjeldne" id="sjeldne"></p>
       <button class="oj-knapp" type="button" id="neste">Neste kategori</button>
     </div>
@@ -66,9 +70,13 @@ sideklasse: side-ordjakt
     <h2>Slik regner vi poengene</h2>
     <p>Hvert ord får poeng etter hvor lite det ble lest om siste år. Vi legger sammen sidevisningene for alle ordene i kategorien. Ordet ditt får 100 minus sin andel i prosent.</p>
     <p>Eksempel: Ble det lest 100 ganger om alle dyrene til sammen, og 10 av dem var om løve, gir løve 100 − 10 = 90 poeng. Et sjeldent dyr gir nesten 100.</p>
-    <p>Ord som ikke står på listen gir 0 poeng, men teller som ett av de ti svarene. Samme ord to ganger teller ikke. Små skrivefeil og bøyinger som «løver» godtas.</p>
+    <p>Ord som ikke står på listen gir 0 poeng, men teller som ett av de ti svarene. Samme ord to ganger teller ikke. Skrivefeil og bøyinger som «løver» godtas: én feil i korte ord, to fra sju bokstaver og tre fra elleve. Det holder med etternavnet på personer.</p>
+    <p>Runden varer i ett minutt, eller til du har brukt ti svar.</p>
+    <h2>Slik regner vi rangeringen</h2>
+    <p>Plassen din måles mot 2 000 spillere som er simulert, ikke ekte. Spillet lagrer ingen resultater, så vi vet ikke hva andre har fått. Vi forutsetter at en spiller rekker 1 til 10 svar, treffer lista på 55 til 95 prosent av dem og oftest velger ord mange kjenner.</p>
+    <h2>Spill mot en venn</h2>
     <p>Spiller dere to, skriver den ene «Lag rom» og den andre koden. Dere får samme kategorier og ser hverandres poeng mens dere spiller.</p>
-    <p class="oj-kilde">Kilde: {{ ordjakt.kilde }}, {{ ordjakt.periode.fra | dato }} til {{ ordjakt.periode.til | dato }}. Hentet {{ ordjakt.hentet | dato }}. Sidevisninger er et mål på hvor mye folk leser om et ord, ikke hvor ofte det sies. Har et ord ingen egen artikkel, regner vi det som like sjeldent som det sjeldneste ordet i kategorien.</p>
+    <p class="oj-kilde">Kilde: {{ ordjakt.kilde }}, {{ ordjakt.periode.fra | dato }} til {{ ordjakt.periode.til | dato }}. Hentet {{ ordjakt.hentet | dato }}. Sidevisninger er et mål på hvor mye folk leser om et ord, ikke hvor ofte det sies. Har et ord ingen egen artikkel, regner vi det som like sjeldent som det sjeldneste ordet i kategorien. Peker ordet til flere artikler, bruker vi midterste tall i kategorien. Noen ord deler artikkel med noe annet, så tallet kan gjelde en annen betydning enn den du tenkte på.</p>
     <p>Flere spill finner du under <a href="/spill/">Spill</a>. Vil du heller se hvordan sjeldne kroner vokser? Prøv <a href="/kalkulatorer/renters-rente/">Hvor mye blir sparingen din verdt?</a></p>
   </div>
 </div>

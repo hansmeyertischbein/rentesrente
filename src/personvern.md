@@ -5,7 +5,7 @@ beskrivelse: Rentesrente bruker ingen informasjonskapsler og ingen sporing. Tall
 eleventyComputed:
   ingress: "{% if konto.url and konto.nokkel %}Rentesrente samler ikke inn personopplysninger om deg, med mindre du selv lager en konto i spillet Overfør. Her er det som skjer når du bruker siden.{% else %}Rentesrente samler ikke inn personopplysninger om deg. Her er det som skjer når du bruker siden.{% endif %}"
 permalink: /personvern/
-oppdatert: 2026-11-15
+oppdatert: 2026-11-23
 ---
 ## Ingen informasjonskapsler og ingen sporing
 
@@ -17,7 +17,9 @@ Kalkulatorene regner i nettleseren din. Tallene du skriver inn, sendes ikke til 
 
 ## Spill som kan huskes
 
-Spillet [Overfør](/spill/overfor/) kan huske hvor langt du har kommet. Det skjer bare hvis du selv krysser av for «Husk spillet på denne enheten». Da lagres saldoen og kjøpene dine i nettleserens lager på enheten din. Det som lagres, sier ingenting om hvem du er, og det sendes ikke til oss eller andre. Fjerner du krysset, slettes det. Spillet [Tjue år](/spill/tjue-ar/) lagrer ingenting.
+Spillet [Overfør](/spill/overfor/) kan huske hvor langt du har kommet. Det skjer bare hvis du selv krysser av for «Husk spillet på denne enheten». Da lagres saldoen og kjøpene dine i nettleserens lager på enheten din. Det som lagres, sier ingenting om hvem du er, og det sendes ikke til oss eller andre. Fjerner du krysset, slettes det. Spillene [Tjue år](/spill/tjue-ar/) og [Ordjakt](/spill/ordjakt/) lagrer ingenting.
+
+Spiller du Ordjakt mot en venn, sendes romkoden, en tilfeldig spiller-id, runden, poengsummen og antall svar mellom dere gjennom Supabase mens dere spiller. Ordene du skriver, sendes ikke, og vi lagrer ikke meldingene. Nettleseren din kobler seg da til Supabase, som ser IP-adressen din. Spiller du alene, kobles ingenting til.
 
 {% if konto.url and konto.nokkel -%}
 <h2 id="kontoer">Konto i spillet Overfør</h2>

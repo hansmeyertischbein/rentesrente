@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normaliser, finnOrd, poengFor, vurder, rekkefolge, nyKode, gyldigKode, avstand } from "../src/lib/ordjakt.js";
+import { normaliser, finnOrd, poengFor, vurder, rekkefolge, nyKode, gyldigKode, avstand, simulerSpillere, toppProsent, SVAR_PER_RUNDE } from "../src/lib/ordjakt.js";
 import data from "../src/assets/js/ordjakt-data.js";
 
 const dyr = [["løve", 10], ["elg", 50], ["isbjørn", 30], ["sjiraff", 10]];
@@ -30,6 +30,33 @@ test("finner ord med store bokstaver, bøying og skrivefeil", () => {
   assert.equal(avstand("abc", "abd"), 1);
 });
 
+test("skrivefeil: flere feil tåles i lange ord, og korte ord må starte likt", () => {
+  const l = [["elg", 3], ["tiger", 4], ["elefant", 5], ["dostojevskij", 2], ["kløver", 5], ["nebukadnesar", 1]];
+  assert.equal(finnOrd(l, "tigar"), 1);
+  assert.equal(finnOrd(l, "ellefannt"), 2);
+  assert.equal(finnOrd(l, "dostojefski"), 3);
+  assert.equal(finnOrd(l, "nebukanesser"), 5);
+  assert.equal(finnOrd(l, "løver"), -1);
+  assert.equal(finnOrd(l, "els"), -1);
+  const p = [["c", 1], ["c++", 2], ["c#", 3]];
+  assert.deepEqual(["C", "C++", "c#"].map((x) => finnOrd(p, x)), [0, 1, 2]);
+});
+
+test("etternavn og slutten av navn holder", () => {
+  const navn = [["vincent van gogh", 9], ["george h.w. bush", 2], ["george w. bush", 8], ["konstantin den store", 3], ["fjodor dostojevskij", 4], ["spider-man", 5], ["bogotá", 6], ["theodosius i", 1]];
+  assert.equal(finnOrd(navn, "Gogh"), 0);
+  assert.equal(finnOrd(navn, "van gogh"), 0);
+  assert.equal(finnOrd(navn, "bush"), 2);
+  assert.equal(finnOrd(navn, "bush", new Set([2])), 1);
+  assert.equal(finnOrd(navn, "konstantin"), 3);
+  assert.equal(finnOrd(navn, "dostojevski"), 4);
+  assert.equal(finnOrd(navn, "man"), -1);
+  assert.equal(finnOrd(navn, "spiderman"), 5);
+  assert.equal(finnOrd(navn, "bogota"), 6);
+  assert.equal(finnOrd(navn, "theodosius"), 7);
+  assert.equal(normaliser("Ålesund"), "ålesund");
+});
+
 test("samme ord to ganger gir null", () => {
   const r = vurder(dyr, "elg", new Set([1]));
   assert.equal(r.status, "brukt");
@@ -43,6 +70,24 @@ test("romkoden gir samme rekkefølge på begge maskiner", () => {
   assert.deepEqual([...rekkefolge(100, "ABCD")].sort((a, b) => a - b), Array.from({ length: 100 }, (_, i) => i));
   assert.ok(gyldigKode(nyKode()));
   assert.ok(!gyldigKode("AB1"));
+});
+
+test("toppProsent: best gir 1, null poeng gir 100, like poeng teller som bedre", () => {
+  assert.equal(toppProsent([10, 20, 30, 40], 41), 1);
+  assert.equal(toppProsent([10, 20, 30, 40], 40), 25);
+  assert.equal(toppProsent([10, 20, 30, 40], 0), 100);
+  assert.equal(toppProsent([], 50), 100);
+});
+
+test("simulerte spillere er like hver gang, sortert og innenfor mulige poeng i alle kategorier", () => {
+  for (const k of data.kategorier) {
+    const r = simulerSpillere(k.ord, k.navn, 300);
+    assert.equal(r.length, 300);
+    assert.ok(r[0] >= 0 && r.at(-1) <= 100 * SVAR_PER_RUNDE, k.navn);
+    assert.ok(r.every((x, i) => i === 0 || x >= r[i - 1]));
+    assert.ok(toppProsent(r, r[Math.floor(r.length / 2)]) <= 60, k.navn);
+  }
+  assert.deepEqual(simulerSpillere(dyr, "a", 50), simulerSpillere(dyr, "a", 50));
 });
 
 test("dataene har 100 kategorier med tall for hvert ord", () => {

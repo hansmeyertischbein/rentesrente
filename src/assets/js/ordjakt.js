@@ -1,5 +1,6 @@
 // Ordjakt: grensesnitt og pikselscene. Regnelogikken ligger i /lib/ordjakt.js.
-import { SVAR_PER_RUNDE, vurder, totalt, rekkefolge, nyKode, gyldigKode } from "/lib/ordjakt.js";
+import { SVAR_PER_RUNDE, SEKUNDER_PER_RUNDE, vurder, totalt, rekkefolge, nyKode, gyldigKode, simulerSpillere, toppProsent } from "/lib/ordjakt.js";
+import { lasOpp, settLyd, spillFanfare } from "./ordjakt-lyd.js";
 import data from "./ordjakt-data.js";
 import { kobleTilRom } from "./ordjakt-rom.js";
 
@@ -186,9 +187,9 @@ function tegnSkip(t) {
 function tegnOverflate(t) {
   for (let x = 0; x < B; x++) {
     if (x >= veggX(vann)) break;
-    const y = vann + Math.round(Math.sin(x * 0.16 + t * 2.2) * 1);
+    const y = vann + Math.round(Math.sin(x * 0.16 + t * 0.9) * 1);
     ctx.fillStyle = "#8fd3f0"; ctx.fillRect(x, y, 1, 1);
-    if ((x + Math.floor(t * 8)) % 11 === 0) { ctx.fillStyle = "#ffffff"; ctx.fillRect(x, y - 1, 1, 1); }
+    if ((x + Math.floor(t * 1.5)) % 11 === 0) { ctx.fillStyle = "#ffffff"; ctx.fillRect(x, y - 1, 1, 1); }
   }
 }
 
@@ -220,7 +221,6 @@ function nyttTall(tekst, poeng, x, y, farge, synkerBare) {
 }
 
 const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
-const ventPå = []; // funksjoner som kjøres når alle tall er ferdige
 
 function oppdater(dt) {
   for (const k of kuler) {
@@ -278,7 +278,6 @@ function oppdater(dt) {
     }
   }
   for (let i = tall.length - 1; i >= 0; i--) if (tall[i].ferdig) tall.splice(i, 1);
-  if (!tall.length && !kuler.length && ventPå.length) for (const f of ventPå.splice(0)) f();
   rist = Math.max(0, rist - dt);
 }
 
@@ -332,6 +331,7 @@ function tilpass() {
   mål.treff = [veggX(vann - Math.round(vann * 0.4)) - 1, vann - Math.round(vann * 0.4)];
   mål.skipX = Math.max(4, Math.round(B * 0.03));
   oppdaterMål();
+  tegn(performance.now() / 1000); // endret størrelse tømmer lerretet
 }
 function oppdaterMål() {
   const skjema = $("skjema");
@@ -360,7 +360,7 @@ function lagKorn() {
 /* ---------------- Spillet ---------------- */
 const KATEGORIER = data.kategorier;
 const meg = Math.random().toString(36).slice(2, 10);
-const spill = { kode: null, rekkefolge: [], runde: 0, svar: [], brukt: new Set(), total: 0, vist: 0, ferdig: false, låst: false };
+const spill = { kode: null, rekkefolge: [], runde: 0, svar: [], brukt: new Set(), total: 0, vist: 0, ferdig: false, låst: false, frist: 0, klokke: null };
 let rom = null;
 const motspiller = { id: null, runde: 0, total: 0, svar: 0, ferdig: false };
 
@@ -368,6 +368,7 @@ const kategori = () => KATEGORIER[spill.rekkefolge[spill.runde % KATEGORIER.leng
 const vis = (id, på) => { $(id).hidden = !på; };
 
 function startRunde() {
+  tall.length = 0; kuler.length = 0; // tall fra forrige runde skal ikke telle i denne
   spill.svar = []; spill.brukt = new Set(); spill.total = 0; spill.vist = 0; spill.ferdig = false;
   $("kategori").textContent = kategori().navn;
   $("total").textContent = fmt(0);
@@ -379,10 +380,38 @@ function startRunde() {
   oppdaterMål();
   $("svar").value = "";
   $("svar").focus();
+  lasOpp();
+  spill.frist = Date.now() + SEKUNDER_PER_RUNDE * 1000;
+  clearInterval(spill.klokke);
+  spill.klokke = setInterval(tikk, 100);
+  tikk();
   sendStatus();
 }
 
+// Tiden regnes fra fristen, så den stemmer også når fanen har ligget i bakgrunnen.
+function tikk() {
+  const igjen = Math.max(0, Math.ceil((spill.frist - Date.now()) / 1000));
+  $("tid").textContent = String(igjen);
+  $("tid").parentElement.classList.toggle("snart", igjen <= 10);
+  if (igjen === 0) avsluttRunde(true);
+}
+
+function avsluttRunde(tidenUte) {
+  if (spill.ferdig) return;
+  spill.ferdig = true;
+  clearInterval(spill.klokke);
+  vis("skjema", false);
+  $("melding").classList.remove("bom");
+  $("melding").textContent = "";
+  spill.sluttTittel = tidenUte ? "Tiden er ute!" : "Runden er over";
+  if (tidenUte) $("tid").textContent = "0";
+  spillFanfare();
+  sendStatus();
+  visSlutt();
+}
+
 function vedAnkomst(poeng) {
+  if (spill.ferdig) return; // sluttsummen står allerede
   spill.vist = Math.round((spill.vist + poeng) * 10) / 10;
   $("total").textContent = fmt(spill.vist);
   const p = $("total").parentElement;
@@ -401,6 +430,7 @@ $("skjema").addEventListener("submit", (e) => {
   e.preventDefault();
   const felt = $("svar");
   const tekst = felt.value.trim();
+  if (spill.klokke && Date.now() >= spill.frist) { avsluttRunde(true); return; }
   if (!tekst || spill.låst || spill.ferdig) return;
   const ordliste = kategori().ord;
   const r = vurder(ordliste, tekst, spill.brukt);
@@ -424,12 +454,8 @@ $("skjema").addEventListener("submit", (e) => {
   }
   spill.svar.push(r);
   $("teller").textContent = `${spill.svar.length}/${SVAR_PER_RUNDE}`;
-  if (spill.svar.length >= SVAR_PER_RUNDE) {
-    spill.ferdig = true;
-    vis("skjema", false);
-    ventPå.push(visSlutt);
-  }
-  sendStatus();
+  if (spill.svar.length >= SVAR_PER_RUNDE) avsluttRunde(false);
+  else sendStatus();
 });
 
 function visSlutt() {
@@ -441,6 +467,8 @@ function visSlutt() {
   const sjeldne = [...ubrukte].sort((a, b) => a.o[1] - b.o[1]).slice(0, 3).map(({ o }) => o[0]);
   const vanligst = [...ord].sort((a, b) => b[1] - a[1])[0];
   $("sjeldne").textContent = `Sjeldne ord du kunne tatt: ${sjeldne.join(", ")}. Mest lest om var ${vanligst[0]} (${fmt((vanligst[1] / sum) * 100)} %).`;
+  const topp = toppProsent(simulerSpillere(ord, kategori().navn), spill.total);
+  $("rang").textContent = `Du er blant de ${topp} % beste`;
   oppdaterSlutt();
   vis("slutt", true);
   $("neste").focus();
@@ -450,8 +478,8 @@ function oppdaterSlutt() {
   if (!spill.ferdig) return;
   const tittel = $("slutt-tittel"), tekst = $("slutt-tekst");
   if (!motspiller.id) {
-    tittel.textContent = "Runden er over";
-    tekst.textContent = `Du fikk ${fmt(spill.total)} poeng på ti svar.`;
+    tittel.textContent = spill.sluttTittel;
+    tekst.textContent = `Du fikk ${fmt(spill.total)} poeng på ${spill.svar.length} svar.`;
     return;
   }
   if (motspiller.runde === spill.runde && motspiller.ferdig) {
@@ -459,7 +487,7 @@ function oppdaterSlutt() {
     tittel.textContent = diff > 0 ? "Du vant runden!" : diff < 0 ? "Motspilleren vant" : "Uavgjort";
     tekst.textContent = `Du fikk ${fmt(spill.total)} poeng, motspilleren fikk ${fmt(motspiller.total)}.`;
   } else {
-    tittel.textContent = "Runden er over";
+    tittel.textContent = spill.sluttTittel;
     tekst.textContent = `Du fikk ${fmt(spill.total)} poeng. Motspilleren er ${motspiller.runde === spill.runde ? `på svar ${motspiller.svar} av ${SVAR_PER_RUNDE}` : "i en annen runde"}.`;
   }
 }
@@ -497,7 +525,7 @@ function gåInnIRom(kode) {
   rom = kobleTilRom({
     ...konto, kode,
     vedStatus: (s) => {
-      if (s === "tilkoblet") { rom.sendMelding("hei", { id: meg }); if (!motspiller.id) $("rom-status").textContent = "Koblet til. Venter på motspiller …"; }
+      if (s === "tilkoblet") { rom.sendMelding("hei", { id: meg }); sendStatus(); if (!motspiller.id) $("rom-status").textContent = "Koblet til. Venter på motspiller …"; }
       if (s === "frakoblet") $("rom-status").textContent = "Mistet forbindelsen. Prøver igjen …";
     },
     vedMelding: (hendelse, m) => {
@@ -529,6 +557,14 @@ $("bli-med").addEventListener("submit", (e) => {
   gåInnIRom(kode);
 });
 $("start-na").addEventListener("click", () => startRunde());
+
+let lydPå = true;
+$("lyd").addEventListener("click", () => {
+  lydPå = !lydPå;
+  settLyd(lydPå);
+  $("lyd").setAttribute("aria-pressed", String(lydPå));
+  $("lyd").textContent = lydPå ? "Lyd på" : "Lyd av";
+});
 
 /* ---------------- Oppstart ---------------- */
 lagKorn();

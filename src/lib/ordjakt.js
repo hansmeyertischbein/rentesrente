@@ -2,12 +2,15 @@
 // Poeng = 100 × (1 − ordets visninger / alle ordene i kategorien). Et sjeldent ord gir nesten 100.
 
 export const SVAR_PER_RUNDE = 10;
+export const SEKUNDER_PER_RUNDE = 60;
+export const ANTALL_SIMULERTE = 2000;
 
 export function normaliser(tekst) {
   return String(tekst ?? "")
     .toLowerCase()
     .normalize("NFC")
-    .replace(/[^\p{L}\p{N}\s-]/gu, "")
+    .replace(/[^æøå\s]/g, (c) => c.normalize("NFD").replace(/\p{M}/gu, "")) // «bogota» for «bogotá», men å forblir å
+    .replace(/[^\p{L}\p{N}\s+#-]/gu, "") // + og # skiller C++ og C# fra C
     .replace(/[\s-]+/g, " ")
     .trim();
 }
@@ -41,8 +44,20 @@ function stammer(s) {
   return ut;
 }
 
+// Slutten av navn på flere ord: «vincent van gogh» kan skrives «van gogh» eller «gogh».
+// Deler bare på mellomrom, så «spider-man» ikke blir «man». Keisere og konger kan skrives uten tillegg.
+function kortformer(ord) {
+  const deler = ord.split(" ").filter(Boolean);
+  if (deler.length < 2) return [];
+  const ut = deler.map((_, i) => deler.slice(i).join(" ")).slice(1);
+  const utenTillegg = ord.replace(/ (i{1,3}|iv|vi{0,3}|den .+)$/i, "");
+  if (utenTillegg !== ord) ut.push(utenTillegg);
+  return ut.map((x) => kompakt(normaliser(x))).filter((x) => x.length >= 3);
+}
+
 // Gir indeksen til ordet i listen, eller -1. Listen er [[ord, antall], ...].
-export function finnOrd(ordliste, svar) {
+// Passer en kortform på flere («bush»), velges den mest leste som ikke er brukt.
+export function finnOrd(ordliste, svar, brukt = new Set()) {
   const s = normaliser(svar);
   if (!s) return -1;
   const sk = kompakt(s);
@@ -52,13 +67,22 @@ export function finnOrd(ordliste, svar) {
   const svarStammer = stammer(sk);
   i = kandidater.findIndex((k) => [...stammer(k)].some((x) => svarStammer.has(x)));
   if (i >= 0) return i;
-  // Skrivefeil: én feil fra seks bokstaver, to fra ti, så korte ord ikke glir over i andre ord.
-  const tillatt = sk.length >= 10 ? 2 : sk.length >= 6 ? 1 : 0;
-  if (!tillatt) return -1;
-  let best = -1, bestAvstand = tillatt + 1;
+  const korte = ordliste.map(([o]) => kortformer(o));
+  const treff = korte.map((k, j) => (k.includes(sk) ? j : -1)).filter((j) => j >= 0);
+  if (treff.length) return treff.sort((a, b) => brukt.has(a) - brukt.has(b) || ordliste[b][1] - ordliste[a][1])[0];
+  // Skrivefeil: én fra fire bokstaver, to fra sju, tre fra elleve. I korte ord må første bokstav
+  // stemme, så «løver» ikke blir «kløver». Måles mot det korteste av de to ordene.
+  const tillatt = (k) => {
+    const n = Math.min(sk.length, k.length);
+    if (n < 4 || (n < 7 && sk[0] !== k[0])) return 0;
+    return n >= 11 ? 3 : n >= 7 ? 2 : 1;
+  };
+  let best = -1, bestAvstand = Infinity;
   kandidater.forEach((k, j) => {
-    const d = avstand(sk, k);
-    if (d < bestAvstand) { best = j; bestAvstand = d; }
+    for (const form of [k, ...korte[j]]) {
+      const d = avstand(sk, form);
+      if (d <= tillatt(form) && (d < bestAvstand || (d === bestAvstand && brukt.has(best) && !brukt.has(j)))) { best = j; bestAvstand = d; }
+    }
   });
   return best;
 }
@@ -72,7 +96,7 @@ export function poengFor(antall, sum) {
 
 // Vurderer ett svar. brukt er et Set med indekser som allerede er svart i runden.
 export function vurder(ordliste, svar, brukt = new Set()) {
-  const i = finnOrd(ordliste, svar);
+  const i = finnOrd(ordliste, svar, brukt);
   if (i < 0) return { status: "ukjent", poeng: 0 };
   if (brukt.has(i)) return { status: "brukt", poeng: 0, indeks: i, ord: ordliste[i][0] };
   const [ord, antall] = ordliste[i];
@@ -105,6 +129,41 @@ export function rekkefolge(antall, kode) {
     [ut[i], ut[j]] = [ut[j], ut[i]];
   }
   return ut;
+}
+
+// Rangeringen måles mot simulerte spillere, ikke ekte: spillet lagrer ingen resultater.
+// Forutsetninger: en spiller rekker 1 til 10 svar på ett minutt (i snitt rundt seks), treffer lista
+// på 55 til 95 % av dem, og velger oftest kjente ord. Alt trekkes med frø, så samme kategori gir samme felt.
+export function simulerSpillere(ordliste, frøtekst, antall = ANTALL_SIMULERTE) {
+  const r = tilfeldig(frø(frøtekst));
+  const sum = totalt(ordliste);
+  const poeng = ordliste.map(([, n]) => poengFor(n, sum));
+  const resultater = [];
+  for (let s = 0; s < antall; s++) {
+    const dyktighet = (r() + r()) / 2; // flest midt på
+    const svar = Math.max(1, Math.min(SVAR_PER_RUNDE, Math.round(2 + dyktighet * 8 + (r() - 0.5) * 3)));
+    const treff = 0.55 + 0.4 * dyktighet;
+    const kjent = 1.1 - 0.7 * dyktighet; // dyktige velger sjeldnere ord
+    const vekter = ordliste.map(([, n]) => Math.pow(Math.max(1, n), kjent));
+    let igjen = vekter.reduce((a, b) => a + b, 0), total = 0;
+    for (let k = 0; k < svar; k++) {
+      if (r() > treff) continue;
+      let mål = r() * igjen, i = 0;
+      while (i < vekter.length - 1 && (mål -= vekter[i]) > 0) i++;
+      total += poeng[i];
+      igjen -= vekter[i];
+      vekter[i] = 0;
+    }
+    resultater.push(Math.round(total * 10) / 10);
+  }
+  return resultater.sort((a, b) => a - b);
+}
+
+// Andelen i prosent som fikk like mye eller mer, rundet opp: «blant de 12 % beste». Alltid 1 til 100.
+export function toppProsent(resultater, poeng) {
+  if (!resultater.length) return 100;
+  const likeEllerBedre = resultater.filter((x) => x >= poeng).length;
+  return Math.min(100, Math.max(1, Math.ceil((100 * likeEllerBedre) / resultater.length)));
 }
 
 const BOKSTAVER = "ABCDEFGHJKLMNPRSTUVWXYZ";
