@@ -437,7 +437,7 @@ function startRunde() {
   vis("skjema", true);
   oppdaterMål();
   $("svar").value = "";
-  $("svar").focus();
+  $("svar").focus({ preventScroll: true });
   lasOpp();
   spill.frist = Date.now() + SEKUNDER_PER_RUNDE * 1000;
   clearInterval(spill.klokke);
@@ -469,6 +469,7 @@ function visBoost() {
 
 function avsluttRunde(tidenUte) {
   if (spill.ferdig) return;
+  if (!$("avslutt").hidden) lukkAvslutt(); // runden ble ferdig før du svarte
   spill.ferdig = true;
   clearInterval(spill.klokke);
   vis("skjema", false); vis("boost", false); vis("hjelp", false);
@@ -549,7 +550,7 @@ function visSlutt() {
   $("tjent").textContent = `+${mynter(mynterFor(spill.total))}. Du har ${mynter(kasse.mynter)}.`;
   oppdaterSlutt();
   vis("slutt", true);
-  $("neste").focus();
+  $("neste").focus({ preventScroll: true });
 }
 
 function oppdaterSlutt() {
@@ -600,8 +601,7 @@ function gåInnIRom(kode) {
   visMotspiller();
   history.replaceState(null, "", "#rom=" + kode);
   $("rom-kode").textContent = kode;
-  $("rom-lenke").href = location.href;
-  $("rom-lenke").textContent = "denne lenken";
+  $("kopiert").textContent = "";
   vis("start", false); vis("venter", true);
   rom?.lukk();
   rom = kobleTilRom({
@@ -612,6 +612,15 @@ function gåInnIRom(kode) {
     },
     vedMelding: (hendelse, m) => {
       if (!m || m.id === meg) return;
+      if (hendelse === "forlot") {
+        motspiller.id = null;
+        $("motstander").hidden = false;
+        $("motstander").textContent = "Motspilleren forlot spillet";
+        $("rom-status").textContent = "Motspilleren forlot rommet. Venter på en ny …";
+        $("start-na").disabled = true;
+        if (spill.ferdig) oppdaterSlutt();
+        return;
+      }
       if (hendelse === "hei") sendStatus();
       if (hendelse === "hei" || hendelse === "status") {
         if (!motspiller.id) $("rom-status").textContent = "Motspilleren er med! Trykk Start når dere er klare.";
@@ -684,7 +693,7 @@ function visButikk() {
     om.append(navn, tekst); li.append(om, knapp);
     return li;
   }));
-  if (aktiv) $("varer").querySelector(`[data-vare="${aktiv}"]:not(:disabled)`)?.focus();
+  if (aktiv) $("varer").querySelector(`[data-vare="${aktiv}"]:not(:disabled)`)?.focus({ preventScroll: true });
 }
 
 function visHjelp() {
@@ -700,7 +709,7 @@ $("bruk-timeglass").addEventListener("click", () => {
   if (rom || spill.ferdig || !kasse.antall.timeglass) return;
   spill.frist += EKSTRA_SEKUNDER * 1000; spill.hjelp = true;
   settKasse(bruk(kasse, "timeglass"));
-  tikk(); $("svar").focus();
+  tikk(); $("svar").focus({ preventScroll: true });
 });
 $("bruk-kikkert").addEventListener("click", () => {
   if (rom || spill.ferdig || !kasse.antall.kikkert) return;
@@ -711,7 +720,7 @@ $("bruk-kikkert").addEventListener("click", () => {
   settKasse(bruk(kasse, "kikkert"));
   $("melding").classList.remove("bom");
   $("melding").textContent = `Kikkerten ser et sjeldent ord som starter på «${ord.slice(0, 3)}», ${ord.length} tegn.`;
-  $("svar").focus();
+  $("svar").focus({ preventScroll: true });
 });
 
 function tilMeny() {
@@ -719,19 +728,55 @@ function tilMeny() {
   startet = false; spill.ferdig = true; spill.sluttTidligst = 0;
   tall.length = 0; kuler.length = 0;
   borg = nyBorg();
+  rom?.sendMelding("forlot", { id: meg });
   rom?.lukk(); rom = null; motspiller.id = null;
   history.replaceState(null, "", location.pathname + location.search);
-  for (const id of ["skjema", "venter", "slutt", "butikk", "boost", "hjelp"]) vis(id, false);
+  for (const id of ["skjema", "venter", "slutt", "butikk", "boost", "hjelp", "avslutt"]) vis(id, false);
   $("melding").textContent = ""; $("logg").replaceChildren();
   $("kategori").textContent = "…"; $("total").textContent = fmt(0); $("teller").textContent = `0/${SVAR_PER_RUNDE}`;
   $("tid").textContent = String(SEKUNDER_PER_RUNDE); $("tid").parentElement.classList.remove("snart");
   visMotspiller();
   vis("start", true);
-  $("alene").focus();
+  $("alene").focus({ preventScroll: true });
 }
-for (const id of ["meny", "slutt-meny", "venter-meny"]) $(id).addEventListener("click", tilMeny);
-$("apne-butikk").addEventListener("click", () => { vis("start", false); vis("butikk", true); visButikk(); $("lukk-butikk").focus(); });
-$("lukk-butikk").addEventListener("click", () => { vis("butikk", false); vis("start", true); $("apne-butikk").focus(); });
+// Midt i en runde spør vi først. Det gjelder både hovedmenyen og lenkene til resten av nettstedet.
+const midtIRunde = () => startet && $("slutt").hidden;
+let etterAvslutt = null;
+function beOmAvslutt(videre) {
+  if (!midtIRunde()) { videre(); return; }
+  etterAvslutt = videre;
+  vis("avslutt", true);
+  $("avslutt-nei").focus({ preventScroll: true });
+}
+function lukkAvslutt() {
+  vis("avslutt", false);
+  etterAvslutt = null;
+  if (!$("skjema").hidden) $("svar").focus({ preventScroll: true });
+}
+$("avslutt-nei").addEventListener("click", lukkAvslutt);
+$("avslutt-ja").addEventListener("click", () => { const videre = etterAvslutt; vis("avslutt", false); etterAvslutt = null; tilMeny(); if (videre !== tilMeny) videre?.(); });
+for (const id of ["meny", "slutt-meny", "venter-meny"]) $(id).addEventListener("click", () => beOmAvslutt(tilMeny));
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (!$("avslutt").hidden) lukkAvslutt(); else if (midtIRunde()) beOmAvslutt(tilMeny);
+});
+document.addEventListener("click", (e) => {
+  const a = e.target.closest?.("a[href]");
+  if (!a || !midtIRunde() || e.metaKey || e.ctrlKey || e.shiftKey || a.target === "_blank" || a.getAttribute("href").startsWith("#")) return;
+  e.preventDefault();
+  beOmAvslutt(() => { location.href = a.href; });
+});
+// Lukker du fanen eller laster på nytt midt i runden, spør nettleseren selv.
+addEventListener("beforeunload", (e) => { if (midtIRunde()) e.preventDefault(); });
+
+async function kopier(tekst, hva) {
+  try { await navigator.clipboard.writeText(tekst); $("kopiert").textContent = `${hva} er kopiert.`; }
+  catch { $("kopiert").textContent = `Kopier selv: ${tekst}`; }
+}
+$("kopier-kode").addEventListener("click", () => kopier(spill.kode, "Koden"));
+$("kopier-lenke").addEventListener("click", () => kopier(location.href, "Lenken"));
+$("apne-butikk").addEventListener("click", () => { vis("start", false); vis("butikk", true); visButikk(); $("lukk-butikk").focus({ preventScroll: true }); });
+$("lukk-butikk").addEventListener("click", () => { vis("butikk", false); vis("start", true); $("apne-butikk").focus({ preventScroll: true }); });
 $("husk").addEventListener("change", (e) => {
   husk = e.target.checked;
   try { if (husk) localStorage.setItem(LAGER, JSON.stringify(kasse)); else localStorage.removeItem(LAGER); } catch { /* lageret er stengt */ }

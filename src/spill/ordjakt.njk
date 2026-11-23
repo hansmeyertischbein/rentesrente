@@ -49,11 +49,11 @@ sideklasse: side-ordjakt
       <p>Du har <b>ett minutt</b> og opptil ti svar. Jo <b>sjeldnere</b> ordet er, jo flere poeng får du. Svar raskt etter hverandre for <b>boost</b>.</p>
       <div class="oj-valg">
         <button class="oj-knapp" type="button" id="alene">Spill alene</button>
-        <button class="oj-knapp" type="button" id="lag-rom">Lag rom for to</button>
+        <button class="oj-knapp" type="button" id="lag-rom">Spill online: få kode</button>
         <button class="oj-knapp" type="button" id="apne-butikk">Butikk · <span id="menymynter">0 mynter</span></button>
       </div>
       <form class="oj-bli-med" id="bli-med">
-        <label for="kode">Har du en kode?</label>
+        <label for="kode">Har du fått en kode?</label>
         <input class="oj-felt oj-kode" id="kode" maxlength="4" autocapitalize="characters" spellcheck="false" placeholder="ABCD">
         <button class="oj-knapp" type="submit">Bli med</button>
       </form>
@@ -61,8 +61,14 @@ sideklasse: side-ordjakt
     </div>
 
     <div class="oj-panel" id="venter" hidden>
-      <h2 class="oj-tittel">Rom <span id="rom-kode"></span></h2>
-      <p>Skriv koden på den andre PC-en, eller åpne <a id="rom-lenke" href="#">denne lenken</a> der.</p>
+      <h2 class="oj-tittel">Romkoden er</h2>
+      <p class="oj-romkode" id="rom-kode"></p>
+      <div class="oj-valg">
+        <button class="oj-knapp" type="button" id="kopier-kode">Kopier kode</button>
+        <button class="oj-knapp" type="button" id="kopier-lenke">Kopier lenke</button>
+      </div>
+      <p>Skriv koden på den andre PC-en, eller åpne lenken der.</p>
+      <p class="oj-feil" id="kopiert" role="status"></p>
       <p id="rom-status">Venter på motspiller …</p>
       <button class="oj-knapp" type="button" id="start-na" disabled>Start nå</button>
       <button class="oj-knapp" type="button" id="venter-meny">Hovedmeny</button>
@@ -76,6 +82,15 @@ sideklasse: side-ordjakt
       <p class="oj-kommentar" id="kommentar"></p>
       <button class="oj-knapp" type="button" id="neste">Neste kategori</button>
       <button class="oj-knapp" type="button" id="slutt-meny">Hovedmeny</button>
+    </div>
+
+    <div class="oj-panel oj-sporsmal" id="avslutt" role="alertdialog" aria-labelledby="avslutt-tittel" hidden>
+      <h2 class="oj-tittel" id="avslutt-tittel">Er du sikker på at du vil avslutte?</h2>
+      <p>Runden teller ikke, og du får ingen mynter for den. Klokka går mens du bestemmer deg.</p>
+      <div class="oj-valg">
+        <button class="oj-knapp" type="button" id="avslutt-nei">Fortsett å spille</button>
+        <button class="oj-knapp oj-fyr" type="button" id="avslutt-ja">Ja, avslutt</button>
+      </div>
     </div>
 
     <div class="oj-panel oj-butikk" id="butikk" hidden>
@@ -99,7 +114,7 @@ sideklasse: side-ordjakt
     <h2>Slik regner vi rangeringen</h2>
     <p>Plassen din måles mot 2 000 spillere som er simulert, ikke ekte. Spillet lagrer ingen resultater, så vi vet ikke hva andre har fått. Vi forutsetter at en spiller rekker 1 til 10 svar, treffer lista på 55 til 95 prosent av dem og oftest velger ord mange kjenner. De får boost etter samme regler som deg.</p>
     <h2>Spill mot en venn</h2>
-    <p>Spiller dere to, skriver den ene «Lag rom» og den andre koden. Dere får samme kategorier i tilfeldig rekkefølge og ser hverandres poeng mens dere spiller.</p>
+    <p>Spiller dere to, trykker den ene «Spill online: få kode» og den andre skriver koden. Dere får samme kategorier i tilfeldig rekkefølge og ser hverandres poeng mens dere spiller.</p>
     <p class="oj-kilde">Kilde: {{ ordjakt.kilde }}, {{ ordjakt.periode.fra | dato }} til {{ ordjakt.periode.til | dato }}. Hentet {{ ordjakt.hentet | dato }}. Sidevisninger er et mål på hvor mye folk leser om et ord, ikke hvor ofte det sies. Har et ord ingen egen artikkel, regner vi det som like sjeldent som det sjeldneste ordet i kategorien. Peker ordet til flere artikler, bruker vi midterste tall i kategorien. Noen ord deler artikkel med noe annet, så tallet kan gjelde en annen betydning enn den du tenkte på.</p>
     <p>Flere spill finner du under <a href="/spill/">Spill</a>. Vil du heller se hvordan sjeldne kroner vokser? Prøv <a href="/kalkulatorer/renters-rente/">Hvor mye blir sparingen din verdt?</a></p>
   </div>

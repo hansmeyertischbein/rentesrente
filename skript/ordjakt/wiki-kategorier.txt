@@ -1,0 +1,74 @@
+# Kategorier på norsk Wikipedia som utvider listene. «Navn: Kategori, Kategori>1», der >1 også tar med artikler i underkategoriene.
+Landdyr på fire bein: Kattedyr, Hundedyr, Mårdyr, Hjortedyr, Bjørner, Kvegdyr, Gnagere, Pungdyr, Haredyr
+Fisk: Torskefisker, Laksefisker, Haier
+Insekter: Insekter, Sommerfugler
+Hunderaser: Hunderaser, Terriere, Spisshunder
+Dyr i havet: Hvaler, Seler, Krepsdyr, Blekkspruter, Pigghuder
+Krypdyr og amfibier: Krypdyr, Slanger, Øgler, Skilpadder, Krokodiller, Amfibier
+Norske fjorder: Fjorder i Vestland>1, Fjorder i Nordland>1, Fjorder i Troms>1, Fjorder i Finnmark>1, Fjorder i Rogaland, Fjorder i Møre og Romsdal, Fjorder i Trøndelag
+Elver i verden: Elver i Frankrike, Elver i USA, Elver i India, Elver i Kina, Elver i Brasil
+Øyer i verden: Øyer i Hellas, Øyer i Italia, Øyer i Indonesia, Øyer i Spania, Øyer i Danmark>1
+Frukt: Frukt
+Grønnsaker: Grønnsaker
+Bær: Bær
+Krydder og urter: Krydder, Urter
+Oster: Oster, Norske oster, Franske oster, Italienske oster
+Retter fra hele verden: Italiensk mat, Japansk mat, Matretter
+Kaker og bakst: Kaker, Brød
+Drikker: Cocktailer, Brennevin, Øltyper, Brus, Leskedrikker
+Søtsaker: Sjokolade, Snacks, Desserter
+Nøtter og frø: Nøtter og frø
+Trær: Trær>1, Bartrær>1
+Sopp: Giftige sopper, Matsopp
+Grunnstoffer: Grunnstoffer
+Verdensrommet: Planeter, Måner>1, Stjerner, Galakser, Kometer, Dvergplaneter
+Edelsteiner og mineraler: Mineraler
+Bergarter: Bergarter, Magmatiske bergarter, Metamorfe bergarter, Sedimentære bergarter
+Vær: Vær, Skyer, Vind, Nedbør
+Naturtyper og landformer: Landformer
+Kroppsdeler: Skjelettet, Muskler
+Sykdommer: Infeksjonssykdommer, Kreft, Autoimmune sykdommer
+Idretter: Lagsport, Kampsport, Vannsport
+Kampsport: Kampsport
+Brettspill og kortspill: Brettspill, Kortspill
+Musikkinstrumenter: Musikkinstrumenter>1, Strengeinstrumenter, Blåseinstrumenter
+Musikksjangre: Musikksjangre
+Dansestiler: Danser
+Klesplagg: Klær, Klesplagg, Hodeplagg, Fottøy, Undertøy
+Smykker og tilbehør: Smykker
+Stoffer og materialer: Tekstiler, Plast, Legeringer
+Møbler: Møbler
+Kjøkkenredskaper: Kjøkkenutstyr
+Verktøy: Verktøy
+Bilmerker: Bilmerker, Bilprodusenter
+Båttyper: Båttyper, Båter
+Rom i et hus: Rom
+Farger: Farger
+Geometriske former: Geometriske former, Polygoner, Polyedre
+Måleenheter: Måleenheter, Avledede SI-enheter
+Språk: Germanske språk, Romanske språk, Slaviske språk>1, Bantuspråk, Uralske språk>1
+Religioner og livssyn: Livssyn, Kristne trossamfunn
+Greske guder: Greske guder, Greske gudinner
+Norrøne guder og vesener: Norrøn mytologi, Jotner, Åser
+Fabeldyr og myteskapninger: Overnaturlige vesener
+Dinosaurer: Dinosaurer
+Høytider og merkedager: Merkedager, Kristne høytider
+Vitenskapsfolk: Norske fysikere, Norske kjemikere, Norske matematikere
+Malere og kunstnere: Norske malere, Franske malere, Italienske malere, Nederlandske malere, Spanske malere, Tyske malere
+Komponister: Norske komponister, Tyske komponister, Italienske komponister, Franske komponister, Russiske komponister, Østerrikske komponister
+Forfattere i verden: Engelske forfattere, Svenske forfattere, Danske forfattere
+Norske forfattere: Norske romanforfattere, Norske krimforfattere, Norske barnebokforfattere
+Filosofer: Greske filosofer, Tyske filosofer, Franske filosofer, Norske filosofer, Britiske filosofer
+Oppfinnelser: Oppfinnelser, Norske oppfinnelser
+Romerske keisere: Romerske keisere
+Oppdagelsesreisende: Oppdagelsesreisende, Norske polfarere, Polfarere
+Filmsjangre: Filmsjangre
+Programmeringsspråk: Programmeringsspråk
+Vitaminer og næringsstoffer: Vitaminer, Aminosyrer
+Kornsorter og avlinger: Korn
+Husdyr og gårdsdyr: Saueraser, Hesteraser
+Finansbegreper: Finans
+Sjøfart og pirater: Pirater, Norske rederier, Rederier, Danske rederier, Sjøfart, Seilskip
+Romfart: Romfart, NASA, Romsonder, Apollo-programmet
+Følelser: Følelser
+Spill og leker: Leker, Leketøy

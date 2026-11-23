@@ -17,21 +17,25 @@ const PERIODE = { fra: start.toISOString().slice(0, 10), til: slutt.toISOString(
 const buffer = existsSync(BUFFER) ? JSON.parse(readFileSync(BUFFER, "utf8")) : { titler: {}, visninger: {} };
 const lagre = () => writeFileSync(BUFFER, JSON.stringify(buffer));
 
+const fjernet = {}; // ord som er tatt bort for hånd, og som heller ikke skal komme inn fra Wikipedia
 function lesKategorier() {
-  return readFileSync(new URL("./kategorier.txt", import.meta.url), "utf8")
-    .split("\n")
-    .filter((l) => l.trim() && !l.startsWith("#"))
-    .map((l) => {
-      const i = l.indexOf(":");
-      const navn = l.slice(0, i).trim();
-      const sett = new Map();
-      for (const del of l.slice(i + 1).split(",")) {
-        const [ord, artikkel] = del.split("=").map((s) => s.trim());
-        if (!ord || sett.has(ord.toLowerCase())) continue;
-        sett.set(ord.toLowerCase(), { ord: ord.toLowerCase(), artikler: artikkel ? [artikkel] : kandidater(ord) });
-      }
-      return { navn, ord: [...sett.values()] };
-    });
+  const alle = new Map();
+  for (const l of readFileSync(new URL("./kategorier.txt", import.meta.url), "utf8").split("\n")) {
+    if (!l.trim() || l.startsWith("#")) continue;
+    const i = l.indexOf(":");
+    const navn = l.slice(0, i).trim();
+    if (!alle.has(navn)) alle.set(navn, new Map());
+    const sett = alle.get(navn);
+    for (const del of l.slice(i + 1).split(",")) {
+      const [ord, artikkel] = del.split("=").map((s) => s.trim());
+      if (!ord) continue;
+      const nokkel = ord.toLowerCase();
+      if (nokkel.startsWith("-")) { sett.delete(nokkel.slice(1)); (fjernet[navn] ??= new Set()).add(nokkel.slice(1)); continue; }
+      if (sett.has(nokkel) && !artikkel) continue;
+      sett.set(nokkel, { ord: nokkel, artikler: artikkel ? [artikkel] : kandidater(ord) });
+    }
+  }
+  return [...alle].map(([navn, sett]) => ({ navn, ord: [...sett.values()] }));
 }
 
 const storForbokstav = (s) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -99,6 +103,54 @@ const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s.lengt
 const kategorier = lesKategorier();
 await slaOppTitler(kategorier.flatMap((k) => k.ord.flatMap((o) => o.artikler)));
 const finnTittel = (o) => { for (const a of o.artikler) { const t = buffer.titler[a]; if (t?.finnes) return t; } return null; };
+
+// Utvider listene med artikler fra kategorier på Wikipedia. De lengste artiklene tas først, opptil TAK per liste,
+// fordi lange artikler oftere handler om noe folk kjenner.
+// Artikler om emnet, biologiske grupper og lover er ikke svar noen ville skrevet.
+const IKKE_ORD = /(familien|slekt[ae]n?|idae|inae|optera|oidea|avstemning|forbudet|klassifi|utvinning|varsling|ordning|forening|forbund|landslag|bygging|tidslinje|teori|evne til|syn på|måner$|ringer$|systemet|enheter$|rasen?r?$|loven$|produksjon|i danmark|i norge|i japan|minnedag|oppdagelser|fossile|insektpop|kulturen$|ivil)/;
+const TAK = 110;
+async function medlemmer(kat, dybde) {
+  const ut = [], under = [];
+  let mer = "";
+  do {
+    const j = await hent("https://no.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&generator=categorymembers&gcmtype=page|subcat&gcmlimit=500&prop=info&gcmtitle=" + encodeURIComponent("Kategori:" + kat) + mer);
+    for (const p of j.query?.pages ?? []) {
+      if (p.ns === 0) ut.push({ tittel: p.title, lengde: p.length });
+      else if (p.ns === 14) under.push(p.title.replace(/^Kategori:/, ""));
+    }
+    mer = j.continue ? "&gcmcontinue=" + encodeURIComponent(j.continue.gcmcontinue) : "";
+  } while (mer);
+  if (dybde > 0) for (const u of under) ut.push(...(await medlemmer(u, dybde - 1)));
+  return ut;
+}
+buffer.kategorier ??= {};
+for (const l of readFileSync(new URL("./wiki-kategorier.txt", import.meta.url), "utf8").split("\n")) {
+  if (!l.trim() || l.startsWith("#")) continue;
+  const i = l.indexOf(":");
+  const k = kategorier.find((x) => x.navn === l.slice(0, i).trim());
+  if (!k) throw new Error("Ukjent kategori: " + l.slice(0, i));
+  const funn = new Map();
+  for (const del of l.slice(i + 1).split(",").map((x) => x.trim())) {
+    const [navn, dybde] = del.split(">");
+    buffer.kategorier[del] ??= await medlemmer(navn, Number(dybde) || 0);
+    for (const m of buffer.kategorier[del]) funn.set(m.tittel, m.lengde);
+  }
+  const harOrd = new Set(k.ord.map((o) => o.ord));
+  const harArtikkel = new Set(k.ord.map((o) => finnTittel(o)?.tittel).filter(Boolean));
+  let antall = 0;
+  for (const [tittel] of [...funn].sort((a, b) => b[1] - a[1])) {
+    if (antall >= TAK) break;
+    const ord = tittel.replace(/ \([^)]*\)$/, "").replaceAll("«", "").replaceAll("»", "").toLowerCase();
+    if (harOrd.has(ord) || harArtikkel.has(tittel)) continue;
+    if (ord.length < 2 || ord.length > 34 || /^(liste|oversikt|norges|verdens|historien? )/.test(ord) || /[,:/]|\d{3}| i (norge|usa|europa)$/.test(ord)) continue;
+    if (IKKE_ORD.test(ord) || fjernet[k.navn]?.has(ord)) continue;
+    harOrd.add(ord);
+    k.ord.push({ ord, artikler: [tittel] });
+    buffer.titler[tittel] ??= { finnes: true, tittel, peker: false };
+    antall++;
+  }
+}
+lagre();
 await hentVisninger(kategorier.flatMap((k) => k.ord.map(finnTittel).filter((t) => t && !t.peker).map((t) => t.tittel)));
 
 // Ord uten egen artikkel får kategoriens laveste tall (de er sjeldne), pekersider får medianen (vi vet ikke hvilken betydning folk leste).

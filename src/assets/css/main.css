@@ -1251,14 +1251,14 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .side-ordjakt .spillside { padding-top: 0.75rem; }
 .oj {
   --oj-blekk: #fff8e6; --oj-skygge: #08131c; --oj-tre: #6b3f1d; --oj-tre-lys: #9a6232; --oj-gull: #ffd34d; --oj-rod: #ff6f5e;
-  position: relative; overflow: hidden; height: clamp(34rem, 80svh, 52rem);
+  position: relative; overflow: hidden; overflow: clip; height: clamp(34rem, 80svh, 52rem);
   margin-inline: calc(-1 * var(--gutter)); background: #0d3d63; color: var(--oj-blekk);
   font-stretch: var(--wide); isolation: isolate; touch-action: manipulation;
 }
 @media (min-width: 40rem) { .oj { margin-inline: 0; border: 4px solid #08131c; box-shadow: 6px 6px 0 rgb(8 19 28 / 0.35); } }
 .oj-lerret { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
-.oj-korn { position: absolute; inset: -50%; pointer-events: none; opacity: 0.16; mix-blend-mode: overlay; animation: oj-korn 4s step-end infinite; }
-@keyframes oj-korn { 0% { transform: translate(0, 0); } 25% { transform: translate(-7%, 4%); } 50% { transform: translate(5%, -6%); } 75% { transform: translate(-3%, -2%); } }
+.oj-korn { position: absolute; inset: 0; pointer-events: none; opacity: 0.16; mix-blend-mode: overlay; animation: oj-korn 4s step-end infinite; }
+@keyframes oj-korn { 0% { background-position: 0 0; } 25% { background-position: 123px 78px; } 50% { background-position: 276px 189px; } 75% { background-position: 51px 303px; } }
 
 .oj :is(p, h2, b, label) { text-shadow: 2px 2px 0 var(--oj-skygge); }
 .oj-merke { display: block; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.9; }
@@ -1310,7 +1310,7 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 
 .oj-panel {
   position: absolute; z-index: 4; left: 50%; top: 30%; transform: translateX(-50%); width: min(30rem, calc(100% - 2rem));
-  padding: 1.1rem 1.25rem 1.25rem; background: rgb(17 40 58 / 0.92); border: 4px solid var(--oj-skygge);
+  padding: 1.1rem 1.25rem 1.25rem; background: rgb(17 40 58 / 0.97); border: 4px solid var(--oj-skygge);
   box-shadow: inset 0 0 0 3px #2f6a8e, 6px 6px 0 rgb(0 0 0 / 0.35); text-align: center; display: grid; gap: 0.75rem;
 }
 .oj-panel p { margin: 0; }
@@ -1320,7 +1320,9 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .oj-bli-med { display: flex; gap: 0; justify-content: center; align-items: center; flex-wrap: wrap; row-gap: 0.4rem; }
 .oj-bli-med label { width: 100%; font-weight: 700; }
 .oj-kode { flex: 0 1 8rem; text-transform: uppercase; letter-spacing: 0.2em; text-align: center; }
-.oj-feil { color: #ffb4a6; font-weight: 700; min-height: 1.2em; }
+.oj-feil { color: #ffb4a6; font-weight: 700; }
+.oj-feil:empty { display: none; }
+#kopiert { color: var(--oj-blekk); }
 .oj-kommentar { font-size: 1.125rem; font-weight: 700; }
 .oj-boost { position: absolute; z-index: 3; left: 50%; top: calc(37% + 4rem); transform: translateX(-50%); width: min(30rem, calc(100% - 2rem)); display: flex; align-items: center; gap: 0.6rem; color: var(--oj-gull); }
 .oj-boost-strek { flex: 1; height: 0.6rem; background: rgb(8 19 28 / 0.6); border: 2px solid var(--oj-skygge); }
@@ -1328,13 +1330,15 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .oj-hjelp { position: absolute; z-index: 3; left: 0; right: 0; top: 64%; display: flex; justify-content: center; gap: 0.4rem; }
 .oj :is(.oj-boost, .oj-hjelp, .oj-panel)[hidden] { display: none; }
 .oj-tjent { font-weight: 800; color: var(--oj-gull); }
-.oj-butikk { top: 8%; max-height: 84%; overflow-y: auto; overscroll-behavior: contain; z-index: 6; }
+.oj-butikk { top: 3%; max-height: calc(97% - 4rem); overflow-y: auto; overscroll-behavior: contain; z-index: 6; }
 .oj-varer { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.4rem; text-align: left; }
 .oj-varer li { display: grid; grid-template-columns: 1fr auto; gap: 0.6rem; align-items: center; padding: 0.4rem 0.5rem; background: rgb(8 19 28 / 0.5); }
 .oj-varer b, .oj-varer span { display: block; }
 .oj-varer span { font-size: 0.875rem; }
 .oj-varer .oj-knapp { font-size: 0.8125rem; padding: 0.4rem 0.6rem; }
-.oj-husk { display: flex; gap: 0.5rem; align-items: center; justify-content: center; min-height: 2.75rem; }
+.oj-romkode { font-size: 3rem; font-weight: 900; letter-spacing: 0.2em; line-height: 1.1; color: var(--oj-gull); user-select: all; -webkit-user-select: all; }
+.oj-sporsmal { z-index: 8; }
+.oj-husk { text-align: left; font-size: 1rem; display: flex; gap: 0.5rem; align-items: center; justify-content: center; min-height: 2.75rem; }
 .oj-husk input { width: 1.25rem; height: 1.25rem; }
 .oj-regler { margin-top: 2rem; }
 .oj-kilde { font-size: var(--t-small); color: var(--muted); }
@@ -1343,8 +1347,11 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
   .oj-tavle { gap: 0.25rem; }
   .oj-tavle p { min-width: 3.4rem; padding-inline: 0.35rem; }
   .oj-tavle b { font-size: 1.2rem; }
-  .oj-butikk li { grid-template-columns: 1fr; }
+  .oj-varer li { grid-template-columns: 1fr; }
+  .oj-panel { top: 2.5%; max-height: calc(97.5% - 4rem); overflow-y: auto; overscroll-behavior: contain; padding-block: 0.75rem; gap: 0.5rem; }
+  .oj-panel .oj-tittel { font-size: 1.6rem; }
   .oj-skjema { top: 34%; }
   .oj-melding { bottom: calc(66% + 0.6rem); font-size: 0.875rem; }
 }
+@media (max-height: 62rem) and (min-width: 40.01rem) { .oj-panel { top: 3%; max-height: 94%; overflow-y: auto; overscroll-behavior: contain; gap: 0.5rem; padding-block: 0.8rem; } .oj-panel .oj-tittel { font-size: 1.6rem; } .oj-panel.oj-sporsmal { top: 30%; max-height: 68%; } }
 @media (prefers-reduced-motion: reduce) { .oj-korn { animation: none; } .oj-total.pulser b { animation: none; } }
