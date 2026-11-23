@@ -321,7 +321,17 @@ export const STRATEGIMERKER = {
 export const MENYIKONER = {
   pokal: { tile: "#fff0c2", svg: svg('<path d="M20 10h24v12q0 14-12 16-12-2-12-16z" fill="#ffd84a"/><path d="M20 14h-7q0 12 10 13M44 14h7q0 12-10 13" fill="none"/><path d="M28 40h8l2 8h-12z" fill="#e9a91c"/><rect x="20" y="48" width="24" height="7" rx="2" fill="#8b5a2b"/><path d="M27 16l2 5 5 .5-4 3 1.5 5-4.5-3-4.5 3 1.5-5-4-3 5-.5z" fill="#fff6d0" stroke-width="1.4" transform="translate(5 -1)"/>') },
   tannhjul: { tile: "#dbe8f1", svg: svg('<path d="M29 8h6l1 6 5 2 5-4 4 4-4 5 2 5 6 1v6l-6 1-2 5 4 5-4 4-5-4-5 2-1 6h-6l-1-6-5-2-5 4-4-4 4-5-2-5-6-1v-6l6-1 2-5-4-5 4-4 5 4 5-2z" fill="#8fa3b5"/><circle cx="32" cy="32" r="8" fill="#dbe8f1"/>') },
-  gris: { tile: "#fde0e6" },
+  spill: { tile: "#e6dcf8", svg: svg('<path d="M18 20h28q12 0 14 16t-6 18q-6 1-12-9H22q-6 10-12 9-8-2-6-18t14-16z" fill="#8a6fd0"/><path d="M20 28v12M14 34h12" fill="none" stroke="#fff" stroke-width="3.6"/><circle cx="43" cy="30" r="3" fill="#ffd84a"/><circle cx="50" cy="37" r="3" fill="#f08a9e"/><path d="M32 20v-8" fill="none"/>') },
+};
+
+export const MINIIKONER = {
+  limonadeboden: { tile: "#fff3b0", svg: svg('<path d="M6 20h52l-4 11H10z" fill="#e8553d"/><path d="M17 20l-2 11M29 20v11M41 20l1 11" stroke="#fff" stroke-width="5"/><path d="M12 31v26M52 31v26" fill="none"/><rect x="8" y="46" width="48" height="13" rx="3" fill="#d9a066"/><path d="M24 33h15l-2 13H26z" fill="#ffe25a"/><path d="M39 36q6 0 5 5t-6 4" fill="none"/><circle cx="31" cy="39" r="3" fill="#fff" stroke="none"/><circle cx="32" cy="10" r="7" fill="#ffe25a"/>') },
+  meglerhuset: { tile: "#d7e7fb", svg: svg('<rect x="5" y="9" width="54" height="38" rx="5" fill="#1e2a4a"/><path d="M10 38l9-12 8 7 9-18 8 10 9-14" fill="none" stroke="#62e09a" stroke-width="3"/><path d="M12 41h40" stroke="#4a5a86" stroke-width="1.4"/><path d="M26 47h12l3 9H23z" fill="#8fa3b5"/><circle cx="53" cy="11" r="3.4" fill="#62e09a"/>') },
+  grisevakta: { tile: "#d9efc7", svg: svg('<path d="M14 58V28h36v30z" fill="#c9ced6"/><path d="M10 28V16h9v6h8v-6h10v6h8v-6h9v12z" fill="#aab4bf"/><path d="M26 58V46q0-6 6-6t6 6v12z" fill="#8b5a2b"/><circle cx="32" cy="34" r="0" /><path d="M32 16V4l14 5-14 5" fill="#f08a9e"/><path d="M19 36h6M39 36h6" stroke-width="3"/>') },
+  grisetoget: { tile: "#cfe3b8", svg: svg('<rect x="4" y="30" width="18" height="16" rx="4" fill="#e8553d"/><circle cx="10" cy="29" r="4" fill="#ffd84a"/><circle cx="16" cy="28" r="4" fill="#ffd84a"/><path d="M22 40h6" /><ellipse cx="43" cy="34" rx="16" ry="13" fill="#f7b3c2"/><path d="M44 23l4-9 6 9z" fill="#ec8ea5"/><ellipse cx="57" cy="36" rx="4.5" ry="5.5" fill="#f39ab0"/><circle cx="49" cy="30" r="1.8" fill="#2b2118" stroke="none"/><circle cx="10" cy="50" r="5" fill="#5b6672"/><circle cx="34" cy="50" r="5" fill="#5b6672"/><circle cx="50" cy="50" r="5" fill="#5b6672"/>') },
+  vekslebanken: { tile: "#fbe3c0", svg: svg('<circle cx="18" cy="22" r="13" fill="#c9ced6"/><circle cx="18" cy="22" r="7" fill="#e9edf1"/><circle cx="46" cy="22" r="13" fill="#c9ced6"/><circle cx="46" cy="22" r="7" fill="#e9edf1"/><path d="M32 33v7M28 37l4 5 4-5" fill="none" stroke-width="3"/><rect x="14" y="44" width="36" height="16" rx="3" fill="#8fd18a"/><circle cx="32" cy="52" r="5" fill="#eaffea"/>') },
+  krakkfeltet: { tile: "#e8d5c4", svg: svg('<circle cx="16" cy="15" r="8" fill="#8b5a2b"/><circle cx="48" cy="15" r="8" fill="#8b5a2b"/><circle cx="32" cy="33" r="22" fill="#a0693a"/><ellipse cx="32" cy="42" rx="11" ry="9" fill="#e7c49b"/><path d="M27.5 37h9L32 42z" fill="#2b2118"/><path d="M18 24l8 4M46 24l-8 4" fill="none" stroke-width="3"/><circle cx="24" cy="31" r="2.4" fill="#2b2118"/><circle cx="40" cy="31" r="2.4" fill="#2b2118"/><path d="M27 47q5-4 10 0" fill="none"/>') },
+  regnskapet: { tile: "#dbe8f1", svg: svg('<path d="M10 6h44v52H10z" fill="#fffaf0"/><path d="M10 6h8v52h-8z" fill="#3b6fd8"/><path d="M24 18h26M24 30h26M24 42h26M33 10v44M42 10v44" fill="none" stroke-width="1.6"/><text x="26" y="28" font-size="10" font-weight="900" fill="#2b2118" stroke="none">4</text><text x="44" y="28" font-size="10" font-weight="900" fill="#e8553d" stroke="none">7</text><text x="35" y="40" font-size="10" font-weight="900" fill="#2b2118" stroke="none">2</text><text x="26" y="52" font-size="10" font-weight="900" fill="#2f8a46" stroke="none">9</text>') },
 };
 
 // ---------- Pokaler ----------
@@ -348,6 +358,7 @@ const SYMBOL = {
   lotto: '<circle r="8.5"/><text y="3.6" text-anchor="middle" font-size="10" font-weight="900" font-family="Archivo, system-ui, sans-serif" stroke="none" fill="currentColor" class="pokal-tekst">7</text>',
   ikon: '<path d="M0-9l2.6 5.6 6 .6-4.6 4 1.4 6L0 4.2l-5.4 3 1.4-6-4.6-4 6-.6z"/>',
   gud: '<path d="M-9-4l9-6 9 6z"/><path d="M-7-3v9M-2.4-3v9M2.4-3v9M7-3v9M-9 7h18" fill="none" stroke-width="1.8"/>',
+  spill: '<path d="M-6-4h12q4 0 5 6t-2 6q-2 0-4-4h-10q-2 4-4 4-3 0-2-6t5-6z"/>',
   borte: '<path d="M3-8a8.5 8.5 0 1 0 5 13 7 7 0 0 1-5-13z"/>',
   konto: '<path d="M-7 5h14a4 4 0 0 0 0-8 6 6 0 0 0-11-2 4.5 4.5 0 0 0-3 10z"/>',
   prestisje: '<path d="M0 9q-8-2-7-9 2 2 4 2-2-5 1-10 1 4 3 5 1-3 0-6 6 5 5 12-1 5-6 6z"/>',

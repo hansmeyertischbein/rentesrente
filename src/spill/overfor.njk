@@ -22,6 +22,7 @@ sideklasse: side-klikk
         <span class="spillikon profil-strategi" id="strategi-merke" tabindex="0" role="img" hidden></span>
         <button type="button" class="spillikon profil-gud" id="gud-knapp-topp" aria-label="Gudegriser" hidden><span class="profil-prikk" hidden></span></button>
         <button type="button" class="spillikon profil-pokal" id="prestasjon-knapp" aria-label="Prestasjoner"><span class="ikon-merke" id="prestasjon-antall">0</span></button>
+        <button type="button" class="spillikon profil-spill" id="minispill-knapp" aria-label="Minispill"></button>
         <button type="button" class="spillikon profil-tannhjul" id="innstillinger-knapp" aria-label="Innstillinger"></button>
         {% if konto.url and konto.nokkel %}<button type="button" class="profil-logg-inn" id="logg-inn-topp" hidden>Logg inn</button>{% endif %}
         <p class="lotto-merke" id="lotto-merke"></p>
@@ -206,6 +207,11 @@ sideklasse: side-klikk
   <div class="vakt-bane" id="vakt-bane"><button type="button" class="vakt-mynt" id="vakt-mynt" aria-label="Mynt som flytter seg">kr</button></div>
   <p class="flytt-status" id="vakt-status" role="status"></p>
   <p><button type="button" class="lenkeknapp" id="vakt-vent"></button></p>
+</dialog>
+<dialog class="spill-intro spill-vindu minispill-vindu" id="minispill-vindu" aria-labelledby="minispill-tittel">
+  <div class="mini-topp"><button type="button" class="mini-tilbake" id="minispill-tilbake" aria-label="Tilbake" hidden>←</button><h2 id="minispill-tittel">Minispill</h2></div>
+  <div id="minispill-rot"></div>
+  <form method="dialog"><button class="intro-lukk" value="lukk" aria-label="Lukk">×</button></form>
 </dialog>
 <div class="himmel" id="himmel"></div>
 <div class="prestasjon-toast" id="prestasjon-toast" role="status" hidden></div>

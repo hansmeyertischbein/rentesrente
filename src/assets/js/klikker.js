@@ -22,6 +22,7 @@ import * as innstillinger from "./overfor-innstillinger.js";
 import * as vakt from "./overfor-vakt.js";
 import * as utsikt from "./overfor-utsikt.js";
 import * as seddel from "./overfor-seddel.js";
+import * as minispill from "./overfor-minispill.js";
 import { spill } from "./lyd.js";
 
 const NOKKEL = "rr-overfor-2";
@@ -776,6 +777,7 @@ innstillinger.start();
 vakt.start();
 utsikt.start360(api);
 seddel.start(api);
+minispill.start(api);
 
 // ---------- I gang ----------
 

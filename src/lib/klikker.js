@@ -4,6 +4,7 @@
 
 import { formaterTall } from "./format.js";
 import { gudVirkning, grein, GRENER, IKONER, GAMLE_IKONER, ikon, STRATEGI, STRATEGIER, OBLIGASJONER, OBL, PRESTISJE, PRESTASJONER } from "./klikker-guder.js";
+import { BOD, nyBod, lesBod } from "./mini-bod.js";
 import { LOTTO, prisRekker, resultat as lottoResultat, trekkTid } from "./klikker-lotto.js";
 
 const NBSP = " ";
@@ -57,7 +58,7 @@ export const REGLER = Object.freeze({
 });
 
 export const MINISPILL = Object.freeze({
-  spill: Object.freeze(["grisetoget", "vekslebanken", "krakkfeltet", "regnskapet"]),
+  spill: Object.freeze(["limonadeboden", "meglerhuset", "grisevakta", "grisetoget", "vekslebanken", "krakkfeltet", "regnskapet"]),
   nivaer: 5,
   sek: Object.freeze([40, 80, 160, 320, 640]),             // premien i sekunder utbytte
   minst: Object.freeze([1000, 3000, 8000, 20000, 60000]),  // øre, så det lønner seg også helt i starten
@@ -177,6 +178,8 @@ export function nyTilstand() {
     prestisje: 0,
     lodd: [],       // lottorekker som venter på trekning: { runde, antall, fro }
     minispill: {},  // høyeste klarte nivå i hvert minispill
+    bod: nyBod(),   // drikkepenger og oppgraderinger i Limonadeboden, blir med gjennom prestisje
+    bodNiva: 0,     // hvert nivå i Limonadeboden dobler utbyttet fra bodene for godt
     prestasjoner: [], // id-ene til prestasjonene du har, blir med gjennom prestisje
     alleTrykk: 0,   // trykk i alle spill, blir med gjennom prestisje
     uro: stille(),  // lagres ikke
@@ -190,6 +193,11 @@ const har = (t, id) => t.boostere.includes(id);
 export function prestisjeFaktor(t) {
   return Math.pow(PRESTISJE.faktor, t.prestisje ?? 0);
 }
+/** Det limonadebodene ganges med etter nivåene du har klart i Limonadeboden. */
+export function bodFaktor(t) {
+  return Math.pow(BOD.bodFaktor, t.bodNiva ?? 0);
+}
+
 /** 2 mens den lilla lappen varer, ellers 1. */
 export function lappFaktor(t) {
   return (t.lapp?.dobbel ?? 0) > 0 ? 2 : 1;
@@ -221,7 +229,7 @@ export function fall(t, id) {
 /** Utbytte per aksje i sekundet, i øre. Det samme for hver aksje du kjøper. */
 export function utbyttePerAksje(t, id) {
   const a = aksje(id);
-  return a ? a.rate * faktor(t, id) * (1 - fall(t, id)) * gudVirkning(t, "utbytte") * prestisjeFaktor(t) * lappFaktor(t) : 0;
+  return a ? a.rate * faktor(t, id) * (1 - fall(t, id)) * gudVirkning(t, "utbytte") * prestisjeFaktor(t) * lappFaktor(t) * (id === "limonade" ? bodFaktor(t) : 1) : 0;
 }
 
 /** Utbytte fra ett selskap i sekundet, i øre. */
@@ -503,7 +511,7 @@ export function apentNiva(t, spill) {
 export function klarteNiva(t, spill, niva) {
   if (!MINISPILL.spill.includes(spill) || !Number.isInteger(niva) || niva < 1 || niva > apentNiva(t, spill)) return t;
   const premie = minispillPremie(t, spill, niva);
-  return { ...t, saldo: t.saldo + premie, totalt: t.totalt + premie, minispill: { ...t.minispill, [spill]: Math.max(t.minispill?.[spill] ?? 0, niva) } };
+  return { ...t, saldo: t.saldo + premie, totalt: t.totalt + premie, minispill: { ...t.minispill, [spill]: Math.max(t.minispill?.[spill] ?? 0, niva) }, bodNiva: spill === "limonadeboden" ? Math.max(t.bodNiva ?? 0, niva) : t.bodNiva ?? 0 };
 }
 
 // ---------- Ekstraordinært utbytte ----------
@@ -777,7 +785,7 @@ export function prestisje(t) {
   const ny = nyTilstand();
   return {
     ...ny, prestisje: (t.prestisje ?? 0) + 1, ikoner: [...new Set([...t.ikoner, "fonix"])], ikon: "fonix", lodd: t.lodd,
-    prestasjoner: t.prestasjoner ?? [], alleTrykk: t.alleTrykk ?? 0,
+    prestasjoner: t.prestasjoner ?? [], alleTrykk: t.alleTrykk ?? 0, bod: t.bod ?? nyBod(), bodNiva: t.bodNiva ?? 0,
   };
 }
 
@@ -918,6 +926,8 @@ export function fraLagring(obj) {
   if (obj.prestisje !== undefined && !heltall(obj.prestisje, 100)) return null;
   t.prestisje = obj.prestisje ?? 0;
   for (const s of MINISPILL.spill) if (heltall(obj.minispill?.[s], MINISPILL.nivaer) && obj.minispill[s] > 0) t.minispill[s] = obj.minispill[s];
+  t.bod = lesBod(obj.bod);
+  if (heltall(obj.bodNiva, MINISPILL.nivaer)) t.bodNiva = obj.bodNiva;
   if (Array.isArray(obj.prestasjoner)) t.prestasjoner = [...new Set(obj.prestasjoner.filter((id) => PRESTASJONER.some((p) => p.id === id)))];
   t.alleTrykk = heltall(obj.alleTrykk, Number.MAX_SAFE_INTEGER) ? obj.alleTrykk : t.trykk;
   if (Array.isArray(obj.lodd)) {
