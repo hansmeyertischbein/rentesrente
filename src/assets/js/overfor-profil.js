@@ -5,7 +5,7 @@ import {
 } from "/lib/klikker.js";
 import { GRENER, grein, IKONER, SJELDENHET, STRATEGIER, STRATEGI, OBLIGASJONER, OBL, PRESTISJE } from "/lib/klikker-guder.js";
 import { formaterTall } from "/lib/format.js";
-import { AVATARER, STRATEGIMERKER, lagGris } from "./klikker-figurer.js";
+import { AVATARER, STRATEGIMERKER, lagGudekort } from "./klikker-figurer.js";
 import { $, ore, prosent, ganger, settTekst, settAttr, vis, si, annonser, hopp, lag, registrerTips, medTips, apne } from "./overfor-felles.js";
 import { spill } from "./lyd.js";
 
@@ -197,7 +197,7 @@ function tegnGudInfo() {
   if (el.gudValgt.dataset.id !== g.id) {
     el.gudValgt.dataset.id = g.id;
     el.gudValgt.dataset.gren = gren.id;
-    el.gudBilde.innerHTML = lagGris(g.id, "gud-fig");
+    el.gudBilde.innerHTML = lagGudekort(g.id);
   }
   el.gudValgt.dataset.status = status;
   settTekst(el.gudTall, ROMERTALL[g.niva - 1]);
@@ -225,7 +225,7 @@ function byggGudVindu() {
     kol.querySelector("b").textContent = gren.navn;
     kol.querySelector("span").textContent = gren.tema;
     kol.querySelector("ol").replaceChildren(...gren.guder.map((g) => {
-      const li = lag(`<li><button type="button" class="gud-ikon" data-id="${g.id}"><span class="gud-tall">${ROMERTALL[g.niva - 1]}</span><span class="gud-portrett">${lagGris(g.id, "gud-fig")}</span><span class="gud-ikon-navn"></span><span class="gud-ikon-pris"></span></button></li>`);
+      const li = lag(`<li><button type="button" class="gud-ikon" data-id="${g.id}"><span class="gud-tall">${ROMERTALL[g.niva - 1]}</span><span class="gud-portrett">${lagGudekort(g.id)}</span><span class="gud-ikon-navn"></span><span class="gud-ikon-pris"></span></button></li>`);
       li.querySelector(".gud-ikon-navn").textContent = g.navn;
       const knapp = li.firstElementChild;
       knapp.setAttribute("aria-label", `${g.navn}, ${gren.navn.toLowerCase()} nivå ${g.niva}. ${g.hint}`);
@@ -266,7 +266,7 @@ function kjopValgtGud() {
   tegnGudVindu();
 }
 
-let gudToppNokkel = "";
+let gudToppNokkel = null;   // ikonet er ikke tegnet ennå
 function tegnGuder() {
   const x = t();
   vis(el.gudTopp, guderSynlig(x));
@@ -276,7 +276,7 @@ function tegnGuder() {
     gudToppNokkel = id;
     el.gudTopp.dataset.gren = x.gren ?? "";
     el.gudTopp.querySelector(".ikon-flis")?.remove();
-    el.gudTopp.insertAdjacentHTML("afterbegin", `<span class="ikon-flis gud-flis">${lagGris(id || null, "gud-fig")}</span>`);
+    el.gudTopp.insertAdjacentHTML("afterbegin", `<span class="ikon-flis gud-flis">${lagGudekort(id || null)}</span>`);
     const naa = x.gud > 0 ? grein(x.gren).guder[x.gud - 1] : null;
     settAttr(el.gudTopp, "aria-label", naa ? `Gudegriser. Du har ${naa.navn}.` : "Gudegriser. Velg en grein.");
   }

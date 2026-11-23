@@ -14,13 +14,15 @@ sideklasse: side-klikk
     <h2 id="klikk-tittel" class="skjult">Spillet</h2>
     <noscript><p class="forbehold">Spillet trenger JavaScript.</p></noscript>
 
+    <div class="utsikt" id="utsikt" aria-hidden="true"><div class="utsikt-rute" id="utsikt-rute"><div class="utsikt-korn" id="utsikt-korn"></div></div></div>
+
     <div class="klikk-scene" id="scene">
-      <canvas class="by" id="by" aria-hidden="true"></canvas>
       <div class="profil">
         <button type="button" class="spillikon profil-ikon" id="ikon-knapp" aria-label="Ikonet ditt"></button>
         <span class="spillikon profil-strategi" id="strategi-merke" tabindex="0" role="img" hidden></span>
         <button type="button" class="spillikon profil-gud" id="gud-knapp-topp" aria-label="Gudegriser" hidden><span class="profil-prikk" hidden></span></button>
         <button type="button" class="spillikon profil-pokal" id="prestasjon-knapp" aria-label="Prestasjoner"><span class="ikon-merke" id="prestasjon-antall">0</span></button>
+        <button type="button" class="spillikon profil-spill" id="minispill-knapp" aria-label="Minispill"></button>
         <button type="button" class="spillikon profil-tannhjul" id="innstillinger-knapp" aria-label="Innstillinger"></button>
         {% if konto.url and konto.nokkel %}<button type="button" class="profil-logg-inn" id="logg-inn-topp" hidden>Logg inn</button>{% endif %}
         <p class="lotto-merke" id="lotto-merke"></p>
@@ -206,6 +208,12 @@ sideklasse: side-klikk
   <p class="flytt-status" id="vakt-status" role="status"></p>
   <p><button type="button" class="lenkeknapp" id="vakt-vent"></button></p>
 </dialog>
+<dialog class="spill-intro spill-vindu minispill-vindu" id="minispill-vindu" aria-labelledby="minispill-tittel">
+  <div class="mini-topp"><button type="button" class="mini-tilbake" id="minispill-tilbake" aria-label="Tilbake" hidden>←</button><h2 id="minispill-tittel">Minispill</h2></div>
+  <div id="minispill-rot"></div>
+  <form method="dialog"><button class="intro-lukk" value="lukk" aria-label="Lukk">×</button></form>
+</dialog>
+<div class="himmel" id="himmel"></div>
 <div class="prestasjon-toast" id="prestasjon-toast" role="status" hidden></div>
 {% if konto.url and konto.nokkel -%}
 <dialog class="spill-intro spill-vindu" id="konto-vindu" aria-labelledby="konto-tittel" data-url="{{ konto.url }}" data-nokkel="{{ konto.nokkel }}">

@@ -2,6 +2,8 @@
 // Navnene er oppdiktet, og tegningene er karikaturer. Gruppene fig-kropp, fig-oyne og fig-ting
 // beveger seg hver for seg når du eier selskapet. tile er fargen på flisen bak figuren.
 
+import { GUDER, lagGud } from "./overfor-gudefigurer.js";
+
 const K = "#2b2118";
 const HUD = "#f6c7a1";
 const HUD_MORK = "#e7a97f";
@@ -177,74 +179,27 @@ export const FIGURER = {
 // Den store sparegrisen. Ser mot høyre, med myntspor på ryggen.
 // ---------- Grisen ----------
 
-// Grisen kan være en gudegris: annen farge på kroppen og pynt som viser guden. Pynten tegnes i grisens koordinater (132 × 104),
-// med hodet til høyre: øret rundt (93, 18), øyet i (92, 44) og trynet i (111, 58).
-const HJELM = (farge, horn = "#fffaf0") => `<path d="M82 24q-11-5-10-19 6 9 14 12z" fill="${horn}"/><path d="M114 24q11-5 10-19-6 9-14 12z" fill="${horn}"/>` +
-  `<path d="M80 31q1-20 18-20t18 20z" fill="${farge}"/><path d="M80 31h36" fill="none"/><circle cx="98" cy="15" r="2" fill="${K}" stroke="none"/>`;
-const KRANS = (farge) => `<path d="M80 28q18-18 36 0" fill="none" stroke="${farge}" stroke-width="3.5"/>` +
-  [[82, 25, -40], [87, 19, -25], [94, 15, -8], [102, 15, 10], [109, 19, 28], [114, 25, 42]].map(([x, y, r]) => `<ellipse cx="${x}" cy="${y}" rx="4.5" ry="2.4" transform="rotate(${r} ${x} ${y})" fill="${farge}" stroke-width="1.4"/>`).join("");
-const NEMES = (a, b) => `<path d="M79 22h38l7 34-9-5-5-21h-24l-5 21-9 5z" fill="${a}"/><path d="M83 30l-2 10M113 30l2 10M88 22v8M98 22v8M108 22v8" fill="none" stroke="${b}" stroke-width="2.6"/>`;
-const LYN = (x, y, s = 1) => `<path transform="translate(${x} ${y}) scale(${s})" d="M6 0L0 13h6l-3 11 11-15H8l4-9z" fill="#ffd84a"/>`;
-const VINGER = '<path d="M80 22q-12-8-14 2 6 0 8 3-6 1-6 5 8 0 12-4z" fill="#fff"/><path d="M116 22q12-8 14 2-6 0-8 3 6 1 6 5-8 0-12-4z" fill="#fff"/>';
-const KRONE = (farge = "#ffd84a") => `<path d="M84 26l-2-16 8 8 8-12 8 12 8-8-2 16z" fill="${farge}"/><circle cx="98" cy="20" r="2.2" fill="#e8553d"/>`;
-
-// hode tegnes 1,3 ganger større rundt hodet, så pynten synes også når grisen er liten. ting tegnes som den er.
-export const GUDEGRIS = {
-  loke: { kropp: "#b9e3a8", hode: HJELM("#5fae5d"), ting: '<path d="M86 71q5 4 10 1" fill="none"/>' },
-  heimdall: { kropp: "#f7dcae", hode: HJELM("#f1f5f9", "#ffd84a"), ting: '<path d="M116 84q12-2 14-14l-4-1q-3 8-10 10z" fill="#ffd84a"/>' },
-  froya: { kropp: "#f7b3c2", hode: HJELM("#f19bb0", "#ffd84a"), ting: '<path d="M95 49q-2.5 4 0 7 2.5-3 0-7z" fill="#ffd84a"/>' },
-  tor: { kropp: "#f4b08a", hode: HJELM("#aab4bf") + LYN(120, 8, 0.7), ting: '<rect x="119" y="72" width="7" height="24" rx="2" fill="#8b5a2b"/><rect x="109" y="61" width="27" height="14" rx="3" fill="#9aa5b1"/>' },
-  odin: { kropp: "#c9cbe9", hode: HJELM("#5b6170", "#ffd84a"),
-    ting: `<path d="M84 37l22 3" fill="none"/><ellipse cx="92" cy="45" rx="6" ry="5" fill="${K}"/><path d="M18 34q-7-12 5-14 7 0 9 7l7 2-7 4q-5 7-14 1z" fill="${K}"/><circle cx="26" cy="26" r="1.2" fill="#fff" stroke="none"/>` },
-  janus: { kropp: "#f7c6b3", hode: KRANS("#7cc36a"), ting: `<circle cx="22" cy="44" r="2.8" fill="${K}" stroke="none"/><path d="M18 52q4 3 8 0" fill="none"/>` },
-  vesta: { kropp: "#f8b99a", hode: KRANS("#7cc36a"), ting: '<path d="M26 32q-8-10 0-21 8 11 0 21z" fill="#f29b38"/><path d="M26 32q-3.5-5 0-10 3.5 5 0 10z" fill="#ffd84a" stroke="none"/>' },
-  mars: { kropp: "#f09a8e", hode: '<path d="M80 31q2-20 18-20t18 20z" fill="#c9a227"/><path d="M84 12q14-14 30 4-14-6-30-4z" fill="#c0392b"/><path d="M80 31h36" fill="none"/>', ting: '<path d="M116 98V60" fill="none" stroke="#8b5a2b" stroke-width="3"/><path d="M111 62l5-12 5 12z" fill="#aab4bf"/>' },
-  merkur: { kropp: "#cfe7f5", hode: '<path d="M82 28q0-14 16-14t16 14z" fill="#c9a227"/><path d="M82 28h32" fill="none"/>' + VINGER, ting: "" },
-  jupiter: { kropp: "#ffe39a", hode: KRANS("#ffd84a"), ting: LYN(118, 64, 1.2) },
-  bastet: { kropp: "#f3dcaa", hode: NEMES("#3b6fd8", "#ffd84a") + '<path d="M84 22l-2-14 9 8zM112 22l2-14-9 8z" fill="#c9a227"/>', ting: "" },
-  anubis: { kropp: "#7d7d8f", hode: NEMES("#2b2118", "#ffd84a") + `<path d="M84 22l-1-20 9 14zM112 22l1-20-9 14z" fill="${K}"/>`, ting: "" },
-  thot: { kropp: "#bcdcf2", hode: NEMES("#3b6fd8", "#ffd84a"), ting: '<rect x="110" y="70" width="20" height="14" rx="3" fill="#f6e7c1"/><path d="M114 75h12M114 79h8" fill="none" stroke-width="1.6"/>' },
-  osiris: { kropp: "#a6dcae", hode: '<path d="M88 26q10-34 20 0z" fill="#f5f2e8"/><path d="M84 26q-4-10 4-12M112 26q4-10-4-12" fill="none" stroke="#c9a227" stroke-width="3"/><path d="M84 26h28" fill="none"/>', ting: "" },
-  ra: { kropp: "#ffd36b", hode: '<circle cx="98" cy="6" r="11" fill="#ff9d1c"/>' + NEMES("#e8553d", "#ffd84a") + '<path d="M98 17q-4-6 0-9 4 3 0 9z" fill="#3f8f4a"/>', ting: "" },
-  hermes: { kropp: "#d8e9fb", hode: '<path d="M82 28q0-14 16-14t16 14z" fill="#9aa5b1"/><path d="M82 28h32" fill="none"/>' + VINGER, ting: '<path d="M120 98V58" fill="none" stroke="#c9a227" stroke-width="3"/><path d="M114 64q6-6 12 0M114 70q6 6 12 0" fill="none" stroke="#3f8f4a" stroke-width="2.4"/>' },
-  ares: { kropp: "#f2a092", hode: '<path d="M80 34q-2-24 18-24t18 24l-6-2-2-10h-20l-2 10z" fill="#b08d2a"/><path d="M78 14q20-18 40 0-20-6-40 0z" fill="#c0392b"/>', ting: '<circle cx="24" cy="62" r="12" fill="#b08d2a"/><circle cx="24" cy="62" r="5" fill="#c0392b"/>' },
-  poseidon: { kropp: "#95d6ea", hode: KRONE("#7fd3e0"), ting: '<path d="M124 98V40M116 46q0-8 8-8t8 8M124 38v-8" fill="none" stroke="#c9a227" stroke-width="3"/><path d="M114 46l2-6 2 6zM130 46l2-6 2 6zM122 32l2-6 2 6z" fill="#c9a227"/>' },
-  zevs: { kropp: "#fff1b0", hode: KRANS("#ffd84a") + LYN(116, -4, 1.1), ting: '<path d="M100 74q8 16 22 6-4-9-13-13z" fill="#f5f5f0"/>' },
-  kronos: { kropp: "#bba7ea", hode: KRONE("#6a4fd0") + '<path d="M118 -2h12l-6 8 6 8h-12l6-8z" fill="#ffd84a"/>', ting: '<path d="M120 98V44" fill="none" stroke="#5b4636" stroke-width="3"/><path d="M120 44q16-2 14 18-4-12-14-10z" fill="#d8dde3"/>' },
-  prestisje: { kropp: "#ffd84a", hode: KRONE(), ting: '<path d="M30 40q8-14 26-17" fill="none" stroke="#fff" stroke-width="4"/>' },
-};
-
-function morkere(hex, x) {
-  const n = parseInt(hex.slice(1), 16);
-  const f = (v) => Math.round(v * (1 - x)).toString(16).padStart(2, "0");
-  return `#${f(n >> 16)}${f((n >> 8) & 255)}${f(n & 255)}`;
-}
-
-/** Grisen, vanlig rosa eller som en gudegris. id er guden, «prestisje» eller null. */
+/** Grisen. id er guden, «prestisje» eller null for den vanlige rosa. Gudene tegnes i overfor-gudefigurer.js. */
 export function lagGris(id = null, klasse = "gris-fig") {
-  const g = GUDEGRIS[id];
-  const kropp = g?.kropp ?? "#f7b3c2";
-  const mork = g ? morkere(kropp, 0.12) : "#ec8ea5";
-  const snute = g ? morkere(kropp, 0.06) : "#f39ab0";
-  const kinn = g ? morkere(kropp, 0.2) : "#ef7f97";
-  // Som ikon får grisen plass til hjelmer, kroner og spyd over og ved siden av, så ingenting kuttes.
-  const boks = klasse === "gris-fig" ? "0 0 132 104" : "-4 -32 150 140";
+  if (GUDER[id]) return lagGud(id, klasse);
+  // Som ikon får grisen litt luft rundt seg.
+  const boks = klasse === "gris-fig" ? "0 0 132 104" : "-4 -10 150 124";
   return `<svg class="${klasse}" viewBox="${boks}" aria-hidden="true" focusable="false"><g stroke="${K}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round">` +
     '<path d="M17 52q-12-4-11 5 1 7 9 3 4-3 0-6" fill="none"/>' +
-    `<rect x="30" y="76" width="13" height="20" rx="5.5" fill="${mork}"/><rect x="48" y="78" width="13" height="18" rx="5.5" fill="${mork}"/>` +
-    `<rect x="74" y="78" width="13" height="18" rx="5.5" fill="${mork}"/><rect x="91" y="76" width="13" height="20" rx="5.5" fill="${mork}"/>` +
-    `<ellipse cx="64" cy="54" rx="50" ry="36" fill="${kropp}"/>` +
-    `<path d="M84 26l9-18 9 21z" fill="${mork}"/><path d="M90 19l3-6 3 8" fill="${kropp}" stroke="none"/>` +
+    `<rect x="30" y="76" width="13" height="20" rx="5.5" fill="#ec8ea5"/><rect x="48" y="78" width="13" height="18" rx="5.5" fill="#ec8ea5"/>` +
+    `<rect x="74" y="78" width="13" height="18" rx="5.5" fill="#ec8ea5"/><rect x="91" y="76" width="13" height="20" rx="5.5" fill="#ec8ea5"/>` +
+    `<ellipse cx="64" cy="54" rx="50" ry="36" fill="#f7b3c2"/>` +
+    `<path d="M84 26l9-18 9 21z" fill="#ec8ea5"/><path d="M90 19l3-6 3 8" fill="#f7b3c2" stroke="none"/>` +
     `<rect x="48" y="20" width="28" height="6" rx="3" fill="${K}"/>` +
-    `<ellipse cx="111" cy="58" rx="11" ry="13" fill="${snute}"/><ellipse cx="108" cy="55" rx="1.8" ry="3" fill="${K}" stroke="none"/><ellipse cx="115" cy="55" rx="1.8" ry="3" fill="${K}" stroke="none"/>` +
+    `<ellipse cx="111" cy="58" rx="11" ry="13" fill="#f39ab0"/><ellipse cx="108" cy="55" rx="1.8" ry="3" fill="${K}" stroke="none"/><ellipse cx="115" cy="55" rx="1.8" ry="3" fill="${K}" stroke="none"/>` +
     `<g class="gris-oye"><circle cx="92" cy="44" r="4" fill="${K}" stroke="none"/><circle cx="93.4" cy="42.6" r="1.3" fill="#fff" stroke="none"/></g>` +
-    `<ellipse cx="91" cy="62" rx="7" ry="4.5" fill="${kinn}" stroke="none"/><path d="M84 70q6 4 12 0" fill="none"/>` +
+    `<ellipse cx="91" cy="62" rx="7" ry="4.5" fill="#ef7f97" stroke="none"/><path d="M84 70q6 4 12 0" fill="none"/>` +
     '<path d="M30 40q8-14 26-17" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="3.4"/>' +
-    (g ? `<g class="gris-pynt">${g.ting}<g transform="translate(98 31) scale(1.3) translate(-98 -31)">${g.hode}</g></g>` : "") +
     "</g></svg>";
 }
 
-export const GRIS = lagGris();
+/** Portrettkortet av en gud, eller den vanlige grisen når id er tom. */
+export const lagGudekort = (id) => (GUDER[id] ? lagGud(id, "gud-fig", true) : lagGris(null, "gud-fig"));
 
 // ---------- Ikoner: hvem du er ----------
 
@@ -321,7 +276,17 @@ export const STRATEGIMERKER = {
 export const MENYIKONER = {
   pokal: { tile: "#fff0c2", svg: svg('<path d="M20 10h24v12q0 14-12 16-12-2-12-16z" fill="#ffd84a"/><path d="M20 14h-7q0 12 10 13M44 14h7q0 12-10 13" fill="none"/><path d="M28 40h8l2 8h-12z" fill="#e9a91c"/><rect x="20" y="48" width="24" height="7" rx="2" fill="#8b5a2b"/><path d="M27 16l2 5 5 .5-4 3 1.5 5-4.5-3-4.5 3 1.5-5-4-3 5-.5z" fill="#fff6d0" stroke-width="1.4" transform="translate(5 -1)"/>') },
   tannhjul: { tile: "#dbe8f1", svg: svg('<path d="M29 8h6l1 6 5 2 5-4 4 4-4 5 2 5 6 1v6l-6 1-2 5 4 5-4 4-5-4-5 2-1 6h-6l-1-6-5-2-5 4-4-4 4-5-2-5-6-1v-6l6-1 2-5-4-5 4-4 5 4 5-2z" fill="#8fa3b5"/><circle cx="32" cy="32" r="8" fill="#dbe8f1"/>') },
-  gris: { tile: "#fde0e6" },
+  spill: { tile: "#e6dcf8", svg: svg('<path d="M18 20h28q12 0 14 16t-6 18q-6 1-12-9H22q-6 10-12 9-8-2-6-18t14-16z" fill="#8a6fd0"/><path d="M20 28v12M14 34h12" fill="none" stroke="#fff" stroke-width="3.6"/><circle cx="43" cy="30" r="3" fill="#ffd84a"/><circle cx="50" cy="37" r="3" fill="#f08a9e"/><path d="M32 20v-8" fill="none"/>') },
+};
+
+export const MINIIKONER = {
+  limonadeboden: { tile: "#fff3b0", svg: svg('<path d="M6 20h52l-4 11H10z" fill="#e8553d"/><path d="M17 20l-2 11M29 20v11M41 20l1 11" stroke="#fff" stroke-width="5"/><path d="M12 31v26M52 31v26" fill="none"/><rect x="8" y="46" width="48" height="13" rx="3" fill="#d9a066"/><path d="M24 33h15l-2 13H26z" fill="#ffe25a"/><path d="M39 36q6 0 5 5t-6 4" fill="none"/><circle cx="31" cy="39" r="3" fill="#fff" stroke="none"/><circle cx="32" cy="10" r="7" fill="#ffe25a"/>') },
+  meglerhuset: { tile: "#d7e7fb", svg: svg('<rect x="5" y="9" width="54" height="38" rx="5" fill="#1e2a4a"/><path d="M10 38l9-12 8 7 9-18 8 10 9-14" fill="none" stroke="#62e09a" stroke-width="3"/><path d="M12 41h40" stroke="#4a5a86" stroke-width="1.4"/><path d="M26 47h12l3 9H23z" fill="#8fa3b5"/><circle cx="53" cy="11" r="3.4" fill="#62e09a"/>') },
+  grisevakta: { tile: "#d9efc7", svg: svg('<path d="M14 58V28h36v30z" fill="#c9ced6"/><path d="M10 28V16h9v6h8v-6h10v6h8v-6h9v12z" fill="#aab4bf"/><path d="M26 58V46q0-6 6-6t6 6v12z" fill="#8b5a2b"/><circle cx="32" cy="34" r="0" /><path d="M32 16V4l14 5-14 5" fill="#f08a9e"/><path d="M19 36h6M39 36h6" stroke-width="3"/>') },
+  grisetoget: { tile: "#cfe3b8", svg: svg('<rect x="4" y="30" width="18" height="16" rx="4" fill="#e8553d"/><circle cx="10" cy="29" r="4" fill="#ffd84a"/><circle cx="16" cy="28" r="4" fill="#ffd84a"/><path d="M22 40h6" /><ellipse cx="43" cy="34" rx="16" ry="13" fill="#f7b3c2"/><path d="M44 23l4-9 6 9z" fill="#ec8ea5"/><ellipse cx="57" cy="36" rx="4.5" ry="5.5" fill="#f39ab0"/><circle cx="49" cy="30" r="1.8" fill="#2b2118" stroke="none"/><circle cx="10" cy="50" r="5" fill="#5b6672"/><circle cx="34" cy="50" r="5" fill="#5b6672"/><circle cx="50" cy="50" r="5" fill="#5b6672"/>') },
+  vekslebanken: { tile: "#fbe3c0", svg: svg('<circle cx="18" cy="22" r="13" fill="#c9ced6"/><circle cx="18" cy="22" r="7" fill="#e9edf1"/><circle cx="46" cy="22" r="13" fill="#c9ced6"/><circle cx="46" cy="22" r="7" fill="#e9edf1"/><path d="M32 33v7M28 37l4 5 4-5" fill="none" stroke-width="3"/><rect x="14" y="44" width="36" height="16" rx="3" fill="#8fd18a"/><circle cx="32" cy="52" r="5" fill="#eaffea"/>') },
+  krakkfeltet: { tile: "#e8d5c4", svg: svg('<circle cx="16" cy="15" r="8" fill="#8b5a2b"/><circle cx="48" cy="15" r="8" fill="#8b5a2b"/><circle cx="32" cy="33" r="22" fill="#a0693a"/><ellipse cx="32" cy="42" rx="11" ry="9" fill="#e7c49b"/><path d="M27.5 37h9L32 42z" fill="#2b2118"/><path d="M18 24l8 4M46 24l-8 4" fill="none" stroke-width="3"/><circle cx="24" cy="31" r="2.4" fill="#2b2118"/><circle cx="40" cy="31" r="2.4" fill="#2b2118"/><path d="M27 47q5-4 10 0" fill="none"/>') },
+  regnskapet: { tile: "#dbe8f1", svg: svg('<path d="M10 6h44v52H10z" fill="#fffaf0"/><path d="M10 6h8v52h-8z" fill="#3b6fd8"/><path d="M24 18h26M24 30h26M24 42h26M33 10v44M42 10v44" fill="none" stroke-width="1.6"/><text x="26" y="28" font-size="10" font-weight="900" fill="#2b2118" stroke="none">4</text><text x="44" y="28" font-size="10" font-weight="900" fill="#e8553d" stroke="none">7</text><text x="35" y="40" font-size="10" font-weight="900" fill="#2b2118" stroke="none">2</text><text x="26" y="52" font-size="10" font-weight="900" fill="#2f8a46" stroke="none">9</text>') },
 };
 
 // ---------- Pokaler ----------
@@ -348,6 +313,7 @@ const SYMBOL = {
   lotto: '<circle r="8.5"/><text y="3.6" text-anchor="middle" font-size="10" font-weight="900" font-family="Archivo, system-ui, sans-serif" stroke="none" fill="currentColor" class="pokal-tekst">7</text>',
   ikon: '<path d="M0-9l2.6 5.6 6 .6-4.6 4 1.4 6L0 4.2l-5.4 3 1.4-6-4.6-4 6-.6z"/>',
   gud: '<path d="M-9-4l9-6 9 6z"/><path d="M-7-3v9M-2.4-3v9M2.4-3v9M7-3v9M-9 7h18" fill="none" stroke-width="1.8"/>',
+  spill: '<path d="M-6-4h12q4 0 5 6t-2 6q-2 0-4-4h-10q-2 4-4 4-3 0-2-6t5-6z"/>',
   borte: '<path d="M3-8a8.5 8.5 0 1 0 5 13 7 7 0 0 1-5-13z"/>',
   konto: '<path d="M-7 5h14a4 4 0 0 0 0-8 6 6 0 0 0-11-2 4.5 4.5 0 0 0-3 10z"/>',
   prestisje: '<path d="M0 9q-8-2-7-9 2 2 4 2-2-5 1-10 1 4 3 5 1-3 0-6 6 5 5 12-1 5-6 6z"/>',
@@ -389,11 +355,12 @@ export function pokalformer(liste) {
   return ut;
 }
 
+let pokalNr = 0;
 /** En pokal som SVG med formen fra pokalformer. */
 export function pokal(p, form) {
   const m = METALL[p.niva] ?? METALL[1];
   const [x, y] = MIDT[form];
-  const id = `m-${p.id}`;
+  const id = `m-${p.id}-${++pokalNr}`;   // egen id i hver tegning, ellers mister pokalen fargen når en lik er skjult
   const kropp = FORMER[form](m).replaceAll("url(#m)", `url(#${id})`);
   const morkt = p.niva === 4 ? "#0f4a5e" : m[0];
   return `<svg class="pokal-fig" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">` +

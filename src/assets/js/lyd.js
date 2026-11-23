@@ -174,6 +174,53 @@ const LYDER = {
     bjelle(hz(96 - ned), t0 + 0.08, { volum: 0.06, lengde: 0.9 });
     bjelle(hz(100 - ned), t0 + 0.1, { volum: 0.05, lengde: 0.9 });
   },
+  // En pengeseddel dukker opp: papir som flagrer.
+  seddel() {
+    const t0 = ctx.currentTime;
+    for (let i = 0; i < 6; i++) stoy(t0 + i * 0.07, 0.05, { type: "bandpass", f: 2400 + i * 150, q: 1.4, volum: 0.045, rom: 0.3 });
+    plukk(hz(91), t0 + 0.1, { volum: 0.05 }); plukk(hz(95), t0 + 0.22, { volum: 0.05 });
+  },
+  vind() { stoy(ctx.currentTime, 0.5, { type: "bandpass", f: 380, sveip: 1100, q: 1.6, volum: 0.07, angrep: 0.12, rom: 0.3 }); },
+  seddelFanget() {
+    const t0 = ctx.currentTime;
+    stoy(t0, 0.08, { type: "highpass", f: 2500, volum: 0.1 });
+    [76, 81, 85, 88, 93].forEach((n, i) => plukk(hz(n), t0 + 0.04 + i * 0.055, { volum: 0.09, lengde: 0.8 }));
+    for (let i = 0; i < 6; i++) tone(hz(tilf(93, 107)), t0 + 0.3 + i * 0.05, 0.3, { volum: 0.035, rom: 0.4 });
+  },
+  // Minispillene
+  nivaKlart() {
+    const t0 = ctx.currentTime;
+    [67, 72, 76, 79, 84].forEach((n, i) => messing(hz(n), t0 + i * 0.08, 0.2, { volum: 0.06 }));
+    for (const n of [72, 76, 79, 84]) messing(hz(n), t0 + 0.44, 0.9, { volum: 0.035 });
+    for (let i = 0; i < 8; i++) tone(hz(tilf(90, 105)), t0 + 0.5 + i * 0.06, 0.3, { volum: 0.03, rom: 0.4 });
+  },
+  nivaTapt() { const t0 = ctx.currentTime; [64, 62, 59, 55].forEach((n, i) => tone(hz(n), t0 + i * 0.16, 0.3, { type: "triangle", volum: 0.1, rom: 0.3 })); },
+  togMynt(n = 1) { const t0 = ctx.currentTime, f = hz(76 + Math.min(14, n)); tone(f, t0, 0.07, { type: "square", volum: 0.03, filter: { f: 3500 } }); tone(f * 1.5, t0 + 0.06, 0.25, { volum: 0.09, rom: 0.25 }); stoy(t0 + 0.02, 0.12, { f: 700, q: 3, volum: 0.06 }); },
+  togSving() { stoy(ctx.currentTime, 0.03, { f: 900, q: 4, volum: 0.05 }); },
+  skyv() { stoy(ctx.currentTime, 0.09, { type: "lowpass", f: 900, volum: 0.07 }); },
+  veksle(n = 1) { const t0 = ctx.currentTime; bjelle(hz(72 + 3 * n), t0, { volum: 0.07, lengde: 0.6 }); tone(hz(79 + 3 * n), t0 + 0.07, 0.25, { volum: 0.07, rom: 0.3 }); stoy(t0, 0.04, { f: 3000, volum: 0.07 }); },
+  avdekk() { const t0 = ctx.currentTime; plukk(hz(tilf(74, 86)), t0, { volum: 0.07, lengde: 0.25 }); stoy(t0, 0.03, { f: 1500, volum: 0.06 }); },
+  flagg() { const t0 = ctx.currentTime; tone(hz(72), t0, 0.08, { type: "triangle", volum: 0.1 }); tone(hz(79), t0 + 0.06, 0.12, { type: "triangle", volum: 0.08 }); },
+  skriv() { const t0 = ctx.currentTime; for (let i = 0; i < 3; i++) stoy(t0 + i * 0.035, 0.03, { type: "bandpass", f: 3200 - i * 300, q: 2, volum: 0.05 }); plukk(hz(84), t0 + 0.08, { volum: 0.05, lengde: 0.3 }); },
+  hell(n = 0) { const t0 = ctx.currentTime; for (let i = 0; i < 5; i++) tone(tilf(500, 900) + i * 90, t0 + i * 0.05, 0.09, { volum: 0.05, glid: [1300, 0.08] }); tone(hz(84 + Math.min(10, n)), t0 + 0.26, 0.2, { volum: 0.08, rom: 0.2 }); },
+  kunde() { const t0 = ctx.currentTime; tone(hz(76), t0, 0.1, { type: "triangle", volum: 0.05 }); tone(hz(80), t0 + 0.09, 0.16, { type: "triangle", volum: 0.05, rom: 0.2 }); },
+  kundeGikk() { const t0 = ctx.currentTime; tone(hz(62), t0, 0.2, { type: "triangle", volum: 0.09, glid: [hz(57), 0.18] }); },
+  bodKjop() { const t0 = ctx.currentTime; for (let i = 0; i < 3; i++) { tromme(t0 + i * 0.11, { f: 220, volum: 0.16, lengde: 0.08 }); stoy(t0 + i * 0.11, 0.03, { f: 2200, volum: 0.07 }); } bjelle(hz(91), t0 + 0.36, { volum: 0.06 }); },
+  meglerKlokke() { const t0 = ctx.currentTime; for (let i = 0; i < 3; i++) bjelle(hz(79), t0 + i * 0.2, { volum: 0.1, lengde: 1.1 }); },
+  meglerKjop() { const t0 = ctx.currentTime; stoy(t0, 0.04, { f: 2800, q: 2, volum: 0.09 }); tone(hz(76), t0 + 0.03, 0.12, { type: "square", volum: 0.035, filter: { f: 2500 } }); },
+  meglerGevinst() { const t0 = ctx.currentTime; [76, 80, 83, 88].forEach((n, i) => tone(hz(n), t0 + i * 0.05, 0.22, { volum: 0.08, rom: 0.25 })); },
+  meglerTap() { const t0 = ctx.currentTime; tone(hz(64), t0, 0.16, { type: "triangle", volum: 0.1 }); tone(hz(59), t0 + 0.12, 0.3, { type: "triangle", volum: 0.1 }); },
+  bygg() { const t0 = ctx.currentTime; tromme(t0, { f: 150, volum: 0.25, lengde: 0.12 }); tromme(t0 + 0.12, { f: 190, volum: 0.22, lengde: 0.12 }); plukk(hz(79), t0 + 0.22, { volum: 0.08 }); },
+  bolge() { const t0 = ctx.currentTime; for (const n of [50, 57]) messing(hz(n), t0, 0.5, { volum: 0.06 }); tromme(t0 + 0.1, { f: 70, volum: 0.4, lengde: 0.4 }); },
+  tarnSkudd(type) { const t0 = ctx.currentTime; if (type === "frys") stoy(t0, 0.18, { type: "highpass", f: 5000, sveip: 2500, volum: 0.03 }); else if (type === "rente") tone(hz(88), t0, 0.1, { type: "triangle", volum: 0.04, glid: [hz(95), 0.08] }); else tone(tilf(1500, 1900), t0, 0.06, { volum: 0.03 }); },
+  fiendeDod() { const t0 = ctx.currentTime; stoy(t0, 0.1, { f: 1400, sveip: 500, volum: 0.08 }); tone(hz(tilf(88, 96)), t0 + 0.03, 0.14, { volum: 0.04 }); },
+  slapp() { const t0 = ctx.currentTime; tone(160, t0, 0.3, { type: "sawtooth", volum: 0.08, glid: [80, 0.28], filter: { f: 900 } }); },
+  // Ny etasje: heisen plinger.
+  heis() {
+    const t0 = ctx.currentTime + 0.25;
+    bjelle(hz(88), t0, { volum: 0.06, lengde: 1.1 });
+    bjelle(hz(84), t0 + 0.28, { volum: 0.06, lengde: 1.5 });
+  },
   // Booster: en arpeggio som stiger, med glitter på toppen.
   booster() {
     const t0 = ctx.currentTime;

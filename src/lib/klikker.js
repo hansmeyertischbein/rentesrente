@@ -4,6 +4,7 @@
 
 import { formaterTall } from "./format.js";
 import { gudVirkning, grein, GRENER, IKONER, GAMLE_IKONER, ikon, STRATEGI, STRATEGIER, OBLIGASJONER, OBL, PRESTISJE, PRESTASJONER } from "./klikker-guder.js";
+import { BOD, nyBod, lesBod } from "./mini-bod.js";
 import { LOTTO, prisRekker, resultat as lottoResultat, trekkTid } from "./klikker-lotto.js";
 
 const NBSP = " ";
@@ -48,9 +49,20 @@ export const REGLER = Object.freeze({
   verdenSek: Object.freeze([30, 60]),
   krakkRabatt: Object.freeze([0.1, 0.2]),  // fra selskapet med lavest vekst til det med høyest
   krakkSek: Object.freeze([30, 60]),
+  lappDobbelSek: 20,       // den lilla lappen dobler all inntekt så lenge
+  lappHalvSek: 30,         // den grønne gir halv pris på ett selskap så lenge
+  lappHalv: 0.5,
   maksBorteSek: 2 * 3600,  // lengste tid aksjene gir utbytte mens du er borte
   maksKjop: 1000,          // flest aksjer i ett kjøp
   visFra: 0.5,             // et selskap vises når du har tjent halve grunnprisen
+});
+
+export const MINISPILL = Object.freeze({
+  spill: Object.freeze(["limonadeboden", "meglerhuset", "grisevakta", "grisetoget", "vekslebanken", "krakkfeltet", "regnskapet"]),
+  nivaer: 5,
+  sek: Object.freeze([40, 80, 160, 320, 640]),             // premien i sekunder utbytte
+  minst: Object.freeze([1000, 3000, 8000, 20000, 60000]),  // øre, så det lønner seg også helt i starten
+  igjen: 0.2,
 });
 
 // Fra lavest til høyest vekst. Navnene er oppdiktet. rate er øre i sekundet per aksje, pris er øre for den første.
@@ -154,6 +166,7 @@ export function nyTilstand() {
     trykkNiva: 0,
     aksjer: Object.fromEntries(AKSJER.map((a) => [a.id, 0])),
     boostere: [],   // id-ene til kjøpte boostere
+    forstekjop: [], // selskapene du har kjøpt i, i rekkefølge. Hvert av dem gir deg en etasje høyere utsikt.
     ventende: [],   // ekstraordinære utbytter: { sum, igjen }
     radgiver: 0,    // 0 er ikke ansatt, 1 er 30 % treff, og hvert nivå over gir 10 prosentpoeng mer
     ikon: "deg",    // ikonet øverst til venstre
@@ -164,9 +177,13 @@ export function nyTilstand() {
     giring: 1,      // bare for risikoglad
     prestisje: 0,
     lodd: [],       // lottorekker som venter på trekning: { runde, antall, fro }
+    minispill: {},  // høyeste klarte nivå i hvert minispill
+    bod: nyBod(),   // drikkepenger og oppgraderinger i Limonadeboden, blir med gjennom prestisje
+    bodNiva: 0,     // hvert nivå i Limonadeboden dobler utbyttet fra bodene for godt
     prestasjoner: [], // id-ene til prestasjonene du har, blir med gjennom prestisje
     alleTrykk: 0,   // trykk i alle spill, blir med gjennom prestisje
     uro: stille(),  // lagres ikke
+    lapp: { dobbel: 0, halv: null },  // fordelene fra pengesedlene, lagres ikke
   };
 }
 
@@ -175,6 +192,15 @@ const har = (t, id) => t.boostere.includes(id);
 /** Det prestisje ganger med: 2 for første gang, 4 for andre. */
 export function prestisjeFaktor(t) {
   return Math.pow(PRESTISJE.faktor, t.prestisje ?? 0);
+}
+/** Det limonadebodene ganges med etter nivåene du har klart i Limonadeboden. */
+export function bodFaktor(t) {
+  return Math.pow(BOD.bodFaktor, t.bodNiva ?? 0);
+}
+
+/** 2 mens den lilla lappen varer, ellers 1. */
+export function lappFaktor(t) {
+  return (t.lapp?.dobbel ?? 0) > 0 ? 2 : 1;
 }
 const avers = (t) => (t.strategi === "avers" ? STRATEGI.aversRisiko : 1);
 
@@ -203,7 +229,7 @@ export function fall(t, id) {
 /** Utbytte per aksje i sekundet, i øre. Det samme for hver aksje du kjøper. */
 export function utbyttePerAksje(t, id) {
   const a = aksje(id);
-  return a ? a.rate * faktor(t, id) * (1 - fall(t, id)) * gudVirkning(t, "utbytte") * prestisjeFaktor(t) : 0;
+  return a ? a.rate * faktor(t, id) * (1 - fall(t, id)) * gudVirkning(t, "utbytte") * prestisjeFaktor(t) * lappFaktor(t) * (id === "limonade" ? bodFaktor(t) : 1) : 0;
 }
 
 /** Utbytte fra ett selskap i sekundet, i øre. */
@@ -228,7 +254,7 @@ export function trykkAndel(t) {
 
 /** Verdien av ett trykk i rolig tempo, i øre. */
 export function trykkverdi(t) {
-  return (grunnTrykk(t.trykkNiva) * gudVirkning(t, "trykk") * prestisjeFaktor(t) + trykkAndel(t) * perSekund(t)) * fordelFaktor(t, "trykkGanger");
+  return (grunnTrykk(t.trykkNiva) * gudVirkning(t, "trykk") * prestisjeFaktor(t) * lappFaktor(t) + trykkAndel(t) * perSekund(t)) * fordelFaktor(t, "trykkGanger");
 }
 
 /**
@@ -256,7 +282,8 @@ export function trykk(t, trykkSisteSek = 0) {
 
 /** Rabatten på et selskap under et børskrakk, fra 0 til 1. */
 export function rabatt(t, id) {
-  return t.uro?.krakk ? Math.min(0.9, (aksje(id)?.krakk ?? 0) * gudVirkning(t, "krakk")) : 0;
+  const krakk = t.uro?.krakk ? Math.min(0.9, (aksje(id)?.krakk ?? 0) * gudVirkning(t, "krakk")) : 0;
+  return Math.max(krakk, t.lapp?.halv?.mal === id ? REGLER.lappHalv : 0);
 }
 
 function sumPriser(grunnpris, vekst, fra, antall, ganger = 1) {
@@ -295,7 +322,11 @@ export function maksAksje(t, id) {
 export function kjopAksje(t, id, antall = 1) {
   const pris = prisAksje(t, id, antall);
   if (!(pris <= t.saldo)) return t;
-  const etter = { ...t, saldo: t.saldo - pris, aksjer: { ...t.aksjer, [id]: t.aksjer[id] + antall } };
+  const for_ = t.forstekjop ?? [];
+  const etter = {
+    ...t, saldo: t.saldo - pris, aksjer: { ...t.aksjer, [id]: t.aksjer[id] + antall },
+    forstekjop: for_.includes(id) ? for_ : [...for_, id],
+  };
   const bonus = FORDELER.filter((f) => f.type === "bonus" && !harFordel(t, f) && harFordel(etter, f))
     .reduce((sum, f) => sum + f.verdi * trykkverdi(etter), 0);
   return bonus > 0 ? { ...etter, saldo: etter.saldo + bonus, totalt: etter.totalt + bonus } : etter;
@@ -363,7 +394,8 @@ export function tikk(t, sekunder) {
   }
   const nedtell = (h) => (h && h.igjen - sekunder > 0 ? { ...h, igjen: h.igjen - sekunder } : null);
   const uro = t.uro ? { ...t.uro, verden: nedtell(t.uro.verden), krakk: nedtell(t.uro.krakk) } : stille();
-  const etter = { ...t, saldo: t.saldo + utbytte + inn - ut, totalt: t.totalt + utbytte + inn, ventende, uro };
+  const lapp = { dobbel: Math.max(0, (t.lapp?.dobbel ?? 0) - sekunder), halv: nedtell(t.lapp?.halv) };
+  const etter = { ...t, saldo: t.saldo + utbytte + inn - ut, totalt: t.totalt + utbytte + inn, ventende, uro, lapp };
   return etter.saldo < 0 ? tvangssalg(etter) : etter;
 }
 
@@ -394,7 +426,7 @@ export function tvangssalg(t) {
 /** Tiden du har vært borte teller, men aldri mer enn to timer. Hendelser er over når du kommer tilbake. */
 export function borte(t, sekunder) {
   const sek = Math.min(Math.max(0, Number.isFinite(sekunder) ? sekunder : 0), maksBorte(t));
-  const rolig = { ...t, uro: { ...stille(), fyll: t.uro?.fyll ?? 0 } };
+  const rolig = { ...t, uro: { ...stille(), fyll: t.uro?.fyll ?? 0 }, lapp: { dobbel: 0, halv: null } };
   const etter = tikk(rolig, sek);
   return { tilstand: etter, sekunder: sek, gevinst: etter.totalt - t.totalt };
 }
@@ -446,6 +478,40 @@ export function startHendelse(t, h) {
   if (h.type === "verden") uro.verden = { mal: h.mal, fall: h.fall, igjen: h.sek };
   else uro.krakk = { igjen: h.sek };
   return { ...t, uro };
+}
+
+// ---------- Pengesedler ----------
+
+/**
+ * Du har fanget en pengeseddel. Lilla dobler all inntekt i 20 sekunder. Grønn gir halv pris på ett av selskapene du kan kjøpe.
+ */
+export function fangSeddel(t, farge, rng = Math.random) {
+  const lapp = t.lapp ?? { dobbel: 0, halv: null };
+  if (farge === "lilla") return { ...t, lapp: { ...lapp, dobbel: REGLER.lappDobbelSek } };
+  const apne = synlige(t).filter((s) => s.status === "apen");
+  const { id } = apne[Math.min(apne.length - 1, Math.floor(rng() * apne.length))];
+  return { ...t, lapp: { ...lapp, halv: { mal: id, igjen: REGLER.lappHalvSek } } };
+}
+
+// ---------- Minispill ----------
+
+/** Premien for et nivå i et minispill: så mange sekunder utbytte, men aldri mindre enn et fast beløp. En femdel når nivået er klart fra før. */
+export function minispillPremie(t, spill, niva) {
+  const ps = perSekund({ ...t, lapp: { dobbel: 0, halv: null } });
+  const full = Math.max(MINISPILL.minst[niva - 1] ?? 0, pentBelop(ps * (MINISPILL.sek[niva - 1] ?? 0)));
+  return niva > (t.minispill?.[spill] ?? 0) ? full : Math.floor(full * MINISPILL.igjen);
+}
+
+/** Det høyeste nivået du kan velge: ett over det du har klart. */
+export function apentNiva(t, spill) {
+  return Math.min(MINISPILL.nivaer, (t.minispill?.[spill] ?? 0) + 1);
+}
+
+/** Et nivå er klart. Premien kommer med en gang. */
+export function klarteNiva(t, spill, niva) {
+  if (!MINISPILL.spill.includes(spill) || !Number.isInteger(niva) || niva < 1 || niva > apentNiva(t, spill)) return t;
+  const premie = minispillPremie(t, spill, niva);
+  return { ...t, saldo: t.saldo + premie, totalt: t.totalt + premie, minispill: { ...t.minispill, [spill]: Math.max(t.minispill?.[spill] ?? 0, niva) }, bodNiva: spill === "limonadeboden" ? Math.max(t.bodNiva ?? 0, niva) : t.bodNiva ?? 0 };
 }
 
 // ---------- Ekstraordinært utbytte ----------
@@ -673,6 +739,9 @@ const MAL = {
   "aksjer-500": (t) => AKSJER.reduce((s, a) => s + t.aksjer[a.id], 0) >= 500,
   "gf-10": (t) => AKSJER.reduce((s, a) => s + gfAntall(t, a.id), 0) >= 10,
   "kr-trilliard": (t) => t.totalt >= 1e23,
+  "minispill-1": (t) => MINISPILL.spill.some((s) => (t.minispill?.[s] ?? 0) >= 1),
+  "minispill-5": (t) => MINISPILL.spill.some((s) => (t.minispill?.[s] ?? 0) >= MINISPILL.nivaer),
+  "minispill-alle": (t) => MINISPILL.spill.every((s) => (t.minispill?.[s] ?? 0) >= MINISPILL.nivaer),
   "inntekt-mill": (t) => perSekund(t) >= 1e8, "inntekt-mrd": (t) => perSekund(t) >= 1e11,
   "obl-3": (t) => antallObl(t) >= OBL.maksSamtidig,
   "strategi-avers": (t) => t.strategi === "avers", "strategi-noytral": (t) => t.strategi === "noytral", "strategi-glad": (t) => t.strategi === "glad",
@@ -716,7 +785,7 @@ export function prestisje(t) {
   const ny = nyTilstand();
   return {
     ...ny, prestisje: (t.prestisje ?? 0) + 1, ikoner: [...new Set([...t.ikoner, "fonix"])], ikon: "fonix", lodd: t.lodd,
-    prestasjoner: t.prestasjoner ?? [], alleTrykk: t.alleTrykk ?? 0,
+    prestasjoner: t.prestasjoner ?? [], alleTrykk: t.alleTrykk ?? 0, bod: t.bod ?? nyBod(), bodNiva: t.bodNiva ?? 0,
   };
 }
 
@@ -803,7 +872,7 @@ const heltall = (x, maksimum) => Number.isInteger(x) && x >= 0 && x <= maksimum;
 
 /** Tilstanden som et enkelt objekt som kan gjøres om til tekst. Uro lagres ikke. */
 export function tilLagring(t, tid) {
-  const { uro, ...resten } = t;
+  const { uro, lapp, ...resten } = t;
   return { v: 2, tid, ...resten };
 }
 
@@ -821,6 +890,9 @@ export function fraLagring(obj) {
     if (!heltall(n, 1e5)) return null;
     t.aksjer[a.id] = n;
   }
+  // Eldre lagringer mangler rekkefølgen. Da regnes selskapene du eier som kjøpt.
+  const kjopt = Array.isArray(obj.forstekjop) ? obj.forstekjop.filter((id) => aksje(id)) : [];
+  t.forstekjop = [...new Set([...kjopt, ...AKSJER.filter((a) => t.aksjer[a.id] > 0).map((a) => a.id)])];
   if (!Array.isArray(obj.boostere) || !obj.boostere.every((id) => typeof id === "string")) return null;
   t.boostere = [...new Set(obj.boostere.filter((id) => booster(id)))];
   const radgiver = obj.radgiver ?? 0;
@@ -853,6 +925,9 @@ export function fraLagring(obj) {
   if (tall(obj.giring)) t.giring = Math.min(STRATEGI.giringMaks, Math.max(STRATEGI.giringMin, obj.giring));
   if (obj.prestisje !== undefined && !heltall(obj.prestisje, 100)) return null;
   t.prestisje = obj.prestisje ?? 0;
+  for (const s of MINISPILL.spill) if (heltall(obj.minispill?.[s], MINISPILL.nivaer) && obj.minispill[s] > 0) t.minispill[s] = obj.minispill[s];
+  t.bod = lesBod(obj.bod);
+  if (heltall(obj.bodNiva, MINISPILL.nivaer)) t.bodNiva = obj.bodNiva;
   if (Array.isArray(obj.prestasjoner)) t.prestasjoner = [...new Set(obj.prestasjoner.filter((id) => PRESTASJONER.some((p) => p.id === id)))];
   t.alleTrykk = heltall(obj.alleTrykk, Number.MAX_SAFE_INTEGER) ? obj.alleTrykk : t.trykk;
   if (Array.isArray(obj.lodd)) {

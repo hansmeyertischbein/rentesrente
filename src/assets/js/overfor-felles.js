@@ -16,7 +16,7 @@ export const tilfeldig = (lav, hoy) => lav + Math.random() * (hoy - lav);
 
 export function settTekst(node, tekst) { if (node && node.textContent !== tekst) node.textContent = tekst; }
 export function settAttr(node, navn, verdi) { if (node && node.getAttribute(navn) !== verdi) node.setAttribute(navn, verdi); }
-export function vis(node, synlig) { if (node && node.hidden === synlig) node.hidden = !synlig; }
+export function vis(node, synlig) { if (node && node.hidden !== !synlig) node.hidden = !synlig; }
 
 const status = $("status"), annonse = $("annonse");
 /** Synlig melding under grisen. */
