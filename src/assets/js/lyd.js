@@ -174,6 +174,19 @@ const LYDER = {
     bjelle(hz(96 - ned), t0 + 0.08, { volum: 0.06, lengde: 0.9 });
     bjelle(hz(100 - ned), t0 + 0.1, { volum: 0.05, lengde: 0.9 });
   },
+  // En pengeseddel dukker opp: papir som flagrer.
+  seddel() {
+    const t0 = ctx.currentTime;
+    for (let i = 0; i < 6; i++) stoy(t0 + i * 0.07, 0.05, { type: "bandpass", f: 2400 + i * 150, q: 1.4, volum: 0.045, rom: 0.3 });
+    plukk(hz(91), t0 + 0.1, { volum: 0.05 }); plukk(hz(95), t0 + 0.22, { volum: 0.05 });
+  },
+  vind() { stoy(ctx.currentTime, 0.5, { type: "bandpass", f: 380, sveip: 1100, q: 1.6, volum: 0.07, angrep: 0.12, rom: 0.3 }); },
+  seddelFanget() {
+    const t0 = ctx.currentTime;
+    stoy(t0, 0.08, { type: "highpass", f: 2500, volum: 0.1 });
+    [76, 81, 85, 88, 93].forEach((n, i) => plukk(hz(n), t0 + 0.04 + i * 0.055, { volum: 0.09, lengde: 0.8 }));
+    for (let i = 0; i < 6; i++) tone(hz(tilf(93, 107)), t0 + 0.3 + i * 0.05, 0.3, { volum: 0.035, rom: 0.4 });
+  },
   // Ny etasje: heisen plinger.
   heis() {
     const t0 = ctx.currentTime + 0.25;

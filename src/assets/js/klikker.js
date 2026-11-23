@@ -21,6 +21,7 @@ import * as prestasjoner from "./overfor-prestasjoner.js";
 import * as innstillinger from "./overfor-innstillinger.js";
 import * as vakt from "./overfor-vakt.js";
 import * as utsikt from "./overfor-utsikt.js";
+import * as seddel from "./overfor-seddel.js";
 import { spill } from "./lyd.js";
 
 const NOKKEL = "rr-overfor-2";
@@ -277,7 +278,8 @@ function tegnButikk() {
       ? `${perSek(aksjeRate(t, id))} · ${formaterTall(n)} ${flertall(a, n)} · ${ore(perAksje)}/${a.en}/sek`
       : `Gir ${ore(perAksje)}/sek per ${a.en}`);
     const merker = [];
-    if (rabatt(t, id) > 0) merker.push(["krakk", `Krakk: ${prosent(rabatt(t, id))} billigere`]);
+    if (t.lapp.halv?.mal === id) merker.push(["krakk", "Grønn lapp: halv pris"]);
+    else if (rabatt(t, id) > 0) merker.push(["krakk", `Krakk: ${prosent(rabatt(t, id))} billigere`]);
     if (t.uro.verden?.mal === id) merker.push(["verden", `Utbytte ${prosent(t.uro.verden.fall)} lavere`]);
     if (pekt === id) merker.push(["rad", "Fondsen peker hit"]);
     for (const f of fordeler(t, id)) {
@@ -499,10 +501,19 @@ function boble(klasse, tekst) {
 
 function tegnBobler(naa) {
   resultater = resultater.filter((r) => r.slutt > naa);
-  const nokkel = t.ventende.map((v) => `${v.lovet ?? v.sum}:${v.lengde}:${v.pris}:${v.navn}`).join("|") + "#" + resultater.map((r) => r.slutt).join("|");
+  // Fordelene fra pengesedlene vises som bobler med en strek som krymper.
+  const lapper = [];
+  if (t.lapp.dobbel > 0) lapper.push({ klasse: "lilla", tekst: "2x inntekt", andel: t.lapp.dobbel / REGLER.lappDobbelSek });
+  if (t.lapp.halv) lapper.push({ klasse: "gronn", tekst: `½ ${aksje(t.lapp.halv.mal).navn}`, andel: t.lapp.halv.igjen / REGLER.lappHalvSek });
+  const nokkel = lapper.map((l) => l.klasse + l.tekst).join() + "#" + t.ventende.map((v) => `${v.lovet ?? v.sum}:${v.lengde}:${v.pris}:${v.navn}`).join("|") + "#" + resultater.map((r) => r.slutt).join("|");
   if (nokkel !== ventNokkel) {
     ventNokkel = nokkel;
     el.ventende.replaceChildren(
+      ...lapper.map((l) => {
+        const li = boble(`lapp-boble ${l.klasse}`, l.tekst);
+        li.insertAdjacentHTML("beforeend", '<span class="boble-tid lapp-tid" aria-hidden="true"><i></i></span>');
+        return li;
+      }),
       ...resultater.map((r) => boble(r.bra ? "bra" : "darlig", r.tekst)),
       ...t.ventende.map((v) => {
         const li = boble("venter", ore(v.lovet ?? v.sum));
@@ -513,7 +524,8 @@ function tegnBobler(naa) {
       }),
     );
   }
-  const streker = el.ventende.querySelectorAll(".boble-tid i");
+  el.ventende.querySelectorAll(".lapp-tid i").forEach((i, nr) => { i.style.transform = `scaleX(${Math.max(0, lapper[nr]?.andel ?? 0).toFixed(3)})`; });
+  const streker = el.ventende.querySelectorAll(".venter .boble-tid i");
   t.ventende.forEach((v, i) => {
     if (streker[i]) streker[i].style.transform = `scaleX(${Math.min(1, Math.max(0, v.igjen / (v.lengde || v.igjen || 1))).toFixed(3)})`;
   });
@@ -763,6 +775,7 @@ prestasjoner.start(api);
 innstillinger.start();
 vakt.start();
 utsikt.start360(api);
+seddel.start(api);
 
 // ---------- I gang ----------
 
