@@ -139,7 +139,7 @@ export function meglerhuset(rot, niva, { ferdig, lyd }) {
   function tegn() {
     const v = M.verdi(m);
     settTekst(penger, `${formaterTall(Math.round(v))} av ${formaterTall(Math.round(mal))} kr`);
-    settTekst(tid, `Stenger om ${Math.ceil((M.MEGLER.steg - m.i) / M.MEGLER.perSek)} sek`);
+    settTekst(tid, `Stenger om ${M.sekIgjen(m)} sek`);
     strek.style.transform = `scaleX(${Math.max(0, Math.min(1, (v - M.MEGLER.start) / (mal - M.MEGLER.start))).toFixed(3)})`;
     selg.disabled = m.eier < 0;
     kort.forEach((k, a) => {
@@ -165,7 +165,7 @@ export function meglerhuset(rot, niva, { ferdig, lyd }) {
     while (rest >= 1 / M.MEGLER.perSek) {
       rest -= 1 / M.MEGLER.perSek;
       m = M.meglerSteg(m);
-      if (m.i === M.MEGLER.steg - 20) lyd("meglerKlokke");
+      if (m.i === M.MEGLER.for + M.MEGLER.steg - 20) lyd("meglerKlokke");
     }
     tegn();
     if (M.meglerFerdig(m)) {

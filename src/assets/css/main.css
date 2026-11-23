@@ -961,7 +961,17 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .profil-gud[data-gren="egyptisk"] .gud-flis { background: radial-gradient(circle at 50% 40%, #fff3cc, #e3b85c 75%); }
 .profil-gud[data-gren="gresk"] .gud-flis { background: radial-gradient(circle at 50% 40%, #f4f7ff, #a9b8e6 75%); }
 .gud-fig { display: block; width: 100%; height: auto; }
-.gud-flis .gud-fig { width: 104%; margin: 2% 0 0 -2%; }
+.gud-portrett .gud-fig, .gud-valgt-bilde .gud-fig { border: 2px solid #241a2b; border-radius: 14%; }
+/* Gudene på hovedgrisen er like brede som høye, så de holdes litt mindre. */
+.gris-fig:has(.gud-hode) { width: 82%; }
+@media (prefers-reduced-motion: no-preference) {
+  .gud-hode { animation: gud-pust 4s ease-in-out infinite; transform-origin: 100px 160px; }
+  .gris .gud-aura { animation: gud-aura 5s ease-in-out infinite; transform-origin: 100px 92px; }
+  .gud-glitter path { animation: gud-glitter 2.8s ease-in-out infinite; } .gud-glitter path:nth-child(2) { animation-delay: 0.7s; } .gud-glitter path:nth-child(3) { animation-delay: 1.4s; } .gud-glitter path:nth-child(4) { animation-delay: 2.1s; }
+  @keyframes gud-pust { 50% { transform: translateY(-1.6px) rotate(-0.7deg); } }
+  @keyframes gud-aura { 50% { transform: scale(1.04); opacity: 0.8; } }
+  @keyframes gud-glitter { 0%, 100% { opacity: 0.1; } 50% { opacity: 1; } }
+}
 .profil-logg-inn {
   min-height: 2.6rem; padding: 0 0.85rem; border: 2px solid var(--g-blekk); border-radius: 999px; background: var(--g-rosa); color: #fff;
   font: inherit; font-size: 0.8125rem; font-weight: 800; cursor: pointer; box-shadow: 0 2px 0 var(--g-blekk); touch-action: manipulation;
@@ -1220,9 +1230,9 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .regn-taster { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 0.3rem; width: min(100%, 25rem); } .regn-taster button { min-height: 2.75rem; border: 2px solid var(--g-blekk); border-radius: 0.6rem; background: var(--g-bak); color: var(--ink); font: inherit; font-weight: 800; cursor: pointer; }
 .bod { position: relative; display: grid; align-content: end; width: 100%; height: 15rem; overflow: hidden; border: 3px solid var(--g-blekk); border-radius: 1rem; background: linear-gradient(#8fd0f2, #dff3e4 55%, #a9cf86 56%); }
 .bod-tak { position: absolute; top: 0; left: 0; right: 0; height: 2.4rem; background: repeating-linear-gradient(90deg, #e8553d 0 2rem, #fffaf0 2rem 4rem); border-bottom: 3px solid #2b2118; border-radius: 0 0 1rem 1rem; }
-.bod-ko { list-style: none; display: flex; align-items: end; justify-content: center; gap: 0.5rem; margin: 0 0 -0.6rem; padding: 0; }
-.bod-kunde { position: relative; display: grid; justify-items: center; width: 4.3rem; opacity: 0.75; transform: scale(0.85); transform-origin: 50% 100%; transition: transform 200ms var(--ease-out), opacity 200ms; } .bod-kunde.forst { opacity: 1; transform: scale(1.12); }
-.bod-ansikt { width: 4rem; } .bod-ansikt svg { display: block; width: 100%; } .bod-onske { width: 2rem; padding: 0.15rem 0.3rem; border: 2px solid #2b2118; border-radius: 0.8rem; background: #fffaf0; } .bod-onske svg { display: block; }
+.bod-ko { list-style: none; display: flex; align-items: end; justify-content: center; gap: 0.5rem; margin: 0 0 -0.5rem; padding: 0; }
+.bod-kunde { position: relative; display: grid; justify-items: center; width: 5.2rem; opacity: 0.75; transform: scale(0.85); transform-origin: 50% 100%; transition: transform 200ms var(--ease-out), opacity 200ms; } .bod-kunde.forst { opacity: 1; transform: scale(1.12); }
+.bod-ansikt { width: 5rem; } .bod-ansikt svg { display: block; width: 100%; } .bod-onske { width: 2rem; padding: 0.15rem 0.3rem; border: 2px solid #2b2118; border-radius: 0.8rem; background: #fffaf0; } .bod-onske svg { display: block; }
 .bod-taalmod { width: 3.4rem; height: 0.4rem; overflow: hidden; border: 1.5px solid #2b2118; border-radius: 999px; background: #fff; } .bod-taalmod i { display: block; height: 100%; background: #2f9a5a; transform-origin: left; } .bod-kunde.sur .bod-taalmod i { background: #e8553d; } .bod-kunde.sur .bod-ansikt { animation: sur 0.25s linear infinite; }
 @keyframes sur { 25% { transform: translateX(-1.5px); } 75% { transform: translateX(1.5px); } }
 .bod-disk { position: relative; z-index: 1; height: 2.6rem; border-top: 3px solid #2b2118; background: repeating-linear-gradient(90deg, #d9a066 0 2.6rem, #c98f58 2.6rem 5.2rem); } .bod-heller { position: absolute; top: 0.75rem; left: 25%; right: 25%; height: 0.8rem; overflow: hidden; border: 2px solid #2b2118; border-radius: 999px; background: #fffaf0; } .bod-heller i { display: block; height: 100%; background: #ffd84a; transform-origin: left; }
