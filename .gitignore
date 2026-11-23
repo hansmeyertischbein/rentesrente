@@ -3,3 +3,4 @@ _site/
 .DS_Store
 drift/
 skript/ordjakt/.buffer.json
+skript/ordjakt/.logg
