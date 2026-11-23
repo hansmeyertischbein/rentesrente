@@ -42,6 +42,21 @@ test("skrivefeil: flere feil tåles i lange ord, og korte ord må starte likt", 
   assert.deepEqual(["C", "C++", "c#"].map((x) => finnOrd(p, x)), [0, 1, 2]);
 });
 
+test("andre navn på samme ting er ett svar, og første ord i et navn holder når det er entydig", () => {
+  const l = [["spider-man", 9, 0, ["edderkoppen"]], ["wallenius wilhelmsen", 2], ["norsk elghund", 3], ["amerikansk dollar", 4]];
+  assert.equal(finnOrd(l, "Edderkoppen"), 0);
+  assert.equal(vurder(l, "edderkoppen", new Set([0])).status, "brukt");
+  assert.equal(finnOrd(l, "wallenius"), 1);
+  assert.equal(finnOrd(l, "norsk"), -1);
+  assert.equal(finnOrd(l, "amerikansk"), -1);
+});
+
+test("hvert ord i dataene finner seg selv", () => {
+  const feil = [];
+  for (const k of data.kategorier) k.ord.forEach((o, i) => { for (const x of [o[0], ...(o[3] ?? [])]) if (finnOrd(k.ord, x) !== i) feil.push(k.navn + ": " + x); });
+  assert.ok(feil.length <= 5, feil.join(", "));
+});
+
 test("etternavn og slutten av navn holder", () => {
   const navn = [["vincent van gogh", 9], ["george h.w. bush", 2], ["george w. bush", 8], ["konstantin den store", 3], ["fjodor dostojevskij", 4], ["spider-man", 5], ["bogotá", 6], ["theodosius i", 1]];
   assert.equal(finnOrd(navn, "Gogh"), 0);

@@ -167,7 +167,16 @@ const resultat = kategorier.map((k) => {
   for (const r of rader) {
     if (r.n === null || r.n === 0) { utenTall++; r.n = r.merk === "peker" ? mid : lav; r.anslatt = true; }
   }
-  return { navn: k.navn, ord: rader.map((r) => (r.anslatt ? [r.ord, r.n, 1] : [r.ord, r.n])) };
+  // Ord som deler artikkel, er andre navn på det samme og teller én gang. Det gjelder også tall og poeng.
+  const samlet = [], perArtikkel = new Map();
+  for (const r of rader) {
+    const forste = r.artikkel && perArtikkel.get(r.artikkel);
+    if (forste) { forste.andre.push(r.ord); continue; }
+    r.andre = [];
+    if (r.artikkel) perArtikkel.set(r.artikkel, r);
+    samlet.push(r);
+  }
+  return { navn: k.navn, ord: samlet.map((r) => (r.andre.length ? [r.ord, r.n, r.anslatt ? 1 : 0, r.andre] : r.anslatt ? [r.ord, r.n, 1] : [r.ord, r.n])) };
 });
 
 const data = { kilde: "Sidevisninger på norsk Wikipedia (Wikimedia Pageviews API, bare mennesker)", periode: PERIODE, hentet: new Date().toISOString().slice(0, 10), kategorier: resultat };

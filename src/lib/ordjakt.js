@@ -55,21 +55,45 @@ function kortformer(ord) {
   return ut.map((x) => kompakt(normaliser(x))).filter((x) => x.length >= 3);
 }
 
-// Gir indeksen til ordet i listen, eller -1. Listen er [[ord, antall], ...].
+// Første ord i et navn holder også («wallenius»), når det er langt, ikke er et adjektiv og bare passer ett sted.
+const fornavn = (ord) => {
+  const [f, ...resten] = ord.split(" ");
+  const x = kompakt(normaliser(f));
+  return resten.length && x.length >= 6 && !/(sk|ske|iske|første|andre)$/.test(x) ? x : "";
+};
+
+// Alle skrivemåter for et ord: navnet selv og andre navn på samme ting, som «edderkoppen» for «spider-man».
+const navn = (rad) => [rad[0], ...(rad[3] ?? [])];
+const skrivemåter = new WeakMap(); // listene endrer seg ikke, så de regnes ut én gang
+function former(ordliste) {
+  let f = skrivemåter.get(ordliste);
+  if (!f) {
+    f = ordliste.map((rad) => ({
+      hele: navn(rad).map((x) => kompakt(normaliser(x))),
+      korte: navn(rad).flatMap(kortformer),
+      første: navn(rad).map(fornavn).filter(Boolean),
+    }));
+    skrivemåter.set(ordliste, f);
+  }
+  return f;
+}
+
+// Gir indeksen til ordet i listen, eller -1. Listen er [[ord, antall, anslått?, andre navn?], ...].
 // Passer en kortform på flere («bush»), velges den mest leste som ikke er brukt.
 export function finnOrd(ordliste, svar, brukt = new Set()) {
   const s = normaliser(svar);
   if (!s) return -1;
   const sk = kompakt(s);
-  const kandidater = ordliste.map(([o]) => kompakt(normaliser(o)));
-  let i = kandidater.indexOf(sk);
+  const f = former(ordliste);
+  let i = f.findIndex((x) => x.hele.includes(sk));
   if (i >= 0) return i;
   const svarStammer = stammer(sk);
-  i = kandidater.findIndex((k) => [...stammer(k)].some((x) => svarStammer.has(x)));
+  i = f.findIndex((x) => x.hele.some((k) => [...stammer(k)].some((y) => svarStammer.has(y))));
   if (i >= 0) return i;
-  const korte = ordliste.map(([o]) => kortformer(o));
-  const treff = korte.map((k, j) => (k.includes(sk) ? j : -1)).filter((j) => j >= 0);
+  const treff = f.map((x, j) => (x.korte.includes(sk) ? j : -1)).filter((j) => j >= 0);
   if (treff.length) return treff.sort((a, b) => brukt.has(a) - brukt.has(b) || ordliste[b][1] - ordliste[a][1])[0];
+  const første = f.map((x, j) => (x.første.includes(sk) ? j : -1)).filter((j) => j >= 0);
+  if (første.length === 1) return første[0];
   // Skrivefeil: én fra fire bokstaver, to fra sju, tre fra elleve. I korte ord må første bokstav
   // stemme, så «løver» ikke blir «kløver». Måles mot det korteste av de to ordene.
   const tillatt = (k) => {
@@ -78,8 +102,9 @@ export function finnOrd(ordliste, svar, brukt = new Set()) {
     return n >= 11 ? 3 : n >= 7 ? 2 : 1;
   };
   let best = -1, bestAvstand = Infinity;
-  kandidater.forEach((k, j) => {
-    for (const form of [k, ...korte[j]]) {
+  f.forEach((x, j) => {
+    for (const form of [...x.hele, ...x.korte]) {
+      if (Math.abs(form.length - sk.length) > 3) continue;
       const d = avstand(sk, form);
       if (d <= tillatt(form) && (d < bestAvstand || (d === bestAvstand && brukt.has(best) && !brukt.has(j)))) { best = j; bestAvstand = d; }
     }

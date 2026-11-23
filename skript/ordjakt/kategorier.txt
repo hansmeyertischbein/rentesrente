@@ -126,3 +126,21 @@ Norske tradisjonsretter: ball, klubb, potetball, raspeball, fiskegrateng, fiskes
 Datautstyr: -vifte
 Kjøretøy: caravan, bobil, pickup, varebil, stasjonsvogn, sedan, kabriolet, sportsbil, suv, elbil, hybridbil, selvkjørende bil, veteranbil, formel 1-bil, gocart, skolebuss, ekspressbuss, turbuss, trolleybuss, minibuss, trailer, vogntog, semitrailer, tankbil, søppelbil, betongbil, brøytebil, dumper, bulldozer, truck, skurtresker, gressklipper, stridsvogn, pansret personellkjøretøy, jagerfly, passasjerfly, sjøfly, gyrokopter, hangglider, paraglider, fallskjerm, jetpack, romskip, månebil, cruiseskip, yacht, gummibåt, vannscooter, jolle, katamaran, hydrofoil, godstog, høyhastighetstog, damplokomotiv, skinnebuss, monorail, kabelbane, heis, rulletrapp, rullestol, rullator, barnevogn, rulleskøyter, rulleski, skateboard, longboard, hoverboard, elsykkel, lastesykkel, velomobil, kickbike, trehjulssykkel, atv, beltevogn, hundeslede, spark, droneskip, vespa, harley-davidson, chopper
 Malere og kunstnere: -adolf hitler, damien hirst, jeff koons, marina abramović, olafur eliasson, pushwagner, håkon bleken, kåre tveter, jakob weidemann, vebjørn sand, marcel duchamp, man ray, roy lichtenstein, gerhard richter, anselm kiefer, francis bacon, lucian freud, edward hopper, georgia o'keeffe, artemisia gentileschi, hilma af klint, camille pissarro, georges seurat, henri rousseau, amedeo modigliani, marc chagall, max ernst, paul klee, georges braque, auguste rodin, donatello, tizian, giotto, jan van eyck, peter paul rubens, frans hals, jacob van ruisdael, eugène delacroix, édouard manet, gustave courbet, katsushika hokusai, dolk, dot dot dot, martin whatson
+Sjøfart og pirater: svartskjegg=Svartskjegg, maersk=A.P. Møller-Mærsk, sjørøver=Sjørøveri, sjørøvere=Sjørøveri, wallenius=Wallenius Wilhelmsen
+Fotballklubber i Europa: man u=Manchester United FC, man utd=Manchester United FC, man city=Manchester City FC, spurs=Tottenham Hotspur FC, psg=Paris Saint-Germain, barca=FC Barcelona, bayern=FC Bayern München, dortmund=Borussia Dortmund, leverkusen=Bayer Leverkusen
+Superhelter og superskurker: x-men, avengers, justice league
+Filmsjangre: -pornografisk film
+Følelser: -seksuell opphisselse, -orgasme, -emosjonell dysregulering, -følelser
+Dinosaurer: -dinosaurer, -dinosaur
+Krypdyr og amfibier: -sandormen, -slanger, -slange, -krypdyr, -amfibier, -skilpadder
+Norrøne guder og vesener: -norrøn mytologi, -norrøn religion
+Verktøy: -verktøy
+Vitaminer og næringsstoffer: -vitamin
+Farger: -aubergine, -plomme, -karamell
+Geometriske former: -möbius-bånd
+Programmeringsspråk: -c--
+Kjente byggverk: -panthéon
+Fugler i Norge: ørn=Kongeørn, spove, tranefugl, sothøne, sivhøne, vaktel, rapphøne, fasan, jordugle, kattugle, perleugle, spurveugle, haukugle, snøugle, lappugle, musvåk, fjellvåk, myrhauk, jaktfalk, dvergfalk, fiskeørn, lerkefalk, vepsevåk, toppmeis, svartmeis, granmeis, løvmeis, stjertmeis, spettmeis, trekryper, gjerdesmett, jernspurv, blåstrupe, nattergal, buskskvett, svarthvit fluesnapper, løvsanger, gransanger, munk, hagesanger, fuglekonge, måltrost, rødvingetrost, ringtrost, steinskvett, pilfink, bjørkefink, grønnsisik, gråsisik, stillits, konglebit, grankorsnebb, rosenfink, snøspurv, lappspurv, sivspurv, varsler, tornskate, lavskrike, nøttekråke, dvergspett, flaggspett, grønnspett, svartspett, vendehals, tretåspett, taksvale, sandsvale, nattravn, isfugl, hærfugl, rugde, enkeltbekkasin, småspove, rødstilk, strandsnipe, heilo, sandlo, steinvender, makrellterne, rødnebbterne, tyvjo, storjo, krykkje, svartbak, sildemåke, hettemåke, havsule, toppskarv, storskarv, storlom, smålom, islom, toppdykker, gravand, brunnakke, krikkand, kvinand, laksand, siland, svartand, havelle, toppand, ringgås, hvitkinngås, kortnebbgås, dverggås, alkekonge, teist, polarlomvi, havhest
+Frukt: -frukt
+Grønnsaker: -grønnsak
+Bær: -bær
