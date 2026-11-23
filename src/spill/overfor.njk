@@ -199,6 +199,13 @@ sideklasse: side-klikk
   </section>
   <form method="dialog"><button class="intro-lukk" value="lukk" aria-label="Lukk">×</button></form>
 </dialog>
+<dialog class="spill-intro vakt" id="vakt-vindu" aria-labelledby="vakt-tittel">
+  <h2 id="vakt-tittel">Er det du som trykker?</h2>
+  <p class="ingress">Trykkene ser automatiske ut.</p>
+  <div class="vakt-bane" id="vakt-bane"><button type="button" class="vakt-mynt" id="vakt-mynt" aria-label="Mynt som flytter seg">kr</button></div>
+  <p class="flytt-status" id="vakt-status" role="status"></p>
+  <p><button type="button" class="lenkeknapp" id="vakt-vent"></button></p>
+</dialog>
 <div class="prestasjon-toast" id="prestasjon-toast" role="status" hidden></div>
 {% if konto.url and konto.nokkel -%}
 <dialog class="spill-intro spill-vindu" id="konto-vindu" aria-labelledby="konto-tittel" data-url="{{ konto.url }}" data-nokkel="{{ konto.nokkel }}">

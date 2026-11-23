@@ -18,6 +18,7 @@ import * as profil from "./overfor-profil.js";
 import * as konto from "./overfor-konto.js";
 import * as prestasjoner from "./overfor-prestasjoner.js";
 import * as innstillinger from "./overfor-innstillinger.js";
+import * as vakt from "./overfor-vakt.js";
 import { spill } from "./lyd.js";
 
 const NOKKEL = "rr-overfor-2";
@@ -380,7 +381,9 @@ function tegnGris() {
   el.gris.insertAdjacentHTML("afterbegin", lagGris(id));
   if (for_ !== undefined) hopp(el.gris.querySelector(".gris-fig"));
 }
+el.gris.addEventListener("pointerdown", vakt.pekerNed);
 el.gris.addEventListener("click", (e) => {
+  if (!vakt.slipperGjennom(e)) return;
   const naa = performance.now();
   const n = klikkSisteSek(naa).length + 1;
   const verdi = klikkverdi(t, n);
@@ -828,6 +831,7 @@ profil.start(api);
 konto.start(api);
 prestasjoner.start(api);
 innstillinger.start();
+vakt.start();
 
 // ---------- I gang ----------
 
