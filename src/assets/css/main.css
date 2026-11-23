@@ -1445,7 +1445,7 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .oj-svarene[hidden] { display: none; }
 .oj-svarene ol { margin: 0.25rem 0 0; padding: 0; list-style: none; font-size: 0.875rem; }
 .oj-svarene li { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.1rem 0.35rem; background: rgb(8 19 28 / 0.5); margin-bottom: 2px; overflow-wrap: anywhere; }
-.oj-svarene li b { color: var(--oj-gull); font-variant-numeric: tabular-nums; }
+.oj-svarene li b { white-space: nowrap; overflow-wrap: normal; flex: none; color: var(--oj-gull); font-variant-numeric: tabular-nums; }
 .oj-svarene li.null, .oj-svarene li.null b { color: #ffb4a6; }
 .oj-velg { font: inherit; font-weight: 800; font-size: 1.125rem; color: #1b130c; background: #f2e3c2; border: 3px solid var(--oj-skygge); border-radius: 0; padding: 0.3rem 0.5rem; min-height: 2.75rem; }
 .oj-velg:focus-visible { outline: 3px solid var(--oj-gull); outline-offset: 2px; }
