@@ -1157,6 +1157,14 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
   @keyframes toast-inn { from { opacity: 0; transform: translate(-50%, -1.2rem) scale(0.95); } }
 }
 
+/* Vakten på grisen: fang mynten som flytter seg */
+.vakt { user-select: none; -webkit-user-select: none; }
+.vakt-bane { position: relative; height: 12rem; margin-top: 0.9rem; overflow: hidden; border: 2px dashed var(--g-kant); border-radius: 1rem; background: var(--g-bak); touch-action: none; }
+.vakt-mynt {
+  position: absolute; top: 0; left: 0; width: 3.5rem; height: 3.5rem; padding: 0; border: 2px solid #7a4a06; border-radius: 50%; cursor: pointer; touch-action: none;
+  background: radial-gradient(circle at 42% 38%, #fff3b0 0 12%, #ffd84a 34%, #e9a91c 66%, #9c6408 100%); color: #6b3f00; font: inherit; font-weight: 900;
+}
+
 /* Innstillinger */
 .innst-del { margin-top: 1.25rem; padding-top: 1rem; border-top: 2px dashed var(--g-kant); }
 .innst-del h3 { margin: 0 0 0.4rem; font-size: 1rem; font-weight: 750; }
