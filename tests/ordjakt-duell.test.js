@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { tapFor, netto, tolkStatus, kanStarte, avtal, VERSJON } from "../src/lib/ordjakt-duell.js";
+import { tapFor, netto, tolkStatus, kanStarte, avtal, erVert, antallRunder, VERSJON } from "../src/lib/ordjakt-duell.js";
 
 const st = (x = {}) => tolkStatus({ v: VERSJON, id: "a1", fro: "abc", ...x });
 
@@ -18,7 +18,8 @@ test("ugyldige og overdrevne meldinger blir klippet eller avvist", () => {
 });
 
 test("runden starter bare når begge er klare for samme runde med samme kategorier", () => {
-  const jeg = { klar: true, fro: "abc", neste: 2 };
+  const jeg = { klar: true, fro: "abc", neste: 2, antall: 3 };
+  assert.ok(!kanStarte(jeg, st({ klar: true, neste: 2, antall: 5 })));
   assert.ok(kanStarte(jeg, st({ klar: true, neste: 2 })));
   assert.ok(!kanStarte(jeg, st({ klar: false, neste: 2 })));
   assert.ok(!kanStarte(jeg, st({ klar: true, neste: 1 })));
@@ -27,6 +28,25 @@ test("runden starter bare når begge er klare for samme runde med samme kategori
   assert.ok(!kanStarte(jeg, tolkStatus({ id: "a", fro: "abc", klar: true, neste: 2 })));
   assert.ok(kanStarte(jeg, st({ startet: true, runde: 2 })));
   assert.ok(!kanStarte(jeg, null));
+});
+
+test("den som laget koden, velger antall runder, og begge regner ut det samme", () => {
+  const vert = { id: "b", vert: true, valgt: 7 }, gjest = { id: "a", vert: false, valgt: 3 };
+  assert.ok(erVert(vert, gjest) && !erVert(gjest, vert));
+  assert.equal(antallRunder(vert, st({ id: "a", antall: 3 })), 7);
+  assert.equal(antallRunder(gjest, st({ id: "b", vert: true, antall: 7 })), 7);
+  assert.equal(st({ antall: 999 }).antall, 3);
+  const x = { id: "a", vert: false }, y = { id: "b", vert: false };
+  assert.ok(erVert(x, y) !== erVert(y, x));
+});
+
+test("svarene til motspilleren klippes til ti korte tekster", () => {
+  const s = st({ ord: [["a".repeat(90), 999], ["ok", 5], [3, 4], "x", ...Array(20).fill(["b", 1])], sum: 1e9 });
+  assert.equal(s.ord[0][0].length, 40);
+  assert.equal(s.ord[0][1], 150);
+  assert.ok(s.ord.length <= 10 && s.ord.every(([o]) => typeof o === "string"));
+  assert.equal(s.sum, 15000);
+  assert.deepEqual(st({ ord: "x" }).ord, []);
 });
 
 test("begge kommer fram til samme kategorier, og den som kommer sent, venter på neste runde", () => {

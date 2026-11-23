@@ -69,6 +69,7 @@ sideklasse: side-ordjakt
       </div>
       <p>Skriv koden på den andre PC-en, eller åpne lenken der.</p>
       <p class="oj-feil" id="kopiert" role="status"></p>
+      <p class="oj-runder"><label for="runder">Antall runder</label> <select class="oj-velg" id="runder">{% for n in [1, 2, 3, 5, 7, 10] %}<option value="{{ n }}"{% if n == 3 %} selected{% endif %}>{{ n }}</option>{% endfor %}</select> <span id="runder-hvem"></span></p>
       <p id="rom-status">Venter på motspiller …</p>
       <button class="oj-knapp" type="button" id="start-na" disabled>Klar</button>
       <button class="oj-knapp" type="button" id="venter-meny">Hovedmeny</button>
@@ -82,6 +83,11 @@ sideklasse: side-ordjakt
     <div class="oj-panel" id="slutt" hidden>
       <h2 class="oj-tittel" id="slutt-tittel">Runden er over</h2>
       <p id="slutt-tekst"></p>
+      <p class="oj-sammenlagt" id="sammenlagt"></p>
+      <div class="oj-svarene" id="svarene" hidden>
+        <div><b>Dine svar</b><ol id="svar-mine"></ol></div>
+        <div><b>Motspillerens svar</b><ol id="svar-deres"></ol></div>
+      </div>
       <p class="oj-rang"><b id="rang"></b><span id="rang-felt"></span></p>
       <p class="oj-tjent" id="tjent"></p>
       <p class="oj-kommentar" id="kommentar"></p>
@@ -119,7 +125,7 @@ sideklasse: side-ordjakt
     <h2>Slik regner vi rangeringen</h2>
     <p>Plassen din måles mot 2 000 spillere som er simulert, ikke ekte. Spillet lagrer ingen resultater, så vi vet ikke hva andre har fått. Vi forutsetter at en spiller rekker 1 til 10 svar, treffer lista på 55 til 95 prosent av dem og oftest velger ord mange kjenner. De får boost etter samme regler som deg.</p>
     <h2>Spill mot en venn</h2>
-    <p>Spiller dere to, trykker den ene «Spill online: få kode» og den andre skriver koden. Dere får samme kategorier i tilfeldig rekkefølge og ser hverandres poeng mens dere spiller. Hver runde starter når begge har trykket Klar, med felles nedtelling.</p>
+    <p>Spiller dere to, trykker den ene «Spill online: få kode» og den andre skriver koden. Dere får samme kategorier i tilfeldig rekkefølge og ser hverandres poeng mens dere spiller. Hver runde starter når begge har trykket Klar, med felles nedtelling. Den som lager koden, velger hvor mange runder kampen varer, og den som har flest poeng sammenlagt, vinner. Når én har svart ti ganger, er runden over for begge. Etterpå ser dere hva den andre svarte.</p>
     <p>Dere skyter på hverandres skip. Treffer du raskt etter forrige treff, mister motspilleren også poeng: 5 for andre treff på rad, 10 for tredje og 15 for hvert treff etter det. Ingen kan komme under null. Rangeringen mot simulerte spillere bruker poengene dine før motspilleren skjøt.</p>
     <p class="oj-kilde">Listene er laget av oss og utvidet med artikler fra kategorier på norsk Wikipedia. De er ikke komplette, så et riktig svar kan mangle. Kilde: {{ ordjakt.kilde }}, {{ ordjakt.periode.fra | dato }} til {{ ordjakt.periode.til | dato }}. Hentet {{ ordjakt.hentet | dato }}. Sidevisninger er et mål på hvor mye folk leser om et ord, ikke hvor ofte det sies. Har et ord ingen egen artikkel, regner vi det som like sjeldent som det sjeldneste ordet i kategorien. Peker ordet til flere artikler, bruker vi midterste tall i kategorien. Noen ord deler artikkel med noe annet, så tallet kan gjelde en annen betydning enn den du tenkte på.</p>
     <p>Flere spill finner du under <a href="/spill/">Spill</a>. Vil du heller se hvordan sjeldne kroner vokser? Prøv <a href="/kalkulatorer/renters-rente/">Hvor mye blir sparingen din verdt?</a></p>

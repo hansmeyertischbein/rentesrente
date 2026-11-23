@@ -1344,6 +1344,21 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .oj-varer b, .oj-varer span { display: block; }
 .oj-varer span { font-size: 0.875rem; }
 .oj-varer .oj-knapp { font-size: 0.8125rem; padding: 0.4rem 0.6rem; }
+.oj-motstander { white-space: pre-line; text-align: center; line-height: 1.25; }
+.oj-sammenlagt { font-weight: 800; color: var(--oj-gull); }
+.oj-sammenlagt:empty { display: none; }
+.oj-svarene { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; text-align: left; }
+.oj-svarene[hidden] { display: none; }
+.oj-svarene ol { margin: 0.25rem 0 0; padding: 0; list-style: none; font-size: 0.875rem; }
+.oj-svarene li { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.1rem 0.35rem; background: rgb(8 19 28 / 0.5); margin-bottom: 2px; overflow-wrap: anywhere; }
+.oj-svarene li b { color: var(--oj-gull); font-variant-numeric: tabular-nums; }
+.oj-svarene li.null, .oj-svarene li.null b { color: #ffb4a6; }
+.oj-velg { font: inherit; font-weight: 800; font-size: 1.125rem; color: #1b130c; background: #f2e3c2; border: 3px solid var(--oj-skygge); border-radius: 0; padding: 0.3rem 0.5rem; min-height: 2.75rem; }
+.oj-velg:focus-visible { outline: 3px solid var(--oj-gull); outline-offset: 2px; }
+.oj-velg:disabled { opacity: 1; background: #b9ad94; }
+.oj-runder span { display: block; font-size: 0.875rem; }
+#slutt { max-height: calc(100% - 4rem); overflow-y: auto; }
+#slutt:has(.oj-svarene:not([hidden])) { top: 3%; width: min(36rem, calc(100% - 2rem)); gap: 0.45rem; }
 .oj-romkode { font-size: 3rem; font-weight: 900; letter-spacing: 0.2em; line-height: 1.1; color: var(--oj-gull); user-select: all; -webkit-user-select: all; }
 .oj-sporsmal { z-index: 8; }
 .oj-husk { text-align: left; font-size: 1rem; display: flex; gap: 0.5rem; align-items: center; justify-content: center; min-height: 2.75rem; }

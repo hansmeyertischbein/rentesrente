@@ -1,6 +1,6 @@
 // Ordjakt: grensesnitt og pikselscene. Regnelogikken ligger i /lib/ordjakt.js.
 import { SVAR_PER_RUNDE, SEKUNDER_PER_RUNDE, vurder, rekkefolge, nyKode, gyldigKode, simulerSpillere, toppProsent, BOOST_SEKUNDER, boostFaktor, nesteRekke, medBoost } from "/lib/ordjakt.js";
-import { VERSJON, tapFor, netto, tolkStatus, kanStarte, avtal } from "/lib/ordjakt-duell.js";
+import { VERSJON, tapFor, netto, tolkStatus, kanStarte, avtal, erVert, antallRunder, STANDARD_RUNDER } from "/lib/ordjakt-duell.js";
 import { kommentar } from "/lib/ordjakt-kommentarer.js";
 import { lasOpp, settLyd, spillFanfare, spillSkudd, spillTreff, spillPlask } from "./ordjakt-lyd.js";
 import { VARER, FLERE, EKSTRA_SEKUNDER, nyKasse, lesKasse, tjen, mynterFor, kjop, velg, bruk } from "/lib/ordjakt-butikk.js";
@@ -458,9 +458,15 @@ const mitt = { skade: 0, treff: 0 }; // det du har gjort mot motspilleren i denn
 let frøMitt = Math.random().toString(36).slice(2, 10); // rekkefølgen av kategorier; i rom avtales den mellom dere
 let startet = false;
 let rom = null;
-const TOM = { id: null, fro: "", gammel: false, startet: false, klar: false, neste: 0, runde: 0, brutto: 0, svar: 0, ferdig: false, skade: 0, treff: 0, seil: null, kule: null };
+const TOM = { id: null, fro: "", gammel: false, startet: false, klar: false, neste: 0, runde: 0, brutto: 0, svar: 0, ferdig: false, skade: 0, treff: 0, seil: null, kule: null, vert: false, antall: STANDARD_RUNDER, ord: [], sum: 0 };
 const motspiller = { ...TOM };
 let kontakt = 0, klar = false, nedtelling = null, puls = null, treffSett = 0, skadeSett = 0;
+// En kamp er et valgt antall runder. sumMeg er poengene dine fra de ferdige rundene i kampen.
+let vertMeg = false, valgtRunder = STANDARD_RUNDER, kampStart = 0, kampAntall = STANDARD_RUNDER, sumMeg = 0, nyKamp = true;
+const rund = (x) => Math.round(x * 10) / 10;
+const jegVert = () => erVert({ id: meg, vert: vertMeg }, motspiller);
+const rundeNr = () => spill.runde - kampStart + 1;
+const sisteRunde = () => !!rom && rundeNr() >= kampAntall;
 const sammeRunde = () => !!motspiller.id && motspiller.startet && startet && motspiller.runde === spill.runde;
 const skadeMottatt = () => (sammeRunde() ? motspiller.skade : skadeSett);
 const minNetto = () => netto(spill.total, rom ? skadeMottatt() : 0);
@@ -526,9 +532,9 @@ function avsluttRunde(tidenUte) {
   clearInterval(spill.klokke);
   vis("skjema", false); vis("boost", false); vis("hjelp", false);
   $("melding").classList.remove("bom");
-  $("melding").textContent = tidenUte ? "Tiden er ute!" : "";
-  spill.sluttTittel = tidenUte ? "Tiden er ute!" : "Runden er over";
-  if (tidenUte) $("tid").textContent = "0";
+  $("melding").textContent = tidenUte === "motspiller" ? "Motspilleren ble ferdig, så runden er over!" : tidenUte ? "Tiden er ute!" : "";
+  spill.sluttTittel = tidenUte === "motspiller" ? "Motspilleren ble ferdig først" : tidenUte ? "Tiden er ute!" : "Runden er over";
+  if (tidenUte === true) $("tid").textContent = "0";
   spillFanfare();
   sendStatus();
   // Oppsummeringen kommer når fanfaren (3,3 s) er ferdig og alle tallene har fordampet.
@@ -587,7 +593,9 @@ $("skjema").addEventListener("submit", (e) => {
     skyt(false, (x) => nyttTall("0", 0, x, vann, "#ff8a7a", true));
   }
   visBoost();
+  r.tekst = tekst;
   spill.svar.push(r);
+  visMotspiller();
   $("teller").textContent = `${spill.svar.length}/${SVAR_PER_RUNDE}`;
   if (spill.svar.length >= SVAR_PER_RUNDE) avsluttRunde(false);
   else sendStatus();
@@ -615,20 +623,25 @@ function oppdaterSlutt() {
   const tittel = $("slutt-tittel"), tekst = $("slutt-tekst");
   if (!rom || !motspiller.id || !sammeRunde()) {
     tittel.textContent = spill.sluttTittel;
+    visSvarene();
     tekst.textContent = `Du fikk ${fmt(minNetto())} poeng på ${spill.svar.length} svar.`;
     if (rom && !$("slutt").hidden) giMynter();
     return;
   }
   const jeg = minNetto(), de = deresNetto(), mistet = skadeMottatt();
   const skutt = `${mistet ? ` Motspilleren skjøt bort ${mistet} av poengene dine.` : ""}${mitt.skade ? ` Du skjøt bort ${mitt.skade}.` : ""}`;
+  visSvarene();
+  const a = mittSammenlagt(), b = deresSammenlagt();
   if (motspiller.ferdig) {
-    tittel.textContent = jeg > de ? "Du vant runden!" : jeg < de ? "Motspilleren vant" : "Uavgjort";
-    tekst.textContent = `Du fikk ${fmt(jeg)} poeng, motspilleren fikk ${fmt(de)}.${skutt}`;
+    const utfall = (x, y, hva) => (x > y ? `Du vant ${hva}!` : x < y ? `Motspilleren vant ${hva}` : `Uavgjort i ${hva}`);
+    tittel.textContent = sisteRunde() ? utfall(a, b, "kampen") : utfall(jeg, de, "runden");
+    tekst.textContent = `${spill.sluttTittel === "Motspilleren ble ferdig først" ? "Motspilleren ble ferdig først. " : ""}Du fikk ${fmt(jeg)} poeng, motspilleren fikk ${fmt(de)}.${skutt}`;
     if (!$("slutt").hidden) giMynter();
   } else {
     tittel.textContent = spill.sluttTittel;
-    tekst.textContent = `Du har ${fmt(jeg)} poeng. Motspilleren er på svar ${motspiller.svar} av ${SVAR_PER_RUNDE} og kan fortsatt skyte.${skutt}`;
+    tekst.textContent = `Du har ${fmt(jeg)} poeng. Venter på de siste poengene til motspilleren.${skutt}`;
   }
+  $("sammenlagt").textContent = `${sisteRunde() ? "Kampen er ferdig" : `Runde ${rundeNr()} av ${kampAntall}`}. Sammenlagt: du ${fmt(a)}, motspilleren ${fmt(b)}.`;
   if (!$("slutt").hidden) { spill.tapVist = mistet; visTotal(); }
 }
 
@@ -644,7 +657,10 @@ $("neste").addEventListener("click", () => { if (rom) { settKlar(); return; } sp
 
 /* ---------------- Synkron start ---------------- */
 const nesteRunde = () => (startet ? spill.runde + 1 : spill.runde);
-const jegNå = () => ({ klar, fro: frøMitt, neste: nesteRunde(), startet, runde: spill.runde });
+const avtaltAntall = () => antallRunder({ id: meg, vert: vertMeg, valgt: valgtRunder }, motspiller);
+const mittSammenlagt = () => rund(sumMeg + minNetto());
+const deresSammenlagt = () => rund(motspiller.sum + (sammeRunde() ? deresNetto() : 0));
+const jegNå = () => ({ klar, antall: avtaltAntall(), fro: frøMitt, neste: nesteRunde(), startet, runde: spill.runde });
 function settKlar() {
   if (!motspiller.id || motspiller.gammel || klar) return;
   giMynter();
@@ -654,11 +670,15 @@ function settKlar() {
 }
 function visKlar() {
   const på = !!rom && !!motspiller.id && !motspiller.gammel;
-  for (const [id, tekst] of [["start-na", "Klar"], ["neste", rom ? "Klar for neste" : "Neste kategori"]]) {
+  for (const [id, tekst] of [["start-na", "Klar"], ["neste", rom ? (startet && sisteRunde() ? "Klar for ny kamp" : "Klar for neste") : "Neste kategori"]]) {
     $(id).disabled = !!rom && (!på || klar);
     $(id).textContent = klar ? "Venter på motspiller …" : tekst;
   }
   if (!rom) return;
+  const vert = jegVert();
+  $("runder").disabled = !vert || klar || !!nedtelling;
+  $("runder").value = String(avtaltAntall());
+  $("runder-hvem").textContent = vert ? "Du laget koden, så du velger." : "Den som laget koden, velger.";
   $("rom-status").textContent = motspiller.gammel ? "Motspilleren har en gammel versjon. Be dem laste siden på nytt."
     : !motspiller.id ? "Koblet til. Venter på motspiller …"
     : motspiller.startet && !motspiller.ferdig ? "Motspilleren er midt i en runde. Trykk Klar, så venter du på neste."
@@ -676,6 +696,8 @@ function provStart() {
     $("telling-tall").textContent = String(Math.max(1, igjen));
     if (igjen > 0) return;
     stoppNedtelling();
+    if (!startet || nyKamp || sisteRunde()) { nyKamp = false; sumMeg = 0; kampStart = runde; kampAntall = avtaltAntall(); }
+    else sumMeg = rund(sumMeg + minNetto());
     spill.runde = runde;
     startRunde();
   };
@@ -688,8 +710,25 @@ function stoppNedtelling() { clearInterval(nedtelling); nedtelling = null; vis("
 const konto = { url: scene.dataset.url, nokkel: scene.dataset.nokkel };
 if (!konto.url) { $("lag-rom").hidden = true; $("bli-med").hidden = true; }
 
+// Etter runden vises svarene til begge side om side.
+function visSvarene() {
+  const vises = !!rom && sammeRunde() && motspiller.ferdig;
+  $("svarene").hidden = !vises;
+  if (!vises) { $("sammenlagt").textContent = ""; return; }
+  const mine = spill.svar.map((r) => [r.ord ?? r.tekst, r.poeng]);
+  for (const [id, liste] of [["svar-mine", mine], ["svar-deres", motspiller.ord]]) {
+    $(id).replaceChildren(...(liste.length ? liste : [["ingen svar", null]]).map(([ord, p]) => {
+      const li = document.createElement("li"), b = document.createElement("b");
+      li.append(ord + " ");
+      if (p !== null) { b.textContent = fmt(p); li.append(b); }
+      if (p === 0) li.className = "null";
+      return li;
+    }));
+  }
+}
+
 function sendStatus() {
-  rom?.sendMelding("status", { v: VERSJON, id: meg, fro: frøMitt, startet, runde: spill.runde, klar, neste: nesteRunde(), brutto: spill.total, total: minNetto(), svar: spill.svar.length, ferdig: startet && spill.ferdig, skade: mitt.skade, treff: mitt.treff, seil: kasse.valgt.seil, kule: kasse.valgt.kule });
+  rom?.sendMelding("status", { v: VERSJON, id: meg, fro: frøMitt, startet, runde: spill.runde, klar, neste: nesteRunde(), brutto: spill.total, total: minNetto(), svar: spill.svar.length, ferdig: startet && spill.ferdig, skade: mitt.skade, treff: mitt.treff, vert: vertMeg, antall: avtaltAntall(), sum: sumMeg, ord: startet && spill.ferdig ? spill.svar.map((r) => [r.ord ?? r.tekst, r.poeng]) : [], seil: kasse.valgt.seil, kule: kasse.valgt.kule });
 }
 
 // Nye treff fra motspilleren blir til skudd mot skipet ditt.
@@ -706,7 +745,7 @@ function visMotspiller() {
   if (!rom || !motspiller.id) { el.hidden = true; return; }
   el.hidden = false;
   el.textContent = Date.now() - kontakt > 10000 ? "Får ikke kontakt med motspilleren"
-    : sammeRunde() ? `Motspiller: ${fmt(deresNetto())} poeng · ${motspiller.svar}/${SVAR_PER_RUNDE} svar`
+    : sammeRunde() ? `Runde ${rundeNr()}/${kampAntall} · Motspiller ${motspiller.svar}/${SVAR_PER_RUNDE} svar\nSammenlagt: du ${fmt(mittSammenlagt())} · motspiller ${fmt(deresSammenlagt())}`
     : motspiller.klar ? "Motspilleren er klar" : "Motspilleren er med";
 }
 
@@ -716,11 +755,12 @@ function settDuell(på) {
   bak = lagBakgrunn();
 }
 
-function gåInnIRom(kode) {
+function gåInnIRom(kode, vert = false) {
   stoppNedtelling();
   spill.kode = kode;
   Object.assign(motspiller, TOM);
   startet = false; klar = false; spill.ferdig = true; spill.mynterGitt = true;
+  nyKamp = true; sumMeg = 0; vertMeg = vert;
   skader.mine = 0; skader.deres = 0;
   settRekkefølge(Math.random().toString(36).slice(2, 10), 0);
   history.replaceState(null, "", "#rom=" + kode);
@@ -772,8 +812,10 @@ function vedMelding(hendelse, m) {
   if (hendelse !== "status") return;
   const s = tolkStatus(m);
   if (!s) return;
-  if (s.id !== motspiller.id) { treffSett = 0; skadeSett = sammeRunde() ? skadeSett : 0; }
+  if (s.id !== motspiller.id) { nyKamp = true; treffSett = 0; skadeSett = sammeRunde() ? skadeSett : 0; }
+  const antallFør = avtaltAntall();
   Object.assign(motspiller, s);
+  if (klar && !nedtelling && avtaltAntall() !== antallFør) klar = false; // verten endret antall runder
   kontakt = Date.now();
   if (!startet && !nedtelling) {
     const a = avtal(jegNå(), motspiller);
@@ -782,6 +824,8 @@ function vedMelding(hendelse, m) {
     if (endret) sendStatus();
   }
   visSkader();
+  // Når én er ferdig, stopper runden for begge.
+  if (sammeRunde() && motspiller.ferdig && !spill.ferdig) avsluttRunde(spill.frist - Date.now() < 1500 ? true : "motspiller");
   visKlar();
   visMotspiller();
   if (spill.ferdig && startet) oppdaterSlutt();
@@ -802,7 +846,7 @@ $("alene").addEventListener("click", () => {
   spill.runde = 0;
   startRunde();
 });
-$("lag-rom").addEventListener("click", () => gåInnIRom(nyKode()));
+$("lag-rom").addEventListener("click", () => gåInnIRom(nyKode(), true));
 $("bli-med").addEventListener("submit", (e) => {
   e.preventDefault();
   const kode = $("kode").value.trim().toUpperCase();
@@ -811,6 +855,7 @@ $("bli-med").addEventListener("submit", (e) => {
   gåInnIRom(kode);
 });
 $("start-na").addEventListener("click", settKlar);
+$("runder").addEventListener("change", (e) => { if (!jegVert()) return; valgtRunder = Number(e.target.value); sendStatus(); visKlar(); });
 addEventListener("pagehide", () => rom?.sendMelding("forlot", { id: meg }));
 
 /* ---------------- Hovedmeny, penger og butikk ---------------- */
