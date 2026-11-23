@@ -70,8 +70,13 @@ sideklasse: side-ordjakt
       <p>Skriv koden på den andre PC-en, eller åpne lenken der.</p>
       <p class="oj-feil" id="kopiert" role="status"></p>
       <p id="rom-status">Venter på motspiller …</p>
-      <button class="oj-knapp" type="button" id="start-na" disabled>Start nå</button>
+      <button class="oj-knapp" type="button" id="start-na" disabled>Klar</button>
       <button class="oj-knapp" type="button" id="venter-meny">Hovedmeny</button>
+    </div>
+
+    <div class="oj-panel oj-telling" id="telling" role="status" hidden>
+      <p>Begge er klare. Gjør klar kanonene!</p>
+      <p class="oj-romkode" id="telling-tall">3</p>
     </div>
 
     <div class="oj-panel" id="slutt" hidden>
@@ -114,7 +119,8 @@ sideklasse: side-ordjakt
     <h2>Slik regner vi rangeringen</h2>
     <p>Plassen din måles mot 2 000 spillere som er simulert, ikke ekte. Spillet lagrer ingen resultater, så vi vet ikke hva andre har fått. Vi forutsetter at en spiller rekker 1 til 10 svar, treffer lista på 55 til 95 prosent av dem og oftest velger ord mange kjenner. De får boost etter samme regler som deg.</p>
     <h2>Spill mot en venn</h2>
-    <p>Spiller dere to, trykker den ene «Spill online: få kode» og den andre skriver koden. Dere får samme kategorier i tilfeldig rekkefølge og ser hverandres poeng mens dere spiller.</p>
+    <p>Spiller dere to, trykker den ene «Spill online: få kode» og den andre skriver koden. Dere får samme kategorier i tilfeldig rekkefølge og ser hverandres poeng mens dere spiller. Hver runde starter når begge har trykket Klar, med felles nedtelling.</p>
+    <p>Dere skyter på hverandres skip. Treffer du raskt etter forrige treff, mister motspilleren også poeng: 5 for andre treff på rad, 10 for tredje og 15 for hvert treff etter det. Ingen kan komme under null. Rangeringen mot simulerte spillere bruker poengene dine før motspilleren skjøt.</p>
     <p class="oj-kilde">Listene er laget av oss og utvidet med artikler fra kategorier på norsk Wikipedia. De er ikke komplette, så et riktig svar kan mangle. Kilde: {{ ordjakt.kilde }}, {{ ordjakt.periode.fra | dato }} til {{ ordjakt.periode.til | dato }}. Hentet {{ ordjakt.hentet | dato }}. Sidevisninger er et mål på hvor mye folk leser om et ord, ikke hvor ofte det sies. Har et ord ingen egen artikkel, regner vi det som like sjeldent som det sjeldneste ordet i kategorien. Peker ordet til flere artikler, bruker vi midterste tall i kategorien. Noen ord deler artikkel med noe annet, så tallet kan gjelde en annen betydning enn den du tenkte på.</p>
     <p>Flere spill finner du under <a href="/spill/">Spill</a>. Vil du heller se hvordan sjeldne kroner vokser? Prøv <a href="/kalkulatorer/renters-rente/">Hvor mye blir sparingen din verdt?</a></p>
   </div>

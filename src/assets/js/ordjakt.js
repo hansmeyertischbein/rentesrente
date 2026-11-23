@@ -1,5 +1,6 @@
 // Ordjakt: grensesnitt og pikselscene. Regnelogikken ligger i /lib/ordjakt.js.
 import { SVAR_PER_RUNDE, SEKUNDER_PER_RUNDE, vurder, rekkefolge, nyKode, gyldigKode, simulerSpillere, toppProsent, BOOST_SEKUNDER, boostFaktor, nesteRekke, medBoost } from "/lib/ordjakt.js";
+import { VERSJON, tapFor, netto, tolkStatus, kanStarte, avtal } from "/lib/ordjakt-duell.js";
 import { kommentar } from "/lib/ordjakt-kommentarer.js";
 import { lasOpp, settLyd, spillFanfare, spillSkudd, spillTreff, spillPlask } from "./ordjakt-lyd.js";
 import { VARER, FLERE, EKSTRA_SEKUNDER, nyKasse, lesKasse, tjen, mynterFor, kjop, velg, bruk } from "/lib/ordjakt-butikk.js";
@@ -32,7 +33,7 @@ const rgb = (c, a = 1) => `rgb(${c[0]} ${c[1]} ${c[2]} / ${a})`;
 const GLYFER = {
   "0": "111101101101111", "1": "010110010010111", "2": "111001111100111", "3": "111001111001111", "4": "101101111001001",
   "5": "111100111001111", "6": "111100111101111", "7": "111001010010010", "8": "111101111101111", "9": "111101111001111",
-  ",": "000000000010100", "+": "000010111010000", " ": "000000000000000",
+  ",": "000000000010100", "−": "000000111000000", "+": "000010111010000", " ": "000000000000000",
 };
 function tegnTekst(tekst, cx, cy, s, farge, alfa = 1, oppløs = 0, frø = 1) {
   const tegn = [...tekst].map((c) => GLYFER[c] ?? GLYFER[" "]);
@@ -59,7 +60,8 @@ const mål = { kanonX: 0, kanonY: 0, treff: [0, 0], hvile: [160, 110], total: [1
 
 const STEIN = [[118, 118, 122], [96, 96, 102], [140, 138, 140]];
 const kystY = () => vann - Math.max(6, Math.round(vann * 0.2));
-const veggX = (y) => Math.round(B * 0.8) + Math.floor(hash(0, Math.floor(y / 5), 3) * 5) + (y > vann ? Math.floor((y - vann) / 14) : 0);
+let duell = false; // mot en venn: to skip på åpent hav, uten land og borg
+const veggX = (y) => duell ? B + 50 : Math.round(B * 0.8) + Math.floor(hash(0, Math.floor(y / 5), 3) * 5) + (y > vann ? Math.floor((y - vann) / 14) : 0);
 const bunnY = (x) => bunn - Math.round(3 * Math.sin(x / 23) + 2 * Math.sin(x / 7 + 1));
 
 function lagBakgrunn() {
@@ -140,9 +142,11 @@ function tegnTang(t) {
 }
 
 const vare = (type) => VARER.find((v) => v.id === kasse.valgt[type]);
-function tegnSkip(t) {
-  const seilfarge = vare("seil")?.farge ?? [238, 228, 200];
-  const x = mål.skipX, dy = Math.round(Math.sin(t * 1.6) * 1.2);
+const fiendevare = (type) => VARER.find((v) => v.type === type && v.id === motspiller[type]);
+function tegnSkip(t, fiende = false) {
+  const seilfarge = (fiende ? fiendevare("seil") : vare("seil"))?.farge ?? [238, 228, 200];
+  const treff = duell ? (fiende ? skader.deres : skader.mine) : 0;
+  const x = mål.skipX, dy = Math.round(Math.sin(t * 1.6 + (fiende ? 2 : 0)) * 1.2 + Math.min(4, treff * 0.4));
   const dekk = vann - 7 + dy, L = 66;
   // skrog
   for (let r = 0; r < 12; r++) {
@@ -165,7 +169,12 @@ function tegnSkip(t) {
   // kanon på dekk, pekende mot fjellet
   ctx.fillStyle = "#222"; ctx.fillRect(x + L - 10, dekk - 4, 8, 3); ctx.fillRect(x + L - 3, dekk - 5, 3, 3);
   ctx.fillStyle = "#5a3418"; ctx.fillRect(x + L - 10, dekk - 1, 4, 1);
-  mål.kanonX = x + L + 1; mål.kanonY = dekk - 4;
+  if (!fiende) { mål.kanonX = x + L + 1; mål.kanonY = dekk - 4; }
+  for (let i = 0; i < treff; i++) {
+    const hx = x + 6 + ((i * 17) % 50), hy = dekk - 1 + Math.floor(hash(i, 2, 60) * 5);
+    ctx.fillStyle = "#b5713a"; ctx.fillRect(hx - 1, hy - 1, 8, 1); ctx.fillRect(hx - 1, hy + 5, 5, 1);
+    ctx.fillStyle = "#120904"; ctx.fillRect(hx, hy, 6, 5); ctx.fillRect(hx + 6, hy + 1, 2, 2);
+  }
   // master og seil
   const topp = Math.max(3, Math.round(vann * 0.08), dekk - 48);
   for (const [mx, h] of [[x + 24, 1], [x + 44, 0.86]]) {
@@ -188,6 +197,11 @@ function tegnSkip(t) {
       ctx.fillStyle = "#111"; ctx.fillRect(mx + 2, mt, 9, 6);
       ctx.fillStyle = "#eee"; ctx.fillRect(mx + 5, mt + 1, 3, 2); ctx.fillRect(mx + 6, mt + 3, 1, 1); ctx.fillRect(mx + 4, mt + 4, 1, 1); ctx.fillRect(mx + 8, mt + 4, 1, 1);
     }
+  }
+  for (let i = 0; i < treff; i++) {
+    const sx = x + 15 + ((i * 11) % 36), sy = topp + 7 + Math.floor(hash(i, 4, 60) * Math.max(4, dekk - topp - 18));
+    ctx.fillStyle = "#8fc7e8"; ctx.fillRect(sx, sy, 5, 4); ctx.fillRect(sx + 1, sy + 4, 3, 2);
+    ctx.fillStyle = "#3a2a1c"; ctx.fillRect(sx, sy - 1, 5, 1);
   }
   // vann over den nederste delen av skroget
   ctx.fillStyle = "rgb(38 128 178 / 0.55)"; ctx.fillRect(x - 2, vann + 1, L + 8, 6);
@@ -255,15 +269,32 @@ function sprut(x, n = 12) {
 function skyt(treff, vedNedslag) {
   spillSkudd();
   const x0 = mål.kanonX, y0 = mål.kanonY;
-  const stn = treff ? sikt(borg) : null;
-  const [tx, ty] = treff ? (stn ? stein(stn) : [Math.round(B * 0.9), kystY()]) : [Math.round(x0 + (veggX(vann) - x0) * (0.45 + Math.random() * 0.2)), vann];
+  const stn = treff && !duell ? sikt(borg) : null;
+  const [tx, ty] = treff && duell ? skipsmål(true) : treff ? (stn ? stein(stn) : [Math.round(B * 0.9), kystY()]) : [Math.round(x0 + ((duell ? B - mål.kanonX : veggX(vann)) - x0) * (0.45 + Math.random() * 0.2)), vann];
   const T = 0.6 / FART, g = 260;
-  kuler.push({ x: x0, y: y0, vx: (tx - x0) / T, vy: (ty - y0 - 0.5 * g * T * T) / T, g, t: 0, T, treff, stn, vedNedslag });
+  kuler.push({ x: x0, y: y0, vx: (tx - x0) / T, vy: (ty - y0 - 0.5 * g * T * T) / T, g, t: 0, T, treff, stn, vedNedslag, farge: vare("kule")?.farge });
   for (let i = 0; i < 10; i++) partikkel(x0 + 1, y0 + 1, 40 + Math.random() * 60, (Math.random() - 0.7) * 50, i < 4 ? "#ffd34d" : "#ff8a3d", 0.18, { g: 0 });
   for (let i = 0; i < 8; i++) partikkel(x0, y0, 10 + Math.random() * 25, -8 - Math.random() * 14, "#d9d9d9", 0.9 + Math.random() * 0.5, { g: -10, s: 2 });
 }
 
 let plass = 0; // seks plasser under feltet, så tall som kommer raskt, ikke dekker hverandre
+// Et tilfeldig punkt på skroget eller seilene, på motspillerens skip eller ditt.
+function skipsmål(fiende) {
+  const x = mål.skipX + 14 + Math.random() * 40, y = vann - 4 - Math.random() * Math.min(30, vann * 0.5);
+  return [fiende ? B - x : x, y];
+}
+// Motspilleren skyter på deg. tap er poengene du mister når kula treffer.
+function fiendeskudd(tap) {
+  spillSkudd();
+  const x0 = B - mål.kanonX, y0 = mål.kanonY, [tx, ty] = skipsmål(false), T = 0.6 / FART, g = 260;
+  kuler.push({ x: x0, y: y0, vx: (tx - x0) / T, vy: (ty - y0 - 0.5 * g * T * T) / T, g, t: 0, T, treff: true, motMeg: true, tap, farge: fiendevare("kule")?.farge });
+  for (let i = 0; i < 8; i++) partikkel(x0 - 1, y0 + 1, -40 - Math.random() * 60, (Math.random() - 0.7) * 50, i < 4 ? "#ffd34d" : "#ff8a3d", 0.18, { g: 0 });
+}
+const taptall = []; // «−10» som stiger opp fra skipet som ble truffet
+function visTap(tap, fiende) {
+  if (tap > 0) taptall.push({ tekst: "−" + tap, x: fiende ? B - mål.skipX - 34 : mål.skipX + 34, y: vann - 22, t: 0 });
+}
+
 function nyttTall(tekst, poeng, x, y, farge, synkerBare) {
   tall.push({ tekst, poeng, farge, x, y, vx: -35 - Math.random() * 25, vy: -70, fase: "fall", t: 0, frø: Math.floor(Math.random() * 1000), synkerBare, hvileX: mål.hvile[0] + [0, -56, 56][plass % 3], rad: plass >= 3 ? 14 : 0 });
   plass = (plass + 1) % 6;
@@ -274,20 +305,28 @@ const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 function oppdater(dt) {
   for (const k of kuler) {
     k.t += dt; k.x += k.vx * dt; k.vy += k.g * dt; k.y += k.vy * dt;
-    if (Math.random() < 0.6) partikkel(k.x, k.y, 0, -4, vare("kule")?.farge ?? "rgb(220 220 220 / 0.7)", 0.4, { g: 0, s: vare("kule") ? 2 : 1 });
+    if (Math.random() < 0.6) partikkel(k.x, k.y, 0, -4, k.farge ?? "rgb(220 220 220 / 0.7)", 0.4, { g: 0, s: k.farge ? 2 : 1 });
     if (k.t >= k.T) {
       k.ferdig = true;
       if (k.treff) {
         rist = roligere ? 0 : 0.25;
         spillTreff();
-        knusBorg(k.stn);
-        for (let i = 0; i < 18; i++) partikkel(k.x, k.y, -20 - Math.random() * 80, -30 - Math.random() * 80, rgb(STEIN[i % 3]), 1.4, { s: 1 + (i % 2) });
+        if (k.motMeg) { skader.mine++; spill.tapVist += k.tap; visTap(k.tap, false); visTotal(); }
+        else if (duell) { skader.deres++; visTap(k.tap ?? 0, true); }
+        else knusBorg(k.stn);
+        const ut = k.motMeg ? -1 : 1;
+        for (let i = 0; i < 18; i++) partikkel(k.x, k.y, ut * (-20 - Math.random() * 80), -30 - Math.random() * 80, duell ? ["#70421e", "#4a2a12", "#eee4c8"][i % 3] : rgb(STEIN[i % 3]), 1.4, { s: 1 + (i % 2) });
         for (let i = 0; i < 8; i++) partikkel(k.x, k.y, -10 - Math.random() * 20, -5 - Math.random() * 15, "#c9c2b8", 0.9, { g: -6, s: 2 });
         for (let i = 0; i < 6; i++) partikkel(k.x, k.y, -30 - Math.random() * 40, -20 - Math.random() * 40, "#ffd34d", 0.25, { g: 0 });
       } else { sprut(k.x, 16); spillPlask(); }
       k.vedNedslag?.(k.treff ? Math.min(k.x, veggX(vann) - 6) : k.x, k.y);
     }
   }
+  if (duell) for (const [treff, x] of [[skader.mine, mål.skipX + 30], [skader.deres, B - mål.skipX - 30]]) {
+    if (treff >= 3 && Math.random() < dt * treff) partikkel(x + (Math.random() - 0.5) * 30, vann - 8, 4, -10, treff >= 7 && Math.random() < 0.5 ? "#ff8a3d" : "#6b6b6b", 1.6, { g: -8, s: 2 });
+  }
+  for (const n of taptall) { n.t += dt; n.y -= dt * 12; }
+  for (let i = taptall.length - 1; i >= 0; i--) if (taptall[i].t > 1.6) taptall.splice(i, 1);
   for (let i = kuler.length - 1; i >= 0; i--) if (kuler[i].ferdig) kuler.splice(i, 1);
 
   for (const p of partikler) {
@@ -339,10 +378,10 @@ function tegn(t) {
   ctx.drawImage(bak, 0, 0);
   tegnSkyer(sistDt);
   tegnTang(t);
-  tegnBorg(t);
+  if (duell) { ctx.save(); ctx.translate(B, 0); ctx.scale(-1, 1); tegnSkip(t, true); ctx.restore(); } else tegnBorg(t);
   tegnSkip(t);
   tegnOverflate(t);
-  for (const k of kuler) { ctx.fillStyle = vare("kule")?.farge ?? "#111"; ctx.fillRect(Math.round(k.x) - 1, Math.round(k.y) - 1, 3, 3); ctx.fillStyle = "#666"; ctx.fillRect(Math.round(k.x) - 1, Math.round(k.y) - 1, 1, 1); }
+  for (const k of kuler) { ctx.fillStyle = k.farge ?? "#111"; ctx.fillRect(Math.round(k.x) - 1, Math.round(k.y) - 1, 3, 3); ctx.fillStyle = "#666"; ctx.fillRect(Math.round(k.x) - 1, Math.round(k.y) - 1, 1, 1); }
   for (const p of partikler) {
     ctx.globalAlpha = Math.max(0, Math.min(1, p.liv / p.maks + 0.2));
     ctx.fillStyle = p.farge; ctx.fillRect(Math.round(p.x), Math.round(p.y), p.s, p.s);
@@ -356,6 +395,7 @@ function tegn(t) {
     if (n.y > vann) alfa *= 0.92;
     tegnTekst(n.tekst, n.x, n.y, s, n.farge, alfa, opp, n.frø);
   }
+  for (const n of taptall) tegnTekst(n.tekst, n.x, n.y, s, "#ff6f5e", Math.max(0, 1 - n.t / 1.6));
   ctx.restore();
 }
 
@@ -412,17 +452,28 @@ function lagKorn() {
 /* ---------------- Spillet ---------------- */
 const KATEGORIER = data.kategorier;
 const meg = Math.random().toString(36).slice(2, 10);
-const spill = { kode: null, rekkefolge: [], runde: 0, svar: [], brukt: new Set(), total: 0, vist: 0, ferdig: false, låst: false, frist: 0, klokke: null, sluttTidligst: 0, sluttTittel: "", rekke: 0, sisteTreff: 0, hjelp: false };
+const spill = { kode: null, rekkefolge: [], runde: 0, svar: [], brukt: new Set(), total: 0, vist: 0, ferdig: false, låst: false, frist: 0, klokke: null, sluttTidligst: 0, sluttTittel: "", rekke: 0, sisteTreff: 0, hjelp: false, tapVist: 0, mynterGitt: true };
+const skader = { mine: 0, deres: 0 }; // treff på hvert skip, slik de er tegnet
+const mitt = { skade: 0, treff: 0 }; // det du har gjort mot motspilleren i denne runden
 let frøMitt = Math.random().toString(36).slice(2, 10); // rekkefølgen av kategorier; i rom avtales den mellom dere
 let startet = false;
 let rom = null;
-const motspiller = { id: null, runde: 0, total: 0, svar: 0, ferdig: false };
+const TOM = { id: null, fro: "", gammel: false, startet: false, klar: false, neste: 0, runde: 0, brutto: 0, svar: 0, ferdig: false, skade: 0, treff: 0, seil: null, kule: null };
+const motspiller = { ...TOM };
+let kontakt = 0, klar = false, nedtelling = null, puls = null, treffSett = 0, skadeSett = 0;
+const sammeRunde = () => !!motspiller.id && motspiller.startet && startet && motspiller.runde === spill.runde;
+const skadeMottatt = () => (sammeRunde() ? motspiller.skade : skadeSett);
+const minNetto = () => netto(spill.total, rom ? skadeMottatt() : 0);
+const deresNetto = () => netto(motspiller.brutto, mitt.skade);
+const visTotal = () => { $("total").textContent = fmt(netto(spill.vist, spill.tapVist)); };
 
 const kategori = () => KATEGORIER[spill.rekkefolge[spill.runde % KATEGORIER.length]];
 const vis = (id, på) => { $(id).hidden = !på; };
 
 function startRunde() {
-  startet = true;
+  startet = true; klar = false;
+  spill.tapVist = 0; spill.mynterGitt = false;
+  skader.mine = 0; skader.deres = 0; mitt.skade = 0; mitt.treff = 0; treffSett = 0; skadeSett = 0; taptall.length = 0;
   if (!rom) sett.push(spill.rekkefolge[spill.runde % KATEGORIER.length]);
   borg = nyBorg();
   spill.rekke = 0; spill.sisteTreff = 0; spill.hjelp = false; spill.sluttTidligst = 0;
@@ -446,6 +497,7 @@ function startRunde() {
   visHjelp();
   visMotspiller();
   sendStatus();
+  visSkader();
 }
 
 // Tiden regnes fra fristen, så den stemmer også når fanen har ligget i bakgrunnen.
@@ -485,7 +537,7 @@ function avsluttRunde(tidenUte) {
 
 function vedAnkomst(poeng) {
   spill.vist = Math.round((spill.vist + poeng) * 10) / 10;
-  $("total").textContent = fmt(spill.vist);
+  visTotal();
   const p = $("total").parentElement;
   p.classList.remove("pulser"); void p.offsetWidth; p.classList.add("pulser");
 }
@@ -523,7 +575,11 @@ $("skjema").addEventListener("submit", (e) => {
     const andel = Math.round(r.andel * 1000) / 10;
     melding.textContent = `Treff! «${r.ord}» er ${fmt(andel)} % av lesingen. ${fmt(r.poeng)} poeng${boost > 1 ? ` med boost ×${fmt(boost)}` : ""}.`;
     loggRad(r.ord, r.poeng, false);
+    const tap = rom ? tapFor(spill.rekke) : 0;
+    if (rom) { mitt.treff++; mitt.skade += tap; }
+    if (tap) melding.textContent += ` Motspilleren mister ${tap}.`;
     skyt(true, (x, y) => nyttTall("+" + fmt(r.poeng), r.poeng, x, y, "#ffd34d", false));
+    kuler.at(-1).tap = tap;
   } else {
     melding.textContent = `«${tekst}» står ikke på lista. 0 poeng.`;
     spill.rekke = 0; spill.sisteTreff = 0;
@@ -540,99 +596,196 @@ $("skjema").addEventListener("submit", (e) => {
 function visSlutt() {
   $("melding").textContent = "";
   spill.vist = spill.total;
-  $("total").textContent = fmt(spill.total);
+  spill.tapVist = rom ? skadeMottatt() : 0;
+  visTotal();
   const ord = kategori().ord;
   const topp = toppProsent(simulerSpillere(ord, kategori().navn), spill.total);
   $("kommentar").textContent = kommentar(topp);
   $("rang").textContent = `Du er blant de ${topp} % beste`;
   $("rang-felt").textContent = spill.hjelp ? "mot 2 000 simulerte spillere uten hjelpemidler" : "mot 2 000 simulerte spillere";
-  settKasse(tjen(kasse, spill.total));
-  $("tjent").textContent = `+${mynter(mynterFor(spill.total))}. Du har ${mynter(kasse.mynter)}.`;
+  $("tjent").textContent = "Myntene kommer når begge er ferdige.";
+  if (!rom) giMynter();
   oppdaterSlutt();
   vis("slutt", true);
   $("neste").focus({ preventScroll: true });
 }
 
 function oppdaterSlutt() {
-  if (!spill.ferdig) return;
+  if (!spill.ferdig || !startet) return;
   const tittel = $("slutt-tittel"), tekst = $("slutt-tekst");
-  if (!motspiller.id) {
+  if (!rom || !motspiller.id || !sammeRunde()) {
     tittel.textContent = spill.sluttTittel;
-    tekst.textContent = `Du fikk ${fmt(spill.total)} poeng på ${spill.svar.length} svar.`;
+    tekst.textContent = `Du fikk ${fmt(minNetto())} poeng på ${spill.svar.length} svar.`;
+    if (rom && !$("slutt").hidden) giMynter();
     return;
   }
-  if (motspiller.runde === spill.runde && motspiller.ferdig) {
-    const diff = Math.round((spill.total - motspiller.total) * 10) / 10;
-    tittel.textContent = diff > 0 ? "Du vant runden!" : diff < 0 ? "Motspilleren vant" : "Uavgjort";
-    tekst.textContent = `Du fikk ${fmt(spill.total)} poeng, motspilleren fikk ${fmt(motspiller.total)}.`;
+  const jeg = minNetto(), de = deresNetto(), mistet = skadeMottatt();
+  const skutt = `${mistet ? ` Motspilleren skjøt bort ${mistet} av poengene dine.` : ""}${mitt.skade ? ` Du skjøt bort ${mitt.skade}.` : ""}`;
+  if (motspiller.ferdig) {
+    tittel.textContent = jeg > de ? "Du vant runden!" : jeg < de ? "Motspilleren vant" : "Uavgjort";
+    tekst.textContent = `Du fikk ${fmt(jeg)} poeng, motspilleren fikk ${fmt(de)}.${skutt}`;
+    if (!$("slutt").hidden) giMynter();
   } else {
     tittel.textContent = spill.sluttTittel;
-    tekst.textContent = `Du fikk ${fmt(spill.total)} poeng. Motspilleren er ${motspiller.runde === spill.runde ? `på svar ${motspiller.svar} av ${SVAR_PER_RUNDE}` : "i en annen runde"}.`;
+    tekst.textContent = `Du har ${fmt(jeg)} poeng. Motspilleren er på svar ${motspiller.svar} av ${SVAR_PER_RUNDE} og kan fortsatt skyte.${skutt}`;
   }
+  if (!$("slutt").hidden) { spill.tapVist = mistet; visTotal(); }
 }
 
-$("neste").addEventListener("click", () => { spill.runde++; startRunde(); });
+// Mot en venn venter myntene til begge er ferdige, fordi skudd på slutten kan ta poeng.
+function giMynter() {
+  if (spill.mynterGitt) return;
+  spill.mynterGitt = true;
+  const poeng = minNetto();
+  settKasse(tjen(kasse, poeng));
+  $("tjent").textContent = `+${mynter(mynterFor(poeng))}. Du har ${mynter(kasse.mynter)}.`;
+}
+$("neste").addEventListener("click", () => { if (rom) { settKlar(); return; } spill.runde++; startRunde(); });
+
+/* ---------------- Synkron start ---------------- */
+const nesteRunde = () => (startet ? spill.runde + 1 : spill.runde);
+const jegNå = () => ({ klar, fro: frøMitt, neste: nesteRunde(), startet, runde: spill.runde });
+function settKlar() {
+  if (!motspiller.id || motspiller.gammel || klar) return;
+  giMynter();
+  lasOpp();
+  klar = true;
+  sendStatus(); visKlar(); provStart();
+}
+function visKlar() {
+  const på = !!rom && !!motspiller.id && !motspiller.gammel;
+  for (const [id, tekst] of [["start-na", "Klar"], ["neste", rom ? "Klar for neste" : "Neste kategori"]]) {
+    $(id).disabled = !!rom && (!på || klar);
+    $(id).textContent = klar ? "Venter på motspiller …" : tekst;
+  }
+  if (!rom) return;
+  $("rom-status").textContent = motspiller.gammel ? "Motspilleren har en gammel versjon. Be dem laste siden på nytt."
+    : !motspiller.id ? "Koblet til. Venter på motspiller …"
+    : motspiller.startet && !motspiller.ferdig ? "Motspilleren er midt i en runde. Trykk Klar, så venter du på neste."
+    : motspiller.klar ? (klar ? "Begge er klare!" : "Motspilleren er klar. Er du?")
+    : klar ? "Du er klar. Venter på at motspilleren trykker Klar."
+    : "Motspilleren er med! Trykk Klar når du er klar.";
+}
+function provStart() {
+  if (nedtelling || !rom || !kanStarte(jegNå(), motspiller)) return;
+  const runde = nesteRunde(), slutt = Date.now() + 3000;
+  for (const id of ["venter", "slutt", "butikk", "start"]) vis(id, false);
+  vis("telling", true);
+  const vent = () => {
+    const igjen = Math.ceil((slutt - Date.now()) / 1000);
+    $("telling-tall").textContent = String(Math.max(1, igjen));
+    if (igjen > 0) return;
+    stoppNedtelling();
+    spill.runde = runde;
+    startRunde();
+  };
+  nedtelling = setInterval(vent, 50);
+  vent();
+}
+function stoppNedtelling() { clearInterval(nedtelling); nedtelling = null; vis("telling", false); }
 
 /* ---------------- Rom for to ---------------- */
 const konto = { url: scene.dataset.url, nokkel: scene.dataset.nokkel };
 if (!konto.url) { $("lag-rom").hidden = true; $("bli-med").hidden = true; }
 
 function sendStatus() {
-  rom?.sendMelding("status", { id: meg, fro: frøMitt, startet, runde: spill.runde, total: spill.total, svar: spill.svar.length, ferdig: spill.ferdig });
+  rom?.sendMelding("status", { v: VERSJON, id: meg, fro: frøMitt, startet, runde: spill.runde, klar, neste: nesteRunde(), brutto: spill.total, total: minNetto(), svar: spill.svar.length, ferdig: startet && spill.ferdig, skade: mitt.skade, treff: mitt.treff, seil: kasse.valgt.seil, kule: kasse.valgt.kule });
+}
+
+// Nye treff fra motspilleren blir til skudd mot skipet ditt.
+function visSkader() {
+  if (!sammeRunde()) return;
+  const nye = motspiller.treff - treffSett, tap = Math.max(0, motspiller.skade - skadeSett);
+  treffSett = Math.max(treffSett, motspiller.treff);
+  skadeSett = Math.max(skadeSett, motspiller.skade);
+  if (nye > 0 && $("slutt").hidden) for (let i = 0; i < nye; i++) setTimeout(() => { if (rom && startet) fiendeskudd(i === 0 ? tap : 0); }, i * 250);
 }
 
 function visMotspiller() {
   const el = $("motstander");
-  if (!motspiller.id) { el.hidden = true; return; }
+  if (!rom || !motspiller.id) { el.hidden = true; return; }
   el.hidden = false;
-  el.textContent = motspiller.runde === spill.runde
-    ? `Motspiller: ${fmt(motspiller.total)} poeng · ${motspiller.svar}/${SVAR_PER_RUNDE} svar`
-    : `Motspiller er i runde ${motspiller.runde + 1}`;
+  el.textContent = Date.now() - kontakt > 10000 ? "Får ikke kontakt med motspilleren"
+    : sammeRunde() ? `Motspiller: ${fmt(deresNetto())} poeng · ${motspiller.svar}/${SVAR_PER_RUNDE} svar`
+    : motspiller.klar ? "Motspilleren er klar" : "Motspilleren er med";
+}
+
+function settDuell(på) {
+  if (duell === på) return;
+  duell = på;
+  bak = lagBakgrunn();
 }
 
 function gåInnIRom(kode) {
+  stoppNedtelling();
   spill.kode = kode;
-  motspiller.id = null;
-  startet = false;
-  frøMitt = Math.random().toString(36).slice(2, 10);
-  settRekkefølge(frøMitt, 0);
-  $("start-na").disabled = true;
-  $("rom-status").textContent = "Kobler til …";
-  visMotspiller();
+  Object.assign(motspiller, TOM);
+  startet = false; klar = false; spill.ferdig = true; spill.mynterGitt = true;
+  skader.mine = 0; skader.deres = 0;
+  settRekkefølge(Math.random().toString(36).slice(2, 10), 0);
   history.replaceState(null, "", "#rom=" + kode);
   $("rom-kode").textContent = kode;
   $("kopiert").textContent = "";
   vis("start", false); vis("venter", true);
   rom?.lukk();
+  settDuell(true);
   rom = kobleTilRom({
     ...konto, kode,
     vedStatus: (s) => {
-      if (s === "tilkoblet") { rom.sendMelding("hei", { id: meg, fro: frøMitt, startet, runde: spill.runde }); sendStatus(); if (!motspiller.id) $("rom-status").textContent = "Koblet til. Venter på motspiller …"; }
+      if (s === "tilkoblet") { rom.sendMelding("hei", { id: meg }); sendStatus(); visKlar(); }
       if (s === "frakoblet") $("rom-status").textContent = "Mistet forbindelsen. Prøver igjen …";
     },
-    vedMelding: (hendelse, m) => {
-      if (!m || m.id === meg) return;
-      if (hendelse === "forlot") {
-        motspiller.id = null;
-        $("motstander").hidden = false;
-        $("motstander").textContent = "Motspilleren forlot spillet";
-        $("rom-status").textContent = "Motspilleren forlot rommet. Venter på en ny …";
-        $("start-na").disabled = true;
-        if (spill.ferdig) oppdaterSlutt();
-        return;
-      }
-      if (hendelse === "hei") sendStatus();
-      if (hendelse === "hei" || hendelse === "status") {
-        if (!motspiller.id) $("rom-status").textContent = "Motspilleren er med! Trykk Start når dere er klare.";
-        motspiller.id = m.id;
-        avtalRekkefølge(m);
-        $("start-na").disabled = false;
-        if (hendelse === "status") Object.assign(motspiller, { runde: m.runde | 0, total: +m.total || 0, svar: m.svar | 0, ferdig: !!m.ferdig });
-        visMotspiller();
-        if (spill.ferdig) oppdaterSlutt();
-      }
-    },
+    vedMelding,
   });
+  visKlar();
+  $("rom-status").textContent = "Kobler til …";
+  visMotspiller();
+  clearInterval(puls);
+  puls = setInterval(() => { sendStatus(); visMotspiller(); }, 2000);
+}
+
+function vedMelding(hendelse, m) {
+  if (!m || m.id === meg || !rom) return;
+  if (hendelse === "fullt") {
+    if (m.til === meg) { tilMeny(); $("kode-feil").textContent = "Rommet er fullt. Lag et nytt rom."; }
+    return;
+  }
+  if (hendelse === "forlot") {
+    if (m.id !== motspiller.id) return;
+    const varSamme = sammeRunde();
+    Object.assign(motspiller, TOM);
+    klar = klar && !!nedtelling;
+    visMotspiller();
+    $("motstander").hidden = false;
+    $("motstander").textContent = "Motspilleren forlot spillet";
+    visKlar();
+    $("rom-status").textContent = "Motspilleren forlot rommet. Venter på en ny …";
+    if (varSamme && spill.ferdig) oppdaterSlutt();
+    return;
+  }
+  // Rommet har plass til to. En tredje slipper ikke inn så lenge motspilleren er i kontakt.
+  if (motspiller.id && m.id !== motspiller.id && Date.now() - kontakt < 10000) {
+    if (hendelse === "hei") rom.sendMelding("fullt", { til: m.id });
+    return;
+  }
+  if (hendelse === "hei") { sendStatus(); return; }
+  if (hendelse !== "status") return;
+  const s = tolkStatus(m);
+  if (!s) return;
+  if (s.id !== motspiller.id) { treffSett = 0; skadeSett = sammeRunde() ? skadeSett : 0; }
+  Object.assign(motspiller, s);
+  kontakt = Date.now();
+  if (!startet && !nedtelling) {
+    const a = avtal(jegNå(), motspiller);
+    const endret = a.fro !== frøMitt;
+    settRekkefølge(a.fro, a.runde);
+    if (endret) sendStatus();
+  }
+  visSkader();
+  visKlar();
+  visMotspiller();
+  if (spill.ferdig && startet) oppdaterSlutt();
+  provStart();
 }
 
 function settRekkefølge(frø, runde) {
@@ -640,14 +793,6 @@ function settRekkefølge(frø, runde) {
   spill.rekkefolge = rekkefolge(KATEGORIER.length, frø);
   spill.runde = runde;
 }
-// Samme kategorier på begge PC-ene, men nye hver gang: er den andre i gang, følger du den.
-// Ellers brukes det laveste av de to tilfeldige frøene, som begge kjenner.
-function avtalRekkefølge(m) {
-  if (startet || typeof m.fro !== "string" || !/^[a-z0-9]{1,12}$/.test(m.fro)) return;
-  if (m.startet) settRekkefølge(m.fro, Math.max(0, m.runde | 0));
-  else if (m.fro < frøMitt) settRekkefølge(m.fro, 0);
-}
-
 // Alene trekkes kategoriene uten gjentak til alle 100 er brukt.
 let sett = [];
 $("alene").addEventListener("click", () => {
@@ -665,7 +810,8 @@ $("bli-med").addEventListener("submit", (e) => {
   $("kode-feil").textContent = "";
   gåInnIRom(kode);
 });
-$("start-na").addEventListener("click", () => startRunde());
+$("start-na").addEventListener("click", settKlar);
+addEventListener("pagehide", () => rom?.sendMelding("forlot", { id: meg }));
 
 /* ---------------- Hovedmeny, penger og butikk ---------------- */
 const LAGER = "rr-ordjakt-kasse";
@@ -724,12 +870,16 @@ $("bruk-kikkert").addEventListener("click", () => {
 });
 
 function tilMeny() {
+  if (!$("slutt").hidden) giMynter();
   clearInterval(spill.klokke);
   startet = false; spill.ferdig = true; spill.sluttTidligst = 0;
   tall.length = 0; kuler.length = 0;
   borg = nyBorg();
+  stoppNedtelling(); clearInterval(puls);
   rom?.sendMelding("forlot", { id: meg });
-  rom?.lukk(); rom = null; motspiller.id = null;
+  rom?.lukk(); rom = null; Object.assign(motspiller, TOM); klar = false;
+  taptall.length = 0; skader.mine = 0; skader.deres = 0;
+  settDuell(false); visKlar();
   history.replaceState(null, "", location.pathname + location.search);
   for (const id of ["skjema", "venter", "slutt", "butikk", "boost", "hjelp", "avslutt"]) vis(id, false);
   $("melding").textContent = ""; $("logg").replaceChildren();
