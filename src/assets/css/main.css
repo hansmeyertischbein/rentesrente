@@ -1410,7 +1410,7 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 
 .oj-panel {
   position: absolute; z-index: 4; left: 50%; top: 30%; transform: translateX(-50%); width: min(30rem, calc(100% - 2rem));
-  padding: 1.1rem 1.25rem 1.25rem; background: rgb(17 40 58 / 0.97); border: 4px solid var(--oj-skygge);
+  padding: 1.1rem 1.25rem 1.25rem; background: rgb(17 40 58); border: 4px solid var(--oj-skygge);
   box-shadow: inset 0 0 0 3px #2f6a8e, 6px 6px 0 rgb(0 0 0 / 0.35); text-align: center; display: grid; gap: 0.75rem;
 }
 .oj-panel p { margin: 0; }
@@ -1437,6 +1437,8 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .oj-varer span { font-size: 0.875rem; }
 .oj-varer .oj-knapp { font-size: 0.8125rem; padding: 0.4rem 0.6rem; }
 .oj-motstander { white-space: pre-line; text-align: center; line-height: 1.25; }
+.oj-bunnknapper { position: sticky; bottom: -0.8rem; display: flex; flex-wrap: wrap; gap: 0.5rem; padding-block: 0.6rem 0.8rem; margin-bottom: -0.8rem; background: rgb(17 40 58); }
+.oj-bunnknapper .oj-knapp { flex: 1 1 8rem; padding-inline: 0.6rem; }
 .oj-sammenlagt { font-weight: 800; color: var(--oj-gull); }
 .oj-sammenlagt:empty { display: none; }
 .oj-svarene { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; text-align: left; }
