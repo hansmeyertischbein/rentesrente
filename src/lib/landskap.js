@@ -152,7 +152,7 @@ export function figurer(aksjer) {
 
 const LYS = {
   dag: { sol: [1.08, 1.02, 0.9], skygge: [0.58, 0.66, 0.8], dis: [196, 218, 232], disMaks: 0.5, himmel: [[58, 128, 214], [132, 190, 236], [232, 238, 226]], vann: [44, 112, 176] },
-  natt: { sol: [0.44, 0.5, 0.7], skygge: [0.2, 0.25, 0.42], dis: [44, 54, 92], disMaks: 0.62, himmel: [[8, 13, 34], [24, 34, 74], [66, 66, 108]], vann: [16, 32, 72] },
+  natt: { sol: [0.54, 0.6, 0.8], skygge: [0.27, 0.32, 0.5], dis: [44, 54, 92], disMaks: 0.62, himmel: [[8, 13, 34], [24, 34, 74], [66, 66, 108]], vann: [16, 32, 72] },
 };
 function himmelfarge(L, h) {   // h er høyden over horisonten, fra 0 til 1
   const u = Math.max(0, Math.min(1, h)), [a, b, c] = L.himmel, k = u < 0.4 ? u / 0.4 : (u - 0.4) / 0.6, f = u < 0.4 ? c : b, t = u < 0.4 ? b : a;
