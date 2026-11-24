@@ -5,18 +5,24 @@ const stokk = (a, rng) => { for (let i = a.length - 1; i > 0; i--) { const j = M
 
 // ---------- Grisetoget: grisen drar vogner og plukker mynter ----------
 
-export const TOG = Object.freeze({ n: 15, mal: Object.freeze([6, 10, 15, 20, 26]), ms: Object.freeze([190, 170, 150, 132, 116]) });
+export const TOG = Object.freeze({ n: 15, mal: Object.freeze([12, 18, 25, 33, 42]), ms: Object.freeze([150, 136, 123, 111, 101]), steiner: Object.freeze([0, 5, 9, 12, 15]) });
 const RETNING = Object.freeze({ opp: [0, -1], ned: [0, 1], venstre: [-1, 0], hoyre: [1, 0] });
 const MOTSATT = Object.freeze({ opp: "ned", ned: "opp", venstre: "hoyre", hoyre: "venstre" });
 
-function nyMynt(tog, rng) {
+const paa = (liste, x, y) => liste.some(([a, b]) => a === x && b === y);
+function nyMynt(tog, steiner, rng) {
   const ledig = [];
-  for (let x = 0; x < TOG.n; x++) for (let y = 0; y < TOG.n; y++) if (!tog.some(([a, b]) => a === x && b === y)) ledig.push([x, y]);
+  for (let x = 0; x < TOG.n; x++) for (let y = 0; y < TOG.n; y++) if (!paa(tog, x, y) && !paa(steiner, x, y)) ledig.push([x, y]);
   return ledig.length ? ledig[Math.floor(rng() * ledig.length)] : null;
 }
-export function lagTog(rng = Math.random) {
-  const m = Math.floor(TOG.n / 2), tog = [[m, m], [m - 1, m], [m - 2, m]];
-  return { tog, retning: "hoyre", ko: [], mynt: nyMynt(tog, rng), tatt: 0, krasj: false };
+/** Steinene ligger spredt, aldri to inntil hverandre og aldri i raden toget starter i, så ingenting sperres. */
+export function lagTog(niva = 1, rng = Math.random) {
+  const m = Math.floor(TOG.n / 2), tog = [[m, m], [m - 1, m], [m - 2, m]], steiner = [];
+  for (let n = 0; n < 2000 && steiner.length < TOG.steiner[niva - 1]; n++) {
+    const x = 1 + Math.floor(rng() * (TOG.n - 2)), y = 1 + Math.floor(rng() * (TOG.n - 2));
+    if (Math.abs(y - m) > 1 && steiner.every(([a, b]) => Math.max(Math.abs(a - x), Math.abs(b - y)) > 1)) steiner.push([x, y]);
+  }
+  return { tog, steiner, retning: "hoyre", ko: [], mynt: nyMynt(tog, steiner, rng), tatt: 0, krasj: false };
 }
 /** Svinger toget. Rett bakover går ikke, og høyst tre svinger huskes. */
 export function svingTog(s, retning) {
@@ -29,14 +35,14 @@ export function kjorTog(s, rng = Math.random) {
   const x = hx + dx, y = hy + dy, spiser = s.mynt && x === s.mynt[0] && y === s.mynt[1];
   const kropp = spiser ? s.tog : s.tog.slice(0, -1);
   const ny = { ...s, retning, ko: s.ko.slice(1) };
-  if (x < 0 || y < 0 || x >= TOG.n || y >= TOG.n || kropp.some(([a, b]) => a === x && b === y)) return { ...ny, krasj: true };
+  if (x < 0 || y < 0 || x >= TOG.n || y >= TOG.n || paa(kropp, x, y) || paa(s.steiner ?? [], x, y)) return { ...ny, krasj: true };
   const tog = [[x, y], ...kropp];
-  return { ...ny, tog, tatt: s.tatt + (spiser ? 1 : 0), mynt: spiser ? nyMynt(tog, rng) : s.mynt };
+  return { ...ny, tog, tatt: s.tatt + (spiser ? 1 : 0), mynt: spiser ? nyMynt(tog, s.steiner ?? [], rng) : s.mynt };
 }
 
 // ---------- Vekslebanken: to like penger veksles til den neste ----------
 
-export const VEKSLE = Object.freeze({ n: 4, stige: Object.freeze([1, 5, 10, 20, 50, 100, 200, 500, 1000, 2000]), mal: Object.freeze([4, 5, 6, 7, 8]) });
+export const VEKSLE = Object.freeze({ n: 4, stige: Object.freeze([1, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000]), mal: Object.freeze([7, 8, 9, 9, 10]), trekk: Object.freeze([165, 310, 620, 570, 1130]) });
 
 export function lagVeksle(rng = Math.random) {
   return nyPenge(nyPenge({ brett: Array(16).fill(null), poeng: 0, sammen: [], ny: -1 }, rng), rng);
@@ -71,7 +77,8 @@ export const storstePenge = (s) => Math.max(...s.brett.map((v) => v ?? -1));
 
 // ---------- Krakkfeltet: finn de trygge aksjene uten å treffe et krakk ----------
 
-export const KRAKK = Object.freeze([[6, 5], [7, 8], [8, 12], [9, 16], [9, 20]]);   // størrelse og antall krakk
+export const KRAKK = Object.freeze([[8, 11], [9, 16], [10, 22], [10, 25], [11, 33]]);   // størrelse og antall krakk
+export const KRAKKTID = Object.freeze([150, 190, 250, 270, 320]);                       // sekunder
 
 const nabo = (n, i) => {
   const x = i % n, y = Math.floor(i / n), ut = [];
@@ -103,7 +110,8 @@ export const feltKlart = (f) => f.tapt < 0 && f.krakk.every((k, i) => k || f.vis
 
 // ---------- Regnskapet: hvert tall én gang i hver rad, kolonne og boks ----------
 
-export const REGNSKAP = Object.freeze([[6, 10], [6, 16], [6, 21], [9, 36], [9, 46]]);   // størrelse og tomme ruter
+export const REGNSKAP = Object.freeze([[6, 22], [9, 44], [9, 49], [9, 52], [9, 54]]);   // størrelse og tomme ruter
+export const REGNSKAPSREGEL = Object.freeze([[3, 240], [3, 900], [2, 900], [2, 840], [1, 840]]);   // feil og sekunder
 const BOKS = Object.freeze({ 6: [3, 2], 9: [3, 3] });
 
 const lagVenner = (n) => {

@@ -57,12 +57,16 @@ export const REGLER = Object.freeze({
   visFra: 0.5,             // et selskap vises når du har tjent halve grunnprisen
 });
 
+// Minispillene åpnes ett for ett: hvert av dem når du har kjøpt i et bestemt selskap for første gang.
+// Premien er nesten ingenting til å begynne med, og vokser både med nivået og med hvor sent spillet åpnes.
 export const MINISPILL = Object.freeze({
-  spill: Object.freeze(["limonadeboden", "meglerhuset", "grisevakta", "grisetoget", "vekslebanken", "krakkfeltet", "regnskapet"]),
+  spill: Object.freeze(["limonadeboden", "grisetoget", "grisevakta", "vekslebanken", "krakkfeltet", "meglerhuset", "regnskapet"]),
+  apnes: Object.freeze({ limonadeboden: "onkel", grisetoget: "geitan", grisevakta: "lilledalen", vekslebanken: "lokke", krakkfeltet: "blitzoe", meglerhuset: "mittelfart", regnskapet: "valmart" }),
   nivaer: 5,
-  sek: Object.freeze([40, 80, 160, 320, 640]),             // premien i sekunder utbytte
-  minst: Object.freeze([1000, 3000, 8000, 20000, 60000]),  // øre, så det lønner seg også helt i starten
-  igjen: 0.2,
+  sek: Object.freeze([2, 5, 12, 28, 60]),          // premien i sekunder utbytte i det første spillet
+  trinn: 0.5,                                      // så mye mer for hvert spill som åpnes senere
+  minst: Object.freeze([50, 120, 300, 700, 1500]), // øre
+  igjen: 0.1,
 });
 
 // Fra lavest til høyest vekst. Navnene er oppdiktet. rate er øre i sekundet per aksje, pris er øre for den første.
@@ -179,7 +183,7 @@ export function nyTilstand() {
     lodd: [],       // lottorekker som venter på trekning: { runde, antall, fro }
     minispill: {},  // høyeste klarte nivå i hvert minispill
     bod: nyBod(),   // drikkepenger og oppgraderinger i Limonadeboden, blir med gjennom prestisje
-    bodNiva: 0,     // hvert nivå i Limonadeboden dobler utbyttet fra bodene for godt
+    bodNiva: 0,     // hvert nivå i Limonadeboden gir mer utbytte fra bodene for godt
     prestasjoner: [], // id-ene til prestasjonene du har, blir med gjennom prestisje
     alleTrykk: 0,   // trykk i alle spill, blir med gjennom prestisje
     uro: stille(),  // lagres ikke
@@ -195,7 +199,7 @@ export function prestisjeFaktor(t) {
 }
 /** Det limonadebodene ganges med etter nivåene du har klart i Limonadeboden. */
 export function bodFaktor(t) {
-  return Math.pow(BOD.bodFaktor, t.bodNiva ?? 0);
+  return BOD.bodFaktor[Math.min(BOD.bodFaktor.length - 1, t.bodNiva ?? 0)];
 }
 
 /** 2 mens den lilla lappen varer, ellers 1. */
@@ -495,10 +499,15 @@ export function fangSeddel(t, farge, rng = Math.random) {
 
 // ---------- Minispill ----------
 
-/** Premien for et nivå i et minispill: så mange sekunder utbytte, men aldri mindre enn et fast beløp. En femdel når nivået er klart fra før. */
+/** Er spillet låst opp? Det du alt har klart et nivå i, forblir åpent. */
+export function spillApent(t, spill) {
+  return MINISPILL.spill.includes(spill) && ((t.forstekjop ?? []).includes(MINISPILL.apnes[spill]) || (t.minispill?.[spill] ?? 0) > 0);
+}
+
+/** Premien for et nivå: så mange sekunder utbytte, men aldri mindre enn et lite beløp. En tidel når nivået er klart fra før. */
 export function minispillPremie(t, spill, niva) {
-  const ps = perSekund({ ...t, lapp: { dobbel: 0, halv: null } });
-  const full = Math.max(MINISPILL.minst[niva - 1] ?? 0, pentBelop(ps * (MINISPILL.sek[niva - 1] ?? 0)));
+  const ps = perSekund({ ...t, lapp: { dobbel: 0, halv: null } }), trinn = 1 + MINISPILL.trinn * Math.max(0, MINISPILL.spill.indexOf(spill));
+  const full = Math.max(MINISPILL.minst[niva - 1] ?? 0, pentBelop(ps * trinn * (MINISPILL.sek[niva - 1] ?? 0)));
   return niva > (t.minispill?.[spill] ?? 0) ? full : Math.floor(full * MINISPILL.igjen);
 }
 
@@ -509,7 +518,7 @@ export function apentNiva(t, spill) {
 
 /** Et nivå er klart. Premien kommer med en gang. */
 export function klarteNiva(t, spill, niva) {
-  if (!MINISPILL.spill.includes(spill) || !Number.isInteger(niva) || niva < 1 || niva > apentNiva(t, spill)) return t;
+  if (!spillApent(t, spill) || !Number.isInteger(niva) || niva < 1 || niva > apentNiva(t, spill)) return t;
   const premie = minispillPremie(t, spill, niva);
   return { ...t, saldo: t.saldo + premie, totalt: t.totalt + premie, minispill: { ...t.minispill, [spill]: Math.max(t.minispill?.[spill] ?? 0, niva) }, bodNiva: spill === "limonadeboden" ? Math.max(t.bodNiva ?? 0, niva) : t.bodNiva ?? 0 };
 }

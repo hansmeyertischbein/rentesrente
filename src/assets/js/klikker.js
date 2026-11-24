@@ -6,7 +6,7 @@ import {
   tilLagring, fraLagring, radgiverTreff, prisRadgiver, kjopRadgiver, radgiverSynlig, radgiverPek, formaterTid,
   prestasjonerSteg, giring, giret,
 } from "/lib/klikker.js";
-import { etasje } from "/lib/byutsikt.js";
+import { etasje } from "/lib/landskap.js";
 import { formaterTall } from "/lib/format.js";
 import { FIGURER, lagGris } from "./klikker-figurer.js";
 import {
@@ -326,7 +326,7 @@ function kjop(id) {
     spill("gf");
     si(`Generalforsamling i ${a.navn}: du stemte for høyere utbytte. Nå ${ganger(Math.pow(REGLER.gfFaktor, gf))} utbytte.`);
   }
-  else si(`${a.navn}: ${formaterTall(n)} ${flertall(a, n)}, ${perSek(aksjeRate(t, id))}.${opp ? ` Du flyttet opp til ${etasje(t) + 1}. etasje.` : ""}`);
+  else si(`${a.navn}: ${formaterTall(n)} ${flertall(a, n)}, ${perSek(aksjeRate(t, id))}.${opp ? ` Du ser lenger utover.${minispill.apnetAv(id) ? ` Nytt minispill: ${minispill.apnetAv(id)}.` : ""}` : ""}`);
   tegn();
   lagre();
 }

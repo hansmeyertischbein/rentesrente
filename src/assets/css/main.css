@@ -628,40 +628,60 @@ body.side-forside { overflow-x: clip; }
 }
 html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 
-.klikk {
-  position: relative; display: grid; gap: 1.75rem; margin-inline: calc(-1 * var(--gutter)); padding: 1.25rem var(--gutter) 1.5rem;
-  background-color: var(--g-bak); background-image: radial-gradient(circle at 1px 1px, var(--g-prikk) 1.5px, transparent 0); background-size: 16px 16px;
-}
-@media (min-width: 40rem) { .klikk { margin-inline: 0; padding: 1.5rem; border-radius: 1.5rem; } }
+/* Rommet er av treverk: veggen er planker, og ting står på hyller. */
+.side-klikk { --tre: url("/assets/tre-lys.svg"); --tre-vegg: #a06c3e; --brett-1: #d29a5f; --brett-2: #a36a37; --brett-3: #6d4220; --nisje: #5b3920; --nisje-2: #472b17; background: var(--tre-vegg) var(--tre) 0 0 / 640px 480px; }
+@media (prefers-color-scheme: dark) { .side-klikk { --tre: url("/assets/tre-mork.svg"); --tre-vegg: #45301f; --brett-1: #80552f; --brett-2: #5e3b1f; --brett-3: #2f1c0e; --nisje: #2a1a0e; --nisje-2: #1f130a; } }
+.side-klikk .topp, .side-klikk .bunn { background: var(--paper); }
+.side-klikk .bunn { margin-top: 2.5rem; }
+.klikk { position: relative; display: grid; gap: 1.75rem; margin-inline: calc(-1 * var(--gutter)); padding: 0.75rem var(--gutter) 1.5rem; }
+@media (min-width: 40rem) { .klikk { margin-inline: 0; padding: 1rem 0 1.5rem; } }
 
-/* Scenen: saldo øverst, boostere til venstre, grisen i midten, uro-streken til høyre. */
-.klikk-scene {
-  position: relative; display: grid; grid-template-columns: 3.5rem minmax(0, 1fr) 3.5rem;
-  grid-template-areas: "prof prof prof" "konto konto konto" "boost gris uro" "oppg oppg oppg" "meld meld meld"; gap: 1rem 0.5rem; align-items: start;
+/* Scenen: profilen øverst, vinduet i midten, boosterne på en hylle og uro-streken ved siden av. */
+.klikk-scene { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr) 3.5rem; grid-template-areas: "prof prof" "vindu vindu" "boost uro" "meld meld"; gap: 1rem 0.75rem; align-items: start; }
+.klikk-scene > * { position: relative; }
+/* Vinduet: ramme av tre med runde hjørner, og en vinduskarm nederst. */
+.vindu {
+  grid-area: vindu; position: relative; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.85rem; justify-items: center; min-height: 33rem; padding: 1.5rem 1rem 1.5rem; margin-bottom: 0.9rem;
+  border: 0.8rem solid transparent; border-radius: 1.9rem; align-content: start;
 }
-.klikk-scene { z-index: 1; }
-.klikk-scene > * { position: relative; z-index: 1; }
-/* Utsikten: byen rundt deg i 360 grader, bak hele spillet. Ruta blir stående mens du ruller. */
-.utsikt { position: absolute; inset: 0; z-index: 0; overflow: clip; border-radius: inherit; pointer-events: none; }
-.utsikt-rute { position: sticky; top: 0; height: 100svh; overflow: clip; }
-.utsikt-lag { position: absolute; top: 0; left: 0; display: flex; width: max-content; will-change: transform; }
-.utsikt-lag canvas { display: block; flex: none; image-rendering: pixelated; }
+.vindu::before {   /* rammen */
+  content: ""; position: absolute; inset: -0.8rem; z-index: -2; border-radius: inherit;
+  background: linear-gradient(160deg, var(--brett-1), var(--brett-2) 45%, var(--brett-3)); box-shadow: 0 0 0 2px #2b1809, 0 10px 22px rgb(20 10 2 / 0.5), inset 0 2px 1px rgb(255 235 200 / 0.45);
+}
+.vindu::after {   /* karmen */
+  content: ""; position: absolute; left: -1.6rem; right: -1.6rem; bottom: -1.7rem; height: 1.15rem; border-radius: 0.5rem; border: 2px solid #2b1809;
+  background: linear-gradient(var(--brett-1) 0 35%, var(--brett-2) 35% 80%, var(--brett-3)); box-shadow: 0 8px 12px rgb(20 10 2 / 0.4);
+}
+.utsikt { position: absolute; inset: 0; z-index: -1; overflow: hidden; border-radius: 1.15rem; background: linear-gradient(#6fb1ea, #e3eee6 46%, #7ea654 47%); pointer-events: none; transform: translateZ(0); }
+@media (prefers-color-scheme: dark) { .utsikt { background: linear-gradient(#0a1128, #3c3f68 46%, #1d3321 47%); } }
+.utsikt::after { content: ""; position: absolute; inset: 0; z-index: 4; border-radius: inherit; box-shadow: inset 0 0 0 2px #2b1809, inset 0 7px 16px rgb(20 10 2 / 0.5), inset 0 -3px 10px rgb(20 10 2 / 0.25); background: linear-gradient(112deg, rgb(255 255 255 / 0.13) 0 14%, transparent 14.2% 19%, rgb(255 255 255 / 0.07) 19.2% 25%, transparent 25.2%); }
+.utsikt-rute { position: absolute; inset: 0; overflow: hidden; }
+.utsikt-lag { position: absolute; inset: 0; }
+.utsikt-strimmel { position: absolute; top: 0; left: 0; display: flex; width: max-content; will-change: transform; }
+.utsikt-strimmel canvas { display: block; flex: none; image-rendering: pixelated; }
 .utsikt-korn { position: absolute; inset: -20%; z-index: 2; opacity: 0.04; mix-blend-mode: overlay; background-size: 288px; image-rendering: pixelated; }
 @media (prefers-reduced-motion: no-preference) {
   .utsikt-korn { animation: utsikt-korn 4s step-end infinite; }
   @keyframes utsikt-korn { 25% { transform: translate(-5%, 4%); } 50% { transform: translate(4%, -6%); } 75% { transform: translate(-3%, -2%); } }
 }
 .klikk > .butikk { position: relative; z-index: 1; }
-/* Tekst som står rett på utsikten, får papir bak seg. */
-.gris-konto, .fart, .boostere .panel-tittel, .butikk-hode, .klikk-husk, .spill-omstart, .meldinger .status:not(:empty) {
-  background: color-mix(in srgb, var(--g-kort) 88%, transparent); border-radius: 1rem;
+/* Tekst som står rett på utsikten eller veggen, får papir bak seg. */
+.gris-konto, .fart, .boostere .panel-tittel, .butikk-hode, .klikk-husk, .spill-omstart, .vindu .status:not(:empty) {
+  background: color-mix(in srgb, var(--g-kort) 92%, transparent); border-radius: 1rem;
 }
-.gris-konto { justify-self: center; padding: 0.5rem 1.25rem 0.6rem; border: 2px solid var(--g-blekk); }
+.gris-konto { padding: 0.5rem 1.25rem 0.6rem; border: 2px solid var(--g-blekk); max-width: 100%; }
 .fart { padding: 0.25rem 0.8rem 0.4rem; }
 .boostere .panel-tittel { padding: 0.05rem 0.45rem; border-radius: 999px; }
 .butikk-hode, .klikk-husk, .spill-omstart { padding: 0.5rem 0.85rem; }
-.meldinger .status:not(:empty) { padding: 0.2rem 0.8rem; }
-.gris-konto { grid-area: konto; text-align: center; }
+.vindu .status:not(:empty) { padding: 0.2rem 0.8rem; }
+/* En hylle: brettet under det som står på den. */
+.profil, .ikonliste { border-bottom: 0.7rem solid transparent; }
+.profil::after, .ikonliste::after, .rad-knapp::after {
+  content: ""; position: absolute; left: -0.35rem; right: -0.35rem; bottom: -0.75rem; z-index: 0; height: 0.75rem; border-radius: 0.2rem; border: 1.5px solid #2b1809;
+  background: linear-gradient(var(--brett-1) 0 30%, var(--brett-2) 30% 78%, var(--brett-3)); box-shadow: 0 6px 8px rgb(20 10 2 / 0.4);
+}
+.ikonliste { position: relative; }
+.gris-konto { text-align: center; }
 .konto-merke { font-size: var(--t-small); font-weight: 650; color: var(--g-dempet); }
 .konto-saldo { font-size: 2.25rem; font-weight: 750; font-stretch: var(--widest); line-height: 1.1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; }
 .konto-saldo.lang { font-size: 1.6rem; line-height: 1.4; }
@@ -675,9 +695,10 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .del-trykk::before { background: var(--fjord); }
 
 /* Ikoner: boostere og generalforsamling. Ingen tekst før du holder over eller trykker. */
-.boostere { grid-area: boost; display: grid; justify-items: center; gap: 0.5rem; }
+.boostere { grid-area: boost; display: flex; flex-wrap: wrap; align-items: end; gap: 0.5rem 1.1rem; }
+.boostere .panel-tittel { align-self: center; }
 .panel-tittel { font-size: 0.75rem; font-weight: 750; white-space: nowrap; color: var(--g-dempet); }
-.ikonliste { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.7rem; justify-items: center; }
+.ikonliste { list-style: none; margin: 0; padding: 0 0.3rem; display: flex; gap: 0.7rem; }
 .spillikon {
   position: relative; display: block; width: 3.25rem; height: 3.25rem; padding: 0; border: 0; border-radius: 0.9rem; background: none;
   cursor: pointer; -webkit-touch-callout: none; transition: transform 140ms var(--ease-out), opacity 200ms ease;
@@ -695,7 +716,7 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .booster.svart .ikon-merke { background: #2b2118; color: #fffaf0; }
 .booster.halv { opacity: 0.5; }
 .booster.klar .ikon-flis { box-shadow: 0 0 0 3px var(--g-bak), 0 0 0 5px var(--g-gronn); }
-.gf-liste { margin-top: 0.35rem; padding-top: 0.85rem; border-top: 2px dashed var(--g-kant); }
+.gf-liste[hidden] { display: none; }
 .gf-liste .spillikon { width: 2.6rem; height: 2.6rem; }
 .gf .ikon-merke { background: var(--g-lilla); border-color: var(--g-blekk); color: #fff; }
 @media (prefers-color-scheme: dark) { .gf .ikon-merke { color: #1d1530; } }
@@ -710,7 +731,7 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .tips .tips-status { color: var(--g-dempet); font-weight: 600; }
 
 /* Grisen */
-.gris-flate { grid-area: gris; position: relative; display: grid; justify-items: center; gap: 0.6rem; min-width: 0; }
+.gris-flate { position: relative; width: 100%; display: grid; justify-items: center; gap: 0.6rem; min-width: 0; }
 .gris {
   position: relative; display: grid; justify-items: center; width: min(100%, 12rem); padding: 0.25rem 0 0; border: 0; background: none;
   color: inherit; font: inherit; cursor: pointer; -webkit-touch-callout: none; touch-action: manipulation;
@@ -761,15 +782,15 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
   transition: transform 140ms var(--ease-out);
 }
 .oppgrader:active { transform: scale(0.97); }
-.oppgrader-rad { grid-area: oppg; display: flex; justify-content: center; }
+.oppgrader-rad { display: flex; justify-content: center; }
 .oppgrader-navn { text-align: left; line-height: 1.2; white-space: nowrap; }
 .oppgrader b { font-weight: 800; }
 
 /* Uro i markedet */
-.uro { grid-area: uro; display: grid; justify-items: center; gap: 0.45rem; padding: 0.15rem 0; border-radius: 0.8rem; cursor: help; }
+.uro { grid-area: uro; justify-self: center; display: grid; justify-items: center; gap: 0.45rem; padding: 0.15rem 0; border-radius: 0.8rem; cursor: help; }
 .uro-ikon { display: block; width: 2.5rem; height: 2.5rem; }
 .uro-ikon .fig { display: block; width: 100%; height: 100%; }
-.uro-strek { position: relative; display: block; width: 0.85rem; height: 8.5rem; overflow: hidden; border: 2px solid var(--g-blekk); border-radius: 999px; background: var(--g-kort); }
+.uro-strek { position: relative; display: block; width: 0.85rem; height: 4.2rem; overflow: hidden; border: 2px solid var(--g-blekk); border-radius: 999px; background: var(--g-kort); }
 .uro-strek i { position: absolute; inset: 0; transform: scaleY(0); transform-origin: bottom; background: linear-gradient(to top, #f29b38, #e8553d); transition: transform 300ms linear; }
 .uro.aktiv .uro-strek i { background: #e8553d; }
 
@@ -831,16 +852,19 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .butikk-antall { margin: 0; padding: 0; border: 0; min-width: 0; }
 .butikk-antall .segment { background: var(--g-kort); }
 .butikk-antall .segment span { padding: 0.4rem 0.9rem; min-height: 2.75rem; display: grid; place-content: center; }
-.butikk-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.65rem; }
+.butikk-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.1rem; }
 .rad-knapp {
-  display: grid; grid-template-columns: 3.75rem minmax(0, 1fr) auto; grid-template-areas: "figur navn kjop" "figur info info" "figur merker merker";
-  column-gap: 0.85rem; row-gap: 0.15rem; align-items: center; width: 100%; padding: 0.7rem 0.85rem 0.7rem 0.7rem; border: 2px solid var(--g-kant); border-radius: 1.1rem;
-  background: var(--g-kort); color: var(--ink); font: inherit; text-align: left; cursor: pointer; -webkit-touch-callout: none;
-  transition: transform 140ms var(--ease-out), border-color 160ms ease;
+  position: relative; display: grid; grid-template-columns: 4.25rem minmax(0, 1fr) auto; grid-template-areas: "figur navn kjop" "figur info info" "figur merker merker";
+  column-gap: 0.85rem; row-gap: 0.15rem; align-items: center; width: 100%; padding: 0.75rem 0.85rem 0.6rem 0.75rem; border: 2px solid #2b1809; border-bottom: 0; border-radius: 0.7rem 0.7rem 0 0;
+  background: linear-gradient(var(--nisje-2), var(--nisje) 60%); box-shadow: inset 0 8px 12px rgb(0 0 0 / 0.4), inset 6px 0 10px -4px rgb(0 0 0 / 0.35), inset -6px 0 10px -4px rgb(0 0 0 / 0.35); color: #fdf1de; font: inherit; text-align: left; cursor: pointer; -webkit-touch-callout: none;
+  transition: transform 140ms var(--ease-out), filter 160ms ease; margin-bottom: 0.75rem;
 }
-.rad-knapp[aria-disabled="false"] { border-color: var(--g-blekk); }
+.rad-knapp[aria-disabled="false"] { background: linear-gradient(color-mix(in srgb, var(--nisje) 82%, #e6a860), color-mix(in srgb, var(--nisje) 62%, #e6a860) 70%); }
 .rad-knapp:active { transform: scale(0.985); }
-.rad-figur { grid-area: figur; position: relative; display: block; width: 3.75rem; height: 3.75rem; align-self: start; }
+.rad-knapp .rad-sektor, .rad-knapp .rad-info, .rad-knapp .rad-mengde { color: #ecd9ba; }
+.rad-knapp .merke-kommer { border-color: rgb(255 235 205 / 0.45); color: #ecd9ba; }
+.rad-figur .ikon-flis { overflow: visible; border: 0; background: none; filter: drop-shadow(0 5px 3px rgb(0 0 0 / 0.45)); }
+.rad-figur { grid-area: figur; position: relative; display: block; width: 4.25rem; height: 4.25rem; align-self: end; margin-bottom: -0.35rem; }
 .rad-antall {
   position: absolute; right: -0.5rem; bottom: -0.45rem; min-width: 1.75rem; padding: 0 0.35rem; border: 2px solid var(--g-blekk); border-radius: 999px;
   background: #2b2118; color: #fffaf0; font-size: 0.875rem; font-weight: 800; line-height: 1.35; text-align: center; font-variant-numeric: tabular-nums;
@@ -862,7 +886,7 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .merke-fordel { background: var(--g-gronn-bak); color: var(--g-gronn); }
 .merke-kommer { border: 1.5px dashed var(--g-kant); color: var(--g-dempet); font-weight: 650; }
 @media (prefers-color-scheme: dark) { .merke-rad { background: #3a2d4d; color: #d9c2f5; } }
-.aksjerad.pekt .rad-knapp { box-shadow: 0 0 0 3px var(--g-bak), 0 0 0 5px var(--g-lilla); }
+.aksjerad.pekt .rad-knapp { box-shadow: 0 0 0 3px #fdf1de, 0 0 0 6px var(--g-lilla), inset 0 8px 12px rgb(0 0 0 / 0.4); }
 
 /* Investeringsrådgiveren */
 .radgiver {
@@ -905,8 +929,15 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
   .konto-saldo { font-size: 2.75rem; }
 }
 @media (min-width: 60rem) {
-  .klikk { grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); align-items: start; gap: 2rem; padding: 2rem; }
-  .klikk-scene { position: sticky; top: 1rem; grid-template-columns: 4.25rem minmax(0, 1fr) 3.5rem; row-gap: 1.25rem; }
+  .klikk { grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); align-items: start; gap: 2rem; padding: 1rem 0 2rem; }
+  .klikk-scene { position: sticky; top: 1rem; grid-template-columns: 5rem minmax(0, 1fr) 3.5rem; grid-template-areas: "prof prof prof" "boost vindu uro" "meld meld meld"; gap: 1.25rem 2rem; }
+  .vindu { min-height: 42rem; padding: 1rem 1.5rem 1.5rem; gap: 1.1rem; }
+  .boostere { display: grid; justify-items: center; gap: 0.6rem; align-self: start; }
+  .boostere .ikonliste { display: grid; gap: 1.35rem; padding: 0; border: 0; }
+  .boostere .ikonliste::after { display: none; }
+  .boostere .ikonliste > li { position: relative; padding-bottom: 0.55rem; }
+  .boostere .ikonliste > li::after { content: ""; position: absolute; left: -0.5rem; right: -0.5rem; bottom: -0.15rem; height: 0.7rem; border-radius: 0.2rem; border: 1.5px solid #2b1809; background: linear-gradient(var(--brett-1) 0 30%, var(--brett-2) 30% 78%, var(--brett-3)); box-shadow: 0 6px 8px rgb(20 10 2 / 0.4); }
+  .boostere .spillikon { z-index: 1; }
   .konto-saldo { font-size: 3rem; }
   .konto-saldo.lang { font-size: 2rem; }
   .gris { width: min(100%, 17rem); }
@@ -942,8 +973,9 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 /* På PC får spillet hele bredden, og scenen blir større. */
 @media (min-width: 75rem) {
   .side-klikk main { max-width: 110rem; }
-  .klikk { grid-template-columns: minmax(0, 1fr) minmax(0, 34rem); gap: 2.5rem; padding: 2.5rem; }
-  .klikk-scene { grid-template-columns: 5rem minmax(0, 1fr) 4rem; }
+  .klikk { grid-template-columns: minmax(0, 1fr) minmax(0, 34rem); gap: 2.5rem; padding: 1rem 0 2.5rem; }
+  .klikk-scene { grid-template-columns: 5.5rem minmax(0, 1fr) 4rem; }
+  .vindu { min-height: 46rem; justify-self: center; width: min(100%, 46rem); }
   .gris { width: min(100%, 21rem); }
   .konto-saldo { font-size: 3.5rem; }
   .spillikon { width: 4.25rem; height: 4.25rem; }
@@ -951,7 +983,9 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 }
 
 /* Profilen øverst: ikonet ditt, strategien og når neste lotto er. */
-.profil { grid-area: prof; display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-bottom: -0.5rem; }
+.profil { grid-area: prof; display: flex; flex-wrap: wrap; align-items: end; gap: 0.4rem; padding: 0 0.3rem; margin-bottom: 0.75rem; }
+.profil > :not(.lotto-merke) { z-index: 1; }
+@media (max-width: 39.99rem) { .profil { position: relative; margin-bottom: 2rem; } .profil .lotto-merke { position: absolute; z-index: 1; right: 0.6rem; top: calc(100% + 0.75rem); margin: 0; border-radius: 0 0 0.8rem 0.8rem; } }
 .profil .spillikon { width: 2.6rem; height: 2.6rem; flex: none; }
 .profil .ikon-merke { right: -0.4rem; bottom: -0.35rem; font-size: 0.625rem; }
 .profil-prikk { position: absolute; top: -0.2rem; right: -0.2rem; width: 0.8rem; height: 0.8rem; border: 2px solid var(--g-bak); border-radius: 50%; background: var(--g-gronn); }
@@ -1193,7 +1227,8 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .boble.lilla .boble-tid i { background: #8a4fc7; } .boble.gronn .boble-tid i { background: #2f8a46; }
 
 /* Minispill */
-.minispill-vindu { width: min(100% - 1rem, 44rem); max-height: min(100dvh - 1rem, 56rem); }
+.minispill-vindu { width: min(100% - 1rem, 46rem); max-height: min(100dvh - 1rem, 62rem); }
+.minispill-vindu:has(.mini-grisevakta) { width: min(100% - 1rem, 56rem); }
 .mini-topp { display: flex; align-items: center; gap: 0.6rem; padding-right: 2.75rem; }
 .mini-topp h2 { padding: 0; }
 .mini-tilbake { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border: 2px solid var(--g-blekk); border-radius: 50%; background: var(--g-bak); color: var(--ink); font: inherit; font-size: 1.25rem; font-weight: 800; cursor: pointer; }
@@ -1212,7 +1247,7 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .mini-linje { display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%; min-height: 2rem; font-size: 0.9375rem; font-variant-numeric: tabular-nums; } .mini-linje span { color: var(--g-dempet); }
 .mini-mal { width: 100%; height: 0.7rem; overflow: hidden; border: 2px solid var(--g-blekk); border-radius: 999px; background: var(--g-bak); } .mini-mal i { display: block; height: 100%; background: linear-gradient(90deg, #ffd84a, #62c48a); transform: scaleX(0); transform-origin: left; transition: transform 160ms linear; }
 .mini-lerret { display: block; width: min(100%, 420px, calc(100dvh - 15rem)); height: auto; border: 3px solid var(--g-blekk); border-radius: 1rem; touch-action: none; }
-.vakt-lerret { width: 100%; aspect-ratio: 3 / 2; touch-action: manipulation; }
+.vakt-lerret { width: 100%; aspect-ratio: 640 / 420; touch-action: manipulation; cursor: crosshair; }
 .mini-slutt { position: absolute; inset: 0; z-index: 3; display: grid; align-content: center; justify-items: center; gap: 0.5rem; padding: 1rem; border-radius: 1rem; background: color-mix(in srgb, var(--g-kort) 93%, transparent); text-align: center; }
 .mini-slutt strong { font-size: 1.6rem; font-weight: 800; font-stretch: var(--wide); } .mini-valg { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.6rem 1rem; margin-top: 0.4rem; }
 .veksle { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; width: min(100%, 24rem, calc(100dvh - 15rem)); aspect-ratio: 1; padding: 0.6rem; border: 3px solid var(--g-blekk); border-radius: 1.1rem; background: #c79b62; touch-action: none; outline-offset: 4px; }
@@ -1228,25 +1263,54 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
 .regn-rute { display: grid; place-items: center; aspect-ratio: 1; padding: 0; border: 0; border-right: 1px solid #d8c8a8; border-bottom: 1px solid #d8c8a8; background: #fffaf0; color: #2459b3; font: inherit; font-size: clamp(0.95rem, 4.4vw, 1.3rem); font-weight: 750; cursor: pointer; }
 .regn-rute.v { border-left: 2.5px solid #2b2118; } .regn-rute.o { border-top: 2.5px solid #2b2118; } .regn-rute.gitt { color: #2b2118; font-weight: 900; } .regn-rute.nabo { background: #f6ecd2; } .regn-rute.lik { background: #cfe3f7; } .regn-rute.valgt { background: #ffe58a; }
 .regn-taster { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 0.3rem; width: min(100%, 25rem); } .regn-taster button { min-height: 2.75rem; border: 2px solid var(--g-blekk); border-radius: 0.6rem; background: var(--g-bak); color: var(--ink); font: inherit; font-weight: 800; cursor: pointer; }
-.bod { position: relative; display: grid; align-content: end; width: 100%; height: 15rem; overflow: hidden; border: 3px solid var(--g-blekk); border-radius: 1rem; background: linear-gradient(#8fd0f2, #dff3e4 55%, #a9cf86 56%); }
-.bod-tak { position: absolute; top: 0; left: 0; right: 0; height: 2.4rem; background: repeating-linear-gradient(90deg, #e8553d 0 2rem, #fffaf0 2rem 4rem); border-bottom: 3px solid #2b2118; border-radius: 0 0 1rem 1rem; }
-.bod-ko { list-style: none; display: flex; align-items: end; justify-content: center; gap: 0.5rem; margin: 0 0 -0.5rem; padding: 0; }
-.bod-kunde { position: relative; display: grid; justify-items: center; width: 5.2rem; opacity: 0.75; transform: scale(0.85); transform-origin: 50% 100%; transition: transform 200ms var(--ease-out), opacity 200ms; } .bod-kunde.forst { opacity: 1; transform: scale(1.12); }
-.bod-ansikt { width: 5rem; } .bod-ansikt svg { display: block; width: 100%; } .bod-onske { width: 2rem; padding: 0.15rem 0.3rem; border: 2px solid #2b2118; border-radius: 0.8rem; background: #fffaf0; } .bod-onske svg { display: block; }
-.bod-taalmod { width: 3.4rem; height: 0.4rem; overflow: hidden; border: 1.5px solid #2b2118; border-radius: 999px; background: #fff; } .bod-taalmod i { display: block; height: 100%; background: #2f9a5a; transform-origin: left; } .bod-kunde.sur .bod-taalmod i { background: #e8553d; } .bod-kunde.sur .bod-ansikt { animation: sur 0.25s linear infinite; }
-@keyframes sur { 25% { transform: translateX(-1.5px); } 75% { transform: translateX(1.5px); } }
-.bod-disk { position: relative; z-index: 1; height: 2.6rem; border-top: 3px solid #2b2118; background: repeating-linear-gradient(90deg, #d9a066 0 2.6rem, #c98f58 2.6rem 5.2rem); } .bod-heller { position: absolute; top: 0.75rem; left: 25%; right: 25%; height: 0.8rem; overflow: hidden; border: 2px solid #2b2118; border-radius: 999px; background: #fffaf0; } .bod-heller i { display: block; height: 100%; background: #ffd84a; transform-origin: left; }
-.bod-penger { position: absolute; z-index: 2; bottom: 6rem; left: 50%; padding: 0 0.6rem; border: 2px solid #2b2118; border-radius: 999px; background: #ffd84a; color: #2b2118; font-weight: 900; }
-.bod-kanner { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0.5rem; width: 100%; } .bod-kanne { position: relative; display: grid; justify-items: center; gap: 0.1rem; padding: 0.5rem 0.2rem; border: 2px solid var(--g-blekk); border-radius: 1rem; background: color-mix(in srgb, var(--k) 45%, var(--g-kort)); color: var(--ink); font: inherit; font-size: 0.8125rem; cursor: pointer; touch-action: manipulation; box-shadow: 0 3px 0 var(--g-blekk); } .bod-kanne:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--g-blekk); } .bod-kanne svg { width: 2.6rem; } .bod-kanne kbd { position: absolute; top: 0.3rem; right: 0.5rem; font: inherit; font-size: 0.6875rem; opacity: 0.6; }
-@media (hover: none) { .bod-kanne kbd { display: none; } }
+.mini-kort.last { border-color: var(--g-kant); box-shadow: none; cursor: default; color: var(--g-dempet); } .mini-kort.last .mini-bilde { position: relative; } .mini-kort.last .ikon-flis { background: #2b2118; } .mini-kort.last svg { filter: brightness(0); } .mini-kort.last .mini-bilde i { position: absolute; inset: 0; display: grid; place-items: center; color: #fff6e0; font-style: normal; font-size: 2rem; font-weight: 900; }
+.megler-nyhet { width: 100%; min-height: 2.3rem; padding: 0.4rem 0.8rem; border-radius: 0.7rem; background: #2b2118; color: #ffe58a; font-size: 0.875rem; font-weight: 700; text-align: center; } .megler-nyhet:empty::before { content: "Ingen nyheter akkurat nå"; color: rgb(255 246 224 / 0.6); font-weight: 500; } .megler-bunn { display: grid; justify-items: center; gap: 0.3rem; } .megler-bunn small { color: var(--g-dempet); }
+/* Limonadeboden */
+.bod-plan { display: grid; justify-items: center; gap: 0.8rem; width: 100%; text-align: center; } .bod-vaer { display: flex; align-items: center; justify-content: center; gap: 0.9rem; width: 100%; padding: 0.9rem; border: 3px solid var(--g-blekk); border-radius: 1.1rem; background: linear-gradient(#8fd0f2, #e3f4ea); color: #2b2118; font-size: 1.4rem; } .bod-vaer.v-sky { background: linear-gradient(#a9c3d4, #e2e9ec); } .bod-vaer.v-regn { background: linear-gradient(#7f97ab, #b9c8d2); } .bod-vaer svg { display: block; width: 4rem; }
+.bod-pris { display: grid; grid-template-columns: 1fr auto; gap: 0.3rem 1rem; width: min(100%, 24rem); font-weight: 700; text-align: left; } .bod-pris b { font-size: 1.35rem; font-weight: 900; } .bod-pris input { grid-column: 1 / -1; width: 100%; min-height: 2.5rem; accent-color: var(--g-rosa); }
+.bod-strom { display: flex; align-items: center; gap: 0.35rem; min-height: 2rem; font-weight: 700; } .bod-strom i { width: 1rem; height: 1.3rem; border: 2px solid var(--g-blekk); border-radius: 0.5rem 0.5rem 0.2rem 0.2rem; opacity: 0.25; } .bod-strom i.pa { background: #f5b942; opacity: 1; } .bod-strom span { margin-left: 0.4rem; }
+.b-scene { position: relative; container-type: inline-size; width: 100%; height: 23rem; overflow: hidden; border: 3px solid #2b2118; border-radius: 1.1rem; background: linear-gradient(#86cbf2, #dff3e4 52%, #a4cc7d 52.5%, #8cba64); user-select: none; -webkit-user-select: none; }
+.b-scene.v-sky { background: linear-gradient(#a3bfd2, #dfe8ea 58%, #9ebf7f 58.5%, #86ab68); } .b-scene.v-regn { background: linear-gradient(#73899c, #b3c3cd 58%, #86a773 58.5%, #718f60); }
+.b-scene.v-regn .b-himmel { position: absolute; inset: 0; background: repeating-linear-gradient(105deg, transparent 0 14px, rgb(220 238 255 / 0.55) 14px 15.5px); background-size: 200% 200%; }
+.b-sol { position: absolute; top: 2.9rem; right: 0.9rem; width: 3.1rem; } .b-sol svg { display: block; }
+.b-tak { position: absolute; z-index: 3; top: 0; left: 0; right: 0; height: 2.3rem; background: repeating-linear-gradient(90deg, #e8553d 0 2rem, #fffaf0 2rem 4rem); border-bottom: 3px solid #2b2118; border-radius: 0 0 1rem 1rem; box-shadow: inset 0 -8px 8px rgb(0 0 0 / 0.14), 0 6px 8px rgb(0 0 0 / 0.16); }
+.b-skilt { position: absolute; top: 3.1rem; left: 0.7rem; padding: 0.2rem 0.55rem; border: 2.5px solid #2b2118; border-radius: 0.5rem; background: #ffe25a; color: #2b2118; font-size: 0.6875rem; font-weight: 900; letter-spacing: 0.06em; transform: rotate(-5deg); }
+.b-parasoll { position: absolute; z-index: 0; top: 2.6rem; left: 50%; width: 15rem; height: 4.6rem; border: 3px solid #2b2118; border-radius: 15rem 15rem 0 0; background: repeating-conic-gradient(from 270deg at 50% 100%, #f7b3c2 0 18deg, #fff 18deg 36deg); transform: translateX(-50%); opacity: 0.9; }
+.b-ko { list-style: none; position: absolute; inset: 2.3rem 0 7rem; margin: 0; padding: 0; } .b-kunde { position: absolute; bottom: 0; width: 31%; transform: translateX(-50%); } .b-kunde.p0 { left: 20%; } .b-kunde.p1 { left: 50%; } .b-kunde.p2 { left: 80%; }
+.b-kunde button { position: relative; display: grid; justify-items: center; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; touch-action: manipulation; } .b-kunde button:active .b-ansikt { transform: scale(0.95); }
+.b-boble { position: relative; z-index: 2; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.1rem 0.2rem; max-width: 100%; padding: 0.25rem 0.4rem; border: 2.5px solid #2b2118; border-radius: 0.9rem; background: #fffaf0; box-shadow: 0 2px 0 rgb(43 33 24 / 0.3); } .b-boble::after { content: ""; position: absolute; left: 50%; bottom: -0.5rem; width: 0.7rem; height: 0.7rem; border-right: 2.5px solid #2b2118; border-bottom: 2.5px solid #2b2118; background: #fffaf0; transform: translateX(-50%) rotate(45deg); }
+.b-del { position: relative; width: 2rem; height: 2.15rem; display: grid; place-items: center; } .b-del svg { width: 1.85rem; max-height: 2.15rem; } .b-del b { position: absolute; right: -0.2rem; bottom: -0.15rem; min-width: 1rem; padding: 0 0.15rem; border-radius: 999px; background: #2b2118; color: #fffaf0; font-size: 0.6875rem; line-height: 1rem; text-align: center; }
+.b-ansikt { width: min(6.4rem, 88%); margin-top: 0.25rem; transition: transform 120ms var(--ease-out); } .b-ansikt svg { display: block; width: 100%; } .b-taalmod { position: absolute; z-index: 2; bottom: 0.4rem; width: 4rem; height: 0.55rem; overflow: hidden; border: 2px solid #2b2118; border-radius: 999px; background: #fff; } .b-taalmod i { display: block; height: 100%; background: #2f9a5a; transform-origin: left; } .b-kunde.midt .b-taalmod i { background: #f2a93b; } .b-kunde.sur .b-taalmod i { background: #e8352e; }
+.b-veps { position: absolute; z-index: 3; top: 45%; right: -2%; width: 2.6rem; } .b-veps[hidden] { display: none; }
+.b-disk { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; height: 7rem; border-top: 3px solid #2b2118; background: repeating-linear-gradient(90deg, rgb(255 255 255 / 0.06) 0 3rem, rgb(0 0 0 / 0.07) 3rem 6rem), linear-gradient(#e2b077 0 4.6rem, #a87140 4.6rem 4.8rem, #c48a52 4.8rem, #a87140); }
+.b-glass { position: absolute; z-index: 4; left: 50%; bottom: 1.7rem; width: 4.9rem; margin-left: -2.45rem; cursor: grab; touch-action: none; } .b-glass.dras { cursor: grabbing; z-index: 9; } .b-glass svg { display: block; overflow: visible; filter: drop-shadow(0 5px 3px rgb(43 33 24 / 0.35)); transform-origin: 50% 100%; } .b-drape { position: absolute; left: 50%; top: 0.8rem; width: 0.6rem; height: 0.75rem; border-radius: 50% 50% 50% 50% / 65% 65% 35% 35%; pointer-events: none; }
+.b-krukke { position: absolute; left: 0.8rem; bottom: 2.9rem; padding: 0.5rem 0.75rem 0.4rem; border: 2.5px solid #2b2118; border-radius: 0.5rem 0.5rem 0.9rem 0.9rem; background: linear-gradient(rgb(255 255 255 / 0.7) 30%, #ffd84a 31%); color: #2b2118; font-size: 0.875rem; font-weight: 800; } .b-katt { position: absolute; right: 0.8rem; bottom: 2.7rem; width: 3rem; } .b-katt svg { display: block; } .b-rekke { position: absolute; left: 50%; bottom: 0.25rem; transform: translateX(-50%); padding: 0.15rem 0.6rem; border: 2px solid #2b2118; border-radius: 999px; background: #ffd84a; color: #2b2118; font-size: 0.75rem; font-weight: 900; } .b-rekke[hidden] { display: none; }
+.b-svev { position: absolute; z-index: 8; bottom: 10.5rem; padding: 0.15rem 0.7rem; border: 2px solid #2b2118; border-radius: 999px; background: #fffaf0; color: #2b2118; font-weight: 900; white-space: nowrap; pointer-events: none; } .b-svev.perfekt { background: #ffd84a; } .b-svev.feil { background: #ffd4ca; } .b-svev.dempet { font-weight: 700; font-size: 0.875rem; }
+.b-maake { position: absolute; z-index: 7; top: 0; left: 0; width: 5.5rem; padding: 0.5rem; border: 0; background: none; cursor: pointer; touch-action: none; } .b-maake svg { display: block; }
+.b-benk { display: grid; gap: 0.5rem; width: 100%; user-select: none; -webkit-user-select: none; } .b-rad { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0.45rem; } .b-knapp { position: relative; display: grid; justify-items: center; gap: 0.1rem; min-height: 3.9rem; padding: 0.35rem 0.2rem; border: 2px solid var(--g-blekk); border-radius: 0.9rem; background: color-mix(in srgb, var(--k) 42%, var(--g-kort)); color: var(--ink); font: inherit; font-size: 0.75rem; font-weight: 700; cursor: pointer; touch-action: manipulation; box-shadow: 0 3px 0 var(--g-blekk); -webkit-touch-callout: none; } .b-knapp:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--g-blekk); } .b-knapp svg { width: 2.1rem; height: 2.1rem; } .b-knapp kbd { position: absolute; top: 0.15rem; right: 0.4rem; font: inherit; font-size: 0.625rem; opacity: 0.55; }
+.b-pynt .b-knapp { min-height: 3.3rem; } .b-hell { grid-template-columns: 1fr 2fr; grid-auto-flow: row; } .b-tom, .b-kran { min-height: 3.4rem; border: 2px solid var(--g-blekk); border-radius: 0.9rem; background: var(--g-bak); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; touch-action: none; } .b-kran { background: linear-gradient(#bfe6f7, #6fb8de); color: #12303f; box-shadow: 0 3px 0 var(--g-blekk); -webkit-touch-callout: none; } .b-kran.paa { transform: translateY(2px); box-shadow: 0 1px 0 var(--g-blekk); background: linear-gradient(#8fd0ee, #3f9acb); }
+@media (hover: none) { .b-knapp kbd, .vakt-tarn kbd { display: none; } }
+@media (prefers-reduced-motion: no-preference) {
+  .b-kunde { animation: b-inn 320ms var(--ease-out); } .b-kunde.gar { animation: b-ut 300ms ease-in forwards; pointer-events: none; } .b-kunde.sur .b-ansikt { animation: sur 0.25s linear infinite; } .b-veps { animation: b-veps 1.1s ease-in-out infinite; } .b-sol { animation: b-sol 8s linear infinite; } .v-sky .b-sol, .v-regn .b-sol { animation: none; } .b-scene.v-regn .b-himmel { animation: b-regn 0.5s linear infinite; }
+  @keyframes sur { 25% { transform: translateX(-1.5px); } 75% { transform: translateX(1.5px); } }
+  @keyframes b-inn { from { opacity: 0; transform: translate(-50%, 24px); } } @keyframes b-ut { to { opacity: 0; transform: translate(-50%, 24px); } } @keyframes b-veps { 33% { transform: translate(-10px, 8px) rotate(-8deg); } 66% { transform: translate(6px, -8px) rotate(8deg); } } @keyframes b-sol { to { transform: rotate(360deg); } } @keyframes b-regn { to { background-position: -15px 56px; } }
+}
+/* Grisevakta */
+.vakt-hode { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; width: 100%; } .vakt-tall { padding: 0.2rem 0.7rem; border: 2px solid var(--g-blekk); border-radius: 999px; background: var(--g-bak); font-weight: 800; font-variant-numeric: tabular-nums; } .vakt-kr { background: #ffd84a; color: #2b2118; } .vakt-liv { background: #ffd0d6; color: #8f1f33; } .vakt-fart { margin-left: auto; }
+.vakt-brett { position: relative; width: 100%; } .vakt-melding { position: absolute; top: 0.6rem; left: 50%; max-width: calc(100% - 1.5rem); width: max-content; padding: 0.3rem 0.9rem; border-radius: 999px; background: rgb(43 33 24 / 0.86); color: #fff6e0; font-size: 0.8125rem; font-weight: 700; text-align: center; transform: translateX(-50%); pointer-events: none; } .vakt-melding[hidden] { display: none; }
+.vakt-neste { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; width: 100%; min-height: 2.75rem; } .vakt-kommer { display: flex; flex-wrap: wrap; align-items: center; gap: 0.15rem 0.45rem; color: var(--g-dempet); font-size: 0.8125rem; } .vakt-fiende { display: inline-flex; align-items: center; gap: 0.1rem; } .vakt-fiende canvas { width: 34px; height: 34px; } .vakt-fiende b { font-variant-numeric: tabular-nums; } .vakt-na { flex: none; background: var(--g-rosa); color: #fff; } .vakt-na[hidden] { display: none; }
+@media (prefers-color-scheme: dark) { .vakt-na { color: #2b1018; } }
+.vakt-panel { display: grid; gap: 0.5rem; width: 100%; } .vakt-butikk { grid-template-columns: repeat(auto-fit, minmax(8.2rem, 1fr)); } .vakt-valgt { grid-template-columns: repeat(3, minmax(0, 1fr)); } .vakt-valgt-hode { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; } .vakt-valgt-hode > div { display: grid; margin-right: auto; } .vakt-valgt-hode small { color: var(--g-dempet); } .vakt-selg { background: #ffd4ca; color: #7a1f10; }
+.vakt-tarn, .vakt-vei { position: relative; display: grid; justify-items: start; align-content: start; gap: 0.15rem; padding: 0.5rem 0.6rem; border: 2px solid var(--g-blekk); border-radius: 0.9rem; background: var(--g-bak); color: var(--ink); font: inherit; font-size: 0.8125rem; line-height: 1.25; text-align: left; cursor: pointer; touch-action: manipulation; } .vakt-tarn { grid-template-columns: 52px minmax(0, 1fr); column-gap: 0.4rem; } .vakt-tarn canvas { grid-row: 1 / 4; width: 52px; height: 56px; } .vakt-tarn small, .vakt-vei small { color: var(--g-dempet); font-size: 0.75rem; } .vakt-tarn kbd { position: absolute; top: 0.2rem; right: 0.45rem; font: inherit; font-size: 0.625rem; opacity: 0.5; } .vakt-tarn[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--g-gronn); } .vakt-tarn[aria-disabled="true"], .vakt-vei[aria-disabled="true"] { opacity: 0.6; } .vakt-vei.sperret { opacity: 0.4; background: repeating-linear-gradient(135deg, var(--g-bak) 0 8px, var(--g-kant) 8px 10px); }
+.vakt-vei .pris { justify-self: start; margin-top: auto; font-size: 0.75rem; } .vakt-vei-navn { font-size: 0.6875rem; font-weight: 800; text-transform: none; color: var(--vf); } .vakt-vei { border-top: 5px solid var(--vf); } .vakt-vei.v0 { --vf: #d1502c; } .vakt-vei.v1 { --vf: #b8860b; } .vakt-vei.v2 { --vf: #2f78c4; } @media (prefers-color-scheme: dark) { .vakt-vei.v0 { --vf: #ff8f6b; } .vakt-vei.v1 { --vf: #ffd84a; } .vakt-vei.v2 { --vf: #7fc4ff; } }
+.vakt-pinner { display: flex; gap: 0.2rem; } .vakt-pinner i { width: 1.05rem; height: 0.4rem; border: 1.5px solid var(--g-blekk); border-radius: 999px; } .vakt-pinner i.pa { background: var(--vf); }
+@media (max-width: 34rem) { .vakt-valgt { gap: 0.35rem; } .vakt-vei { padding: 0.4rem 0.45rem; font-size: 0.75rem; } .vakt-vei small { font-size: 0.6875rem; } .vakt-pinner i { width: 0.75rem; } }
 .bod-butikk { width: 100%; margin-top: 0.5rem; padding-top: 0.8rem; border-top: 2px dashed var(--g-kant); text-align: left; } .bod-butikk h3 { margin: 0 0 0.5rem; font-size: 1rem; } .bod-butikk ul { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); gap: 0.45rem; margin: 0; padding: 0; }
 .bod-kjop { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.1rem 0.6rem; align-items: center; width: 100%; padding: 0.5rem 0.65rem; border: 2px solid var(--g-kant); border-radius: 0.9rem; background: var(--g-bak); color: var(--ink); font: inherit; font-size: 0.8125rem; text-align: left; cursor: pointer; } .bod-kjop[aria-disabled="false"] { border-color: var(--g-blekk); } .bod-kjop .pris { grid-row: 1 / 3; grid-column: 2; } .bod-kjop .mini-prikker { grid-area: auto; }
 .megler { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; width: 100%; } .megler-kort { display: grid; gap: 0.25rem; justify-items: stretch; min-width: 0; padding: 0.5rem; border: 2px solid var(--g-blekk); border-radius: 1rem; background: var(--g-bak); color: var(--ink); font: inherit; text-align: left; cursor: pointer; touch-action: manipulation; } .megler-kort.eier { box-shadow: 0 0 0 3px var(--f); } .megler-kort b { font-size: 0.875rem; } .megler-kort canvas { width: 100%; height: auto; aspect-ratio: 220 / 92; border-radius: 0.5rem; background: #fffaf0; }
 .megler-kurs { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; } .megler-kurs.opp { color: var(--g-gronn); } .megler-kurs.ned { color: var(--g-rod); } .megler-kort em { padding: 0.35rem; border-radius: 999px; background: var(--f); color: #fff; font-style: normal; font-size: 0.8125rem; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
 .megler-selg { min-height: 2.75rem; padding: 0 1.6rem; border: 2px solid var(--g-blekk); border-radius: 999px; background: #ffd84a; color: #2b2118; font: inherit; font-weight: 800; cursor: pointer; } .megler-selg:disabled { opacity: 0.45; }
 @media (max-width: 34rem) { .megler { grid-template-columns: 1fr; } .megler-kort { grid-template-columns: 6.5rem minmax(0, 1fr) 5.5rem; grid-template-areas: "navn graf knapp" "kurs graf knapp"; align-items: center; column-gap: 0.6rem; } .megler-kort b { grid-area: navn; } .megler-kurs { grid-area: kurs; } .megler-kort canvas { grid-area: graf; } .megler-kort em { grid-area: knapp; } }
-.vakt-panel { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.6rem; align-items: center; width: 100%; } .vakt-tarn { display: flex; flex-wrap: wrap; gap: 0.4rem; min-height: 4.2rem; align-items: center; font-size: 0.8125rem; color: var(--g-dempet); } .vakt-kjop { display: grid; grid-template-columns: auto auto; gap: 0 0.4rem; align-items: center; padding: 0.35rem 0.6rem; border: 2px solid var(--g-blekk); border-radius: 0.8rem; background: var(--g-bak); color: var(--ink); font: inherit; font-size: 0.75rem; text-align: left; cursor: pointer; } .vakt-kjop i { grid-row: 1 / 3; width: 1.4rem; height: 1.4rem; border: 2px solid #2b2118; border-radius: 50%; background: var(--t); } .vakt-kjop .pris { grid-column: 2; justify-self: start; font-size: 0.6875rem; } .vakt-kjop[aria-disabled="true"] { opacity: 0.55; }
-.vakt-bolge:disabled { opacity: 0.4; }
 @media (prefers-reduced-motion: no-preference) { .penge.ny { animation: penge-ny 180ms var(--ease-out); } .penge.sammen { animation: penge-sammen 220ms var(--ease-out); } @keyframes penge-ny { from { opacity: 0; transform: scale(0.7); } } @keyframes penge-sammen { 40% { transform: scale(1.18); } } }
 
 /* Vakten på grisen: fang mynten som flytter seg */

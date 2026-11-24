@@ -14,8 +14,6 @@ sideklasse: side-klikk
     <h2 id="klikk-tittel" class="skjult">Spillet</h2>
     <noscript><p class="forbehold">Spillet trenger JavaScript.</p></noscript>
 
-    <div class="utsikt" id="utsikt" aria-hidden="true"><div class="utsikt-rute" id="utsikt-rute"><div class="utsikt-korn" id="utsikt-korn"></div></div></div>
-
     <div class="klikk-scene" id="scene">
       <div class="profil">
         <button type="button" class="spillikon profil-ikon" id="ikon-knapp" aria-label="Ikonet ditt"></button>
@@ -27,11 +25,24 @@ sideklasse: side-klikk
         {% if konto.url and konto.nokkel %}<button type="button" class="profil-logg-inn" id="logg-inn-topp" hidden>Logg inn</button>{% endif %}
         <p class="lotto-merke" id="lotto-merke"></p>
       </div>
+      <div class="vindu">
+      <div class="utsikt" id="utsikt" aria-hidden="true"><div class="utsikt-rute" id="utsikt-rute"><div class="utsikt-korn" id="utsikt-korn"></div></div></div>
       <div class="gris-konto" id="konto">
         <p class="konto-merke">I sparegrisen</p>
         <p class="konto-saldo" id="saldo">0 øre</p>
         <p class="konto-inntekt">Inntekt <b id="inntekt">0 øre/sek</b></p>
         <p class="konto-deler"><span class="inntekt-del del-utbytte">Utbytte <b id="rate">0 øre/sek</b></span> <span class="inntekt-del del-trykk">Trykk siste sekund <b id="klikkrate">0 øre</b></span></p>
+      </div>
+
+      <div class="gris-flate" id="gris-flate">
+        <ul class="bobler" id="ventende" aria-label="Investeringer som venter"></ul>
+        <button type="button" class="gris" id="overfor"><span class="gris-merke"><span class="gris-navn">Overfør</span> <span class="gris-verdi" id="gris-verdi">+{{ r.trykkStart | ore }}</span></span></button>
+        <p class="fart" id="fart"><span id="fart-tekst">Trykk raskt for fart</span><span class="fart-strek" aria-hidden="true"><i id="fart-fyll"></i></span></p>
+      </div>
+
+      <p class="oppgrader-rad"><button type="button" class="oppgrader" id="oppgrader"><span class="oppgrader-navn">Større overføring <b id="oppgrader-niva">nivå 0</b></span><span class="pris" id="oppgrader-pris">{{ r.trykkGrunnpris | ore }}</span></button></p>
+
+      <p class="status" id="status" role="status"></p>
       </div>
 
       <aside class="boostere" aria-labelledby="booster-tittel">
@@ -41,18 +52,10 @@ sideklasse: side-klikk
         <ul class="ikonliste gf-liste" id="gf-liste" aria-labelledby="gf-tittel" hidden></ul>
       </aside>
 
-      <div class="gris-flate" id="gris-flate">
-        <ul class="bobler" id="ventende" aria-label="Investeringer som venter"></ul>
-        <button type="button" class="gris" id="overfor"><span class="gris-merke"><span class="gris-navn">Overfør</span> <span class="gris-verdi" id="gris-verdi">+{{ r.trykkStart | ore }}</span></span></button>
-        <p class="fart" id="fart"><span id="fart-tekst">Trykk raskt for fart</span><span class="fart-strek" aria-hidden="true"><i id="fart-fyll"></i></span></p>
-      </div>
-
       <div class="uro" id="uro" tabindex="0" role="img" aria-label="Uro i markedet: 0 prosent" aria-describedby="tips">
         <span class="uro-ikon" id="uro-ikon"></span>
         <span class="uro-strek"><i id="uro-fyll"></i></span>
       </div>
-
-      <p class="oppgrader-rad"><button type="button" class="oppgrader" id="oppgrader"><span class="oppgrader-navn">Større overføring <b id="oppgrader-niva">nivå 0</b></span><span class="pris" id="oppgrader-pris">{{ r.trykkGrunnpris | ore }}</span></button></p>
 
       <div class="meldinger">
         <p class="hendelse" id="hendelse" hidden></p>
@@ -72,7 +75,6 @@ sideklasse: side-klikk
           <p class="ekstra-vilkar" id="ekstra-vilkar"></p>
           <div class="ekstra-valg" id="ekstra-valg"></div>
         </div>
-        <p class="status" id="status" role="status"></p>
         <p class="skjult" id="annonse" role="status"></p>
       </div>
     </div>

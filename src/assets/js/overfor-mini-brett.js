@@ -30,6 +30,14 @@ export function skarpt(lerret, b, h) {
   return g;
 }
 
+/** En klokke som teller ned mens går() er sann, og sier fra når tiden er ute. */
+function klokke(node, sek, gaar, ute) {
+  const vis = () => settTekst(node, `${Math.floor(sek / 60)}:${String(sek % 60).padStart(2, "0")}`);
+  vis();
+  const ur = setInterval(() => { if (!gaar() || document.hidden) return; sek--; vis(); if (sek <= 0) { clearInterval(ur); ute(); } }, 1000);
+  return () => clearInterval(ur);
+}
+
 // ---------- Grisetoget ----------
 
 export function grisetoget(rot, niva, { ferdig, lyd }) {
@@ -37,10 +45,16 @@ export function grisetoget(rot, niva, { ferdig, lyd }) {
   rot.append(lag('<p class="mini-linje"><b></b><span>Piltaster eller sveip</span></p>'), lag('<canvas class="mini-lerret" tabindex="0" aria-label="Grisetoget"></canvas>'));
   const teller = rot.querySelector("b"), lerret = rot.querySelector("canvas"), g = skarpt(lerret, S, S);
   const gris = svgBilde(lagGris(null, "togris"));
-  let s = B.lagTog(), forrige = s.tog, sist = performance.now(), i_gang = false, ramme = 0, slutt = false;
+  let s = B.lagTog(niva), forrige = s.tog, sist = performance.now(), i_gang = false, ramme = 0, slutt = false;
   const tegn = (naa) => {
     const u = i_gang && !rolig.matches ? Math.min(1, (naa - sist) / B.TOG.ms[niva - 1]) : 1;
     for (let x = 0; x < B.TOG.n; x++) for (let y = 0; y < B.TOG.n; y++) { g.fillStyle = (x + y) % 2 ? "#a9cf86" : "#b6d994"; g.fillRect(x * R, y * R, R, R); }
+    for (const [x, y] of s.steiner) {
+      const cx = (x + 0.5) * R, cy = (y + 0.5) * R;
+      g.fillStyle = "rgb(43 33 24 / 0.25)"; g.beginPath(); g.ellipse(cx + 2, cy + R * 0.3, R * 0.42, R * 0.18, 0, 0, 7); g.fill();
+      const gr = g.createRadialGradient(cx - 5, cy - 6, 2, cx, cy, R * 0.5); gr.addColorStop(0, "#d5dae0"); gr.addColorStop(1, "#7d8894");
+      g.fillStyle = gr; g.strokeStyle = "#2b2118"; g.lineWidth = 2; g.beginPath(); g.moveTo(cx - R * 0.42, cy + R * 0.3); g.lineTo(cx - R * 0.36, cy - R * 0.12); g.lineTo(cx - R * 0.08, cy - R * 0.4); g.lineTo(cx + R * 0.3, cy - R * 0.28); g.lineTo(cx + R * 0.42, cy + R * 0.3); g.closePath(); g.fill(); g.stroke();
+    }
     if (s.mynt) {
       const [x, y] = s.mynt, k = 1 + 0.07 * Math.sin(naa / 180), cx = (x + 0.5) * R, cy = (y + 0.5) * R;
       const gr = g.createRadialGradient(cx - 3, cy - 4, 1, cx, cy, R * 0.45);
@@ -86,14 +100,16 @@ export function grisetoget(rot, niva, { ferdig, lyd }) {
 
 // ---------- Vekslebanken ----------
 
-const PENGEFARGE = ["#d9a36b", "#e3bd76", "#c9ced6", "#ffd84a", "#8fd18a", "#e88b7a", "#7fb2ea", "#f0c25a", "#c9a4ee", "#f6a6c8"];
+const PENGEFARGE = ["#d9a36b", "#e3bd76", "#c9ced6", "#ffd84a", "#8fd18a", "#e88b7a", "#7fb2ea", "#f0c25a", "#c9a4ee", "#f6a6c8", "#ffe58a"];
 export function vekslebanken(rot, niva, { ferdig, lyd }) {
   const mal = B.VEKSLE.mal[niva - 1], verdi = B.VEKSLE.stige[mal];
   rot.append(lag('<p class="mini-linje"><b></b><span>Piltaster eller sveip</span></p>'), lag('<div class="veksle" tabindex="0" role="application" aria-label="Vekslebanken"></div>'));
   const bord = rot.querySelector(".veksle"), linje = rot.querySelector("b");
-  let s = B.lagVeksle(), slutt = false;
+  let s = B.lagVeksle(), slutt = false, trekk = B.VEKSLE.trekk[niva - 1];
+  const igjen = rot.querySelector(".mini-linje span");
   const tegn = () => {
     settTekst(linje, `Lag ${verdi} kr`);
+    settTekst(igjen, `${trekk} trekk igjen`);
     bord.replaceChildren(...s.brett.map((v, i) => {
       const d = lag('<div class="veksle-rute"></div>');
       if (v !== null) {
@@ -108,9 +124,11 @@ export function vekslebanken(rot, niva, { ferdig, lyd }) {
     const ny = B.skyv(s, r);
     if (ny === s) return;
     s = ny;
+    trekk--;
     lyd(s.sammen.length ? "veksle" : "skyv", Math.max(0, ...s.sammen.map((i) => s.brett[i] ?? 0)));
     tegn();
     if (B.storstePenge(s) >= mal) { slutt = true; ferdig(true, `Du vekslet deg opp til ${verdi} kr.`); }
+    else if (trekk <= 0) { slutt = true; ferdig(false, `Trekkene tok slutt. Du kom til ${B.VEKSLE.stige[B.storstePenge(s)]} kr.`); }
     else if (!B.kanSkyve(s)) { slutt = true; ferdig(false, `Brettet er fullt. Du kom til ${B.VEKSLE.stige[B.storstePenge(s)]} kr.`); }
   });
   tegn();
@@ -123,9 +141,10 @@ export function vekslebanken(rot, niva, { ferdig, lyd }) {
 const BJORN = '<svg viewBox="0 0 32 32" aria-hidden="true"><g stroke="#2b2118" stroke-width="1.8" stroke-linejoin="round"><circle cx="7.5" cy="8" r="4.5" fill="#8b5a2b"/><circle cx="24.5" cy="8" r="4.5" fill="#8b5a2b"/><circle cx="16" cy="17" r="11" fill="#a0693a"/><ellipse cx="16" cy="21" rx="5.5" ry="4.5" fill="#e7c49b"/><path d="M13.8 18.6h4.4L16 21z" fill="#2b2118"/><path d="M8.5 11.5l4 2M23.5 11.5l-4 2" fill="none"/><circle cx="11.5" cy="15.5" r="1.2" fill="#2b2118"/><circle cx="20.5" cy="15.5" r="1.2" fill="#2b2118"/></g></svg>';
 export function krakkfeltet(rot, niva, { ferdig, lyd }) {
   const [n, antall] = B.KRAKK[niva - 1];
-  rot.append(lag('<p class="mini-linje"><b></b><button type="button" class="mini-bryter" aria-pressed="false">🚩 Flagg</button></p>'), lag(`<div class="felt" style="--n:${n}"></div>`));
+  rot.append(lag('<p class="mini-linje"><b></b><span class="felt-tid"></span><button type="button" class="mini-bryter" aria-pressed="false">🚩 Flagg</button></p>'), lag(`<div class="felt" style="--n:${n}"></div>`));
   const linje = rot.querySelector("b"), bryter = rot.querySelector(".mini-bryter"), bord = rot.querySelector(".felt");
   let f = null, slutt = false, flaggmodus = false, hold = 0, holdt = false;
+  const stoppKlokke = klokke(rot.querySelector(".felt-tid"), B.KRAKKTID[niva - 1], () => f && !slutt, () => { slutt = true; ferdig(false, "Tiden er ute."); });
   const ruter = Array.from({ length: n * n }, (_, i) => {
     const b = lag(`<button type="button" class="felt-rute" aria-label="Rute ${i + 1}"></button>`);
     const flagg = () => { if (slutt || !f) return; f = B.flagg(f, i); lyd("flagg"); tegn(); };
@@ -158,16 +177,17 @@ export function krakkfeltet(rot, niva, { ferdig, lyd }) {
     });
   }
   tegn();
-  return () => { slutt = true; clearTimeout(hold); };
+  return () => { slutt = true; clearTimeout(hold); stoppKlokke(); };
 }
 
 // ---------- Regnskapet ----------
 
 export function regnskapet(rot, niva, { ferdig, lyd }) {
   let r = B.lagRegnskap(niva), valgt = r.start.indexOf(0), slutt = false, feil = 0;
-  const maksFeil = 3;
-  rot.append(lag('<p class="mini-linje"><b></b><span></span></p>'), lag(`<div class="regnskap" style="--n:${r.n}"></div>`), lag(`<div class="regn-taster" style="--n:${r.n}"></div>`));
-  const [linje, feilTekst] = rot.querySelector(".mini-linje").children, bord = rot.querySelector(".regnskap"), taster = rot.querySelector(".regn-taster");
+  const [maksFeil, sek] = B.REGNSKAPSREGEL[niva - 1];
+  rot.append(lag('<p class="mini-linje"><b></b><span></span><span></span></p>'), lag(`<div class="regnskap" style="--n:${r.n}"></div>`), lag(`<div class="regn-taster" style="--n:${r.n}"></div>`));
+  const [linje, feilTekst, tid] = rot.querySelector(".mini-linje").children, bord = rot.querySelector(".regnskap"), taster = rot.querySelector(".regn-taster");
+  const stoppKlokke = klokke(tid, sek, () => !slutt, () => { slutt = true; ferdig(false, "Fristen for regnskapet er ute."); });
   const ruter = r.start.map((_, i) => {
     const x = i % r.n, y = Math.floor(i / r.n);
     const b = lag(`<button type="button" class="regn-rute ${x % r.boks[0] === 0 && x ? "v" : ""} ${y % r.boks[1] === 0 && y ? "o" : ""}"></button>`);
@@ -182,7 +202,7 @@ export function regnskapet(rot, niva, { ferdig, lyd }) {
       lyd("feil");
       ruter[valgt].animate([{ transform: "translateX(0)" }, { transform: "translateX(-5px)" }, { transform: "translateX(5px)" }, { transform: "translateX(0)" }], { duration: 220 });
       tegn();
-      if (feil >= maksFeil) { slutt = true; ferdig(false, "Revisor fant tre feil."); }
+      if (feil >= maksFeil) { slutt = true; ferdig(false, maksFeil === 1 ? "Revisor fant en feil." : `Revisor fant ${maksFeil === 2 ? "to" : "tre"} feil.`); }
       return;
     }
     r = { ...r, ruter: r.ruter.map((x, i) => (i === valgt ? v : x)) };
@@ -212,5 +232,5 @@ export function regnskapet(rot, niva, { ferdig, lyd }) {
   };
   document.addEventListener("keydown", tast);
   tegn();
-  return () => { slutt = true; document.removeEventListener("keydown", tast); };
+  return () => { slutt = true; stoppKlokke(); document.removeEventListener("keydown", tast); };
 }

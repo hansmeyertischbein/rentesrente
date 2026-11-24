@@ -77,15 +77,17 @@ test("grønn lapp gir halv pris på ett selskap en stund", () => {
   assert.ok(fangSeddel(nyTilstand(), "gronn", () => 0.999).lapp.halv.mal, "også helt i starten");
 });
 
-test("minispill: nivåene åpnes i rekkefølge, premien følger utbyttet, og gjentak gir en femdel", () => {
-  const t = eier({ limonade: 10 });
+test("minispill: nivåene åpnes i rekkefølge, premien følger utbyttet, og gjentak gir en tidel", () => {
+  const t = { ...eier({ limonade: 10 }), forstekjop: ["onkel", "geitan"] };
+  const full = minispillPremie(t, "grisetoget", 1);
+  assert.equal(full, 100 * MINISPILL.sek[0] * (1 + MINISPILL.trinn));
   assert.equal(apentNiva(t, "grisetoget"), 1);
   assert.equal(klarteNiva(t, "grisetoget", 2), t, "nivå 2 er ikke åpnet");
   assert.equal(klarteNiva(t, "ukjent", 1), t);
   const en = klarteNiva(t, "grisetoget", 1);
-  assert.equal(en.saldo, 100 * MINISPILL.sek[0]);
+  assert.equal(en.saldo, full);
   assert.equal(apentNiva(en, "grisetoget"), 2);
-  assert.equal(klarteNiva(en, "grisetoget", 1).saldo - en.saldo, 100 * MINISPILL.sek[0] * 0.2);
+  assert.equal(klarteNiva(en, "grisetoget", 1).saldo - en.saldo, full * 0.1);
   assert.equal(minispillPremie(nyTilstand(), "regnskapet", 5), MINISPILL.minst[4], "fast beløp uten utbytte");
   assert.equal(minispillPremie(fangSeddel(t, "lilla"), "grisetoget", 1), minispillPremie(t, "grisetoget", 1), "lappen dobler ikke premien");
   assert.deepEqual(fraLagring(JSON.parse(JSON.stringify(tilLagring(en, 1)))).tilstand.minispill, { grisetoget: 1 });

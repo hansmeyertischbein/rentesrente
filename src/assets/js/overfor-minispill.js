@@ -1,18 +1,20 @@
-// Minispillene i «Overfør»: menyen, nivåene og premiene. Spillskjermene ligger i overfor-mini-brett.js og overfor-mini-nye.js.
-import { MINISPILL, minispillPremie, apentNiva, klarteNiva, bodFaktor } from "/lib/klikker.js";
+// Minispillene i «Overfør»: menyen, nivåene og premiene. Spillskjermene ligger i overfor-mini-brett.js, -bod.js, -vakt.js og -megler.js.
+import { MINISPILL, AKSJER, spillApent, minispillPremie, apentNiva, klarteNiva, bodFaktor } from "/lib/klikker.js";
 import { MENYIKONER, MINIIKONER } from "./klikker-figurer.js";
 import { $, ore, ganger, settTekst, vis, lag, si, hopp, apne } from "./overfor-felles.js";
 import { spill as lyd } from "./lyd.js";
 import * as brett from "./overfor-mini-brett.js";
-import * as nye from "./overfor-mini-nye.js";
+import { limonadeboden, bodButikk } from "./overfor-mini-bod.js";
+import { grisevakta } from "./overfor-mini-vakt.js";
+import { meglerhuset } from "./overfor-mini-megler.js";
 
 const SPILL = {
-  limonadeboden: { navn: "Limonadeboden", tekst: "Server riktig limonade. Hvert nivå dobler utbyttet fra alle bodene dine, for godt.", start: nye.limonadeboden },
-  meglerhuset: { navn: "Meglerhuset", tekst: "Kjøp på bunn og selg på topp før børsen stenger.", start: nye.meglerhuset },
-  grisevakta: { navn: "Grisevakta", tekst: "Bygg tårn og stopp regningene før de når grisen.", start: nye.grisevakta },
-  grisetoget: { navn: "Grisetoget", tekst: "Plukk mynter, og ikke kjør i vognene.", start: brett.grisetoget },
-  vekslebanken: { navn: "Vekslebanken", tekst: "Skyv like penger sammen, så veksles de opp.", start: brett.vekslebanken },
-  krakkfeltet: { navn: "Krakkfeltet", tekst: "Finn de trygge rutene uten å treffe et krakk.", start: brett.krakkfeltet },
+  limonadeboden: { navn: "Limonadeboden", tekst: "Press, hell, pynt og server. Hvert nivå gir bodene dine mer utbytte for godt.", start: limonadeboden },
+  grisetoget: { navn: "Grisetoget", tekst: "Plukk mynter, og styr unna vognene og steinene.", start: brett.grisetoget },
+  grisevakta: { navn: "Grisevakta", tekst: "Bygg tårn, velg oppgraderinger, og stopp regningene før de når grisen.", start: grisevakta },
+  vekslebanken: { navn: "Vekslebanken", tekst: "Skyv like penger sammen før trekkene tar slutt.", start: brett.vekslebanken },
+  krakkfeltet: { navn: "Krakkfeltet", tekst: "Finn de trygge rutene før tiden er ute.", start: brett.krakkfeltet },
+  meglerhuset: { navn: "Meglerhuset", tekst: "Kjøp på bunn og selg på topp. Nyhetene stemmer ikke alltid.", start: meglerhuset },
   regnskapet: { navn: "Regnskapet", tekst: "Hvert tall én gang i hver rad, kolonne og boks.", start: brett.regnskapet },
 };
 const el = { knapp: $("minispill-knapp"), vindu: $("minispill-vindu"), tittel: $("minispill-tittel"), tilbake: $("minispill-tilbake"), rot: $("minispill-rot") };
@@ -28,7 +30,14 @@ function visMeny() {
   vis(el.tilbake, false);
   const t = api.hent();
   const ul = lag('<ul class="mini-liste"></ul>');
+  const neste = MINISPILL.spill.find((id) => !spillApent(t, id));
   ul.append(...MINISPILL.spill.map((id) => {
+    if (!spillApent(t, id)) {   // ikke låst opp: svart med spørsmålstegn. Bare det neste sier hva som skal til.
+      const a = AKSJER.find((x) => x.id === MINISPILL.apnes[id]);
+      const li = lag(`<li><div class="mini-kort last"><span class="mini-bilde"><span class="ikon-flis">${MINIIKONER[id].svg}</span><i>?</i></span><b>Ukjent spill</b><span class="mini-tekst"></span></div></li>`);
+      li.querySelector(".mini-tekst").textContent = id === neste ? `Åpnes når du kjøper i ${a.navn} for første gang.` : "Åpnes senere.";
+      return li;
+    }
     const klart = t.minispill[id] ?? 0;
     const li = lag(`<li><button type="button" class="mini-kort"><span class="mini-bilde">${flis(MINIIKONER[id])}</span><b></b><span class="mini-tekst"></span><span class="mini-prikker" aria-label="${klart} av ${MINISPILL.nivaer} nivåer klart">${Array.from({ length: MINISPILL.nivaer }, (_, i) => `<i class="${i < klart ? "pa" : ""}"></i>`).join("")}</span></button></li>`);
     li.querySelector("b").textContent = SPILL[id].navn;
@@ -54,7 +63,7 @@ function visNivaer(id) {
     li.firstChild.addEventListener("click", () => spillNiva(id, niva));
     return li;
   }));
-  if (id === "limonadeboden") boks.append(nye.bodButikk(api));
+  if (id === "limonadeboden") boks.append(bodButikk(api));
   el.rot.replaceChildren(boks);
 }
 
@@ -89,6 +98,9 @@ function spillNiva(id, niva) {
     },
   });
 }
+
+/** Navnet på minispillet et selskap låser opp, eller null. */
+export const apnetAv = (selskap) => { const id = MINISPILL.spill.find((s) => MINISPILL.apnes[s] === selskap); return id ? SPILL[id].navn : null; };
 
 export function start(a) {
   api = a;
