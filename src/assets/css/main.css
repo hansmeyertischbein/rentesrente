@@ -652,8 +652,8 @@ html:has(.side-klikk) { scroll-padding-top: 3.5rem; }
   content: ""; position: absolute; left: -1.6rem; right: -1.6rem; bottom: -1.7rem; height: 1.15rem; border-radius: 0.5rem; border: 2px solid #2b1809;
   background: linear-gradient(var(--brett-1) 0 35%, var(--brett-2) 35% 80%, var(--brett-3)); box-shadow: 0 8px 12px rgb(20 10 2 / 0.4);
 }
-.utsikt { position: absolute; inset: 0; z-index: -1; overflow: hidden; border-radius: 1.15rem; background: linear-gradient(#6fb1ea, #e3eee6 46%, #7ea654 47%); pointer-events: none; transform: translateZ(0); }
-@media (prefers-color-scheme: dark) { .utsikt { background: linear-gradient(#0a1128, #3c3f68 46%, #1d3321 47%); } }
+.utsikt { position: absolute; inset: 0; z-index: -1; overflow: hidden; border-radius: 1.15rem; background: linear-gradient(#5494be, #fcdebe 46%, #86b084 47%); pointer-events: none; transform: translateZ(0); }
+@media (prefers-color-scheme: dark) { .utsikt { background: linear-gradient(#0a102c, #385470 46%, #1f3f3c 47%); } }
 .utsikt::after { content: ""; position: absolute; inset: 0; z-index: 4; border-radius: inherit; box-shadow: inset 0 0 0 2px #2b1809, inset 0 7px 16px rgb(20 10 2 / 0.5), inset 0 -3px 10px rgb(20 10 2 / 0.25); background: linear-gradient(112deg, rgb(255 255 255 / 0.13) 0 14%, transparent 14.2% 19%, rgb(255 255 255 / 0.07) 19.2% 25%, transparent 25.2%); }
 .utsikt-rute { position: absolute; inset: 0; overflow: hidden; }
 .utsikt-lag { position: absolute; inset: 0; }
