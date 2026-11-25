@@ -1,11 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MINISPILL, spillApent, minispillPremie, nyTilstand, perSekund, klarteNiva, bodFaktor, prestisje, AKSJER, BOOSTERE, tilLagring, fraLagring } from "../src/lib/klikker.js";
+import { MINISPILL, nivaerI, apentNiva, spillApent, minispillPremie, nyTilstand, perSekund, klarteNiva, bodFaktor, prestisje, AKSJER, BOOSTERE, tilLagring, fraLagring } from "../src/lib/klikker.js";
 import { IKONER } from "../src/lib/klikker-guder.js";
 import * as B from "../src/lib/mini-brett.js";
 import * as V from "../src/lib/mini-vakt.js";
 import * as L from "../src/lib/mini-bod.js";
 import * as M from "../src/lib/mini-megler.js";
+import * as A from "../src/lib/mini-ai.js";
 
 const rngFra = (f) => () => { f = (f * 16807) % 2147483647; return f / 2147483647; };
 
@@ -90,7 +91,7 @@ const vakt = (niva, plan) => {
 };
 test("Grisevakta: nivå 1 klares med en god plan, ingen nivåer uten, og bølgene kommer av seg selv", () => {
   assert.equal(vakt(1, PLAN).ferdig, "vunnet");
-  for (let niva = 1; niva <= 5; niva++) {
+  for (let niva = 1; niva <= V.VAKT_NIVA.length; niva++) {
     const s = vakt(niva, []);
     assert.equal(s.ferdig, "tapt");
     assert.ok(s.bolge >= 1, "bølgen kom uten at noen trykket");
@@ -269,5 +270,164 @@ test("Meglerhuset: kjøp lavt og selg høyt tjener, og alle nivåene er innen re
   assert.equal(M.kjopAktiva(k, 1), k);
   assert.equal(M.selgAktiva(m), m);
   assert.ok(m.kurser.flat().every((x) => x >= 1 && Number.isFinite(x)));
-  assert.equal(MINISPILL.spill.length, 7);
+  assert.equal(MINISPILL.spill.length, 8);
+});
+
+test("Grisevakta: ti baner, alle veiene ender hos grisen, og fiendene deler seg mellom inngangene", () => {
+  assert.equal(V.VAKT_NIVA.length, nivaerI("grisevakta"));
+  for (let niva = 1; niva <= 10; niva++) {
+    const { stier, navn } = V.brett(niva);
+    assert.ok(navn);
+    for (const sti of stier) assert.deepEqual(sti.at(-1), V.grisPa(niva));
+    const s = V.lagVakt(niva);
+    let plass = 0;
+    for (let x = 30; x < 620; x += 20) for (let y = 34; y < 400; y += 20) { if (V.kanStaa(s, x, y)) { plass++; assert.ok(!V.iVann(niva, x, y)); } }
+    assert.ok(plass > 60, `nivå ${niva} har plass til tårn: ${plass}`);
+  }
+  const s = V.lagVakt(8);
+  for (let i = 0; i < 60 * 30 && s.fiender.length < 3; i++) V.vaktSteg(s, 1 / 30);
+  assert.deepEqual(s.fiender.map((f) => f.vei), [0, 1, 2]);
+  assert.equal(new Set(s.fiender.map((f) => String(V.paaSti(8, 0, false, f.vei)))).size, 3);
+});
+test("Grisevakta: kronebue og sparefyr fra nivå 6, og inflasjon gjør alt dyrere", () => {
+  assert.equal(V.byggTarn({ ...V.lagVakt(5), penger: 999 }, "bue", 254, 202), null);
+  assert.deepEqual([V.tarnPa(5).length, V.tarnPa(6).length], [4, 6]);
+  const s = V.lagVakt(6);
+  s.penger = 9999; s.bolge = 1; s.pause = 99;
+  const b = V.byggTarn(s, "bue", 120, 160), skade = b.s.skade;
+  const f = V.byggTarn(s, "fyr", 120, 205);
+  assert.ok(b.hjulpet && b.s.skade > skade * 1.09 && b.s.skade < skade * 1.11);
+  V.byggTarn(s, "fyr", 160, 205);
+  assert.ok(b.s.skade < skade * 1.11, "to fyr legges ikke sammen");
+  V.oppgrader(s, f.id, 2); V.oppgrader(s, f.id, 2);
+  assert.ok(b.s.ser, "lyskasteren lar buen se skjulte");
+  const ny = (type, d, liv = 400) => { const x = { id: 900 + s.fiender.length, type, vei: 0, liv, maks: liv, d, p: V.paaSti(6, d), skjold: V.FIENDER[type].skjold?.[0] ?? 0, fred: 0, kvart: 3, brems: 1, bremset: 0, stopp: 0, gift: 0, giftSek: 0, merke: 1, merket: 0, spurt: 0, ur: 0, tr: 0 }; s.fiender.push(x); return x; };
+  assert.equal(V.tarnPris(s, "mynt"), 60);
+  ny("inflasjon", 0); ny("inflasjon", 0); ny("inflasjon", 0);
+  assert.equal(V.tarnPris(s, "mynt"), Math.ceil(60 * 1.24), "høyst to ganger");
+  s.fiender = [];
+  const rad = [ny("regning", 120), ny("regning", 120), ny("regning", 120)];
+  for (let i = 0; i < 30 && rad[0].liv === 400; i++) { for (const r of rad) { r.d = 120; r.p = V.paaSti(6, 120); } V.vaktSteg(s, 1 / 30, () => 0.9); }
+  assert.equal(rad.filter((r) => r.liv < 400).length, 2, "pilen går gjennom to");
+  s.fiender = [];
+  const st = ny("strom", 120);
+  for (let i = 0; i < 400 && st.skjold > 3; i++) { st.d = 120; V.vaktSteg(s, 1 / 30, () => 0.9); }
+  assert.equal(st.liv, 400, "skjoldet tok treffet");
+  s.tarn = []; s.fiender = [];
+  const h = ny("hopp", 50), v = ny("regning", 50);
+  for (let i = 0; i < 30 * 4; i++) V.vaktSteg(s, 1 / 30);
+  assert.ok(h.d > 50 + V.FIENDER.hopp.fart * 4 + 40 && v.d < 50 + V.FIENDER.regning.fart * 4 + 1);
+  s.fiender = [];
+  const sp = ny("spiral", 200, 400);
+  sp.liv = 290;
+  V.vaktSteg(s, 1 / 30);
+  assert.deepEqual(s.fiender.map((x) => x.type), ["spiral", "laan", "laan"]);
+});
+
+const kamp = (niva, evne, fro) => {
+  const s = A.lagKamp(niva), rng = rngFra(fro * 7919 + 13);
+  for (let om = evne.hvert; !s.ferdig && s.tid < 600;) { A.kampSteg(s, 1 / 20, rng); om -= 1 / 20; if (om <= 0) { om = evne.hvert; A.tenk(s, "oss", evne, rng); } }
+  return s.ferdig;
+};
+test("Oss mot AI: brettene henger sammen, tårnene står ikke oppå hverandre, og begge sider har et hovedsete", () => {
+  assert.equal(A.AI_NIVA.length, nivaerI("ossmotai"));
+  for (let niva = 1; niva <= 8; niva++) {
+    const { tarn } = A.aiBrett(niva), sett = new Set([0]), ko = [0];
+    while (ko.length) for (const k of A.naboer(niva, ko.pop())) if (!sett.has(k)) { sett.add(k); ko.push(k); }
+    assert.equal(sett.size, tarn.length, `nivå ${niva} henger sammen`);
+    tarn.forEach((a, i) => { assert.ok(!A.iVann(niva, a[0], a[1]), `nivå ${niva}, tårn ${i} står på land`); assert.ok(a[0] > 40 && a[0] < 600 && a[1] > 50 && a[1] < 432); tarn.forEach((b, j) => { if (j > i) assert.ok(Math.hypot(a[0] - b[0], a[1] - b[1]) > 70, `nivå ${niva}: ${i} og ${j}`); }); });
+    assert.equal(tarn.filter((t) => t[2] === "kjerne" && t[3] === "oss").length, 1);
+    assert.ok(tarn.some((t) => t[2] === "kjerne" && t[3] === "ai"));
+  }
+});
+test("Oss mot AI: brettene kan snus for stående skjerm, med de samme veiene og rådhuset nede", () => {
+  const for_ = Array.from({ length: 8 }, (_, i) => A.veier(i + 1));
+  A.snu(true);
+  assert.deepEqual(A.flate(), { b: 460, h: 640 });
+  for (let niva = 1; niva <= 8; niva++) {
+    const { tarn } = A.aiBrett(niva);
+    assert.deepEqual(A.veier(niva), for_[niva - 1]);
+    tarn.forEach((a, i) => { assert.ok(a[0] >= 33 && a[0] <= 427 && a[1] >= 48 && a[1] <= 612, `nivå ${niva}, tårn ${i}: ${a}`); assert.ok(!A.iVann(niva, a[0], a[1])); tarn.forEach((b, j) => { if (j > i) assert.ok(Math.hypot(a[0] - b[0], a[1] - b[1]) > 66, `nivå ${niva}: ${i} og ${j}`); }); });
+    assert.ok(tarn.find((t) => t[2] === "kjerne" && t[3] === "oss")[1] > 500);
+    const s = A.lagKamp(niva), hjem = s.tarn.find((t) => t.eier === "oss");
+    assert.ok(A.send(s, hjem.id, A.naboer(niva, hjem.id)[0], 3) === 3);
+    for (let i = 0; i < 40; i++) A.kampSteg(s, 1 / 20, () => 0.5);
+    assert.ok(s.folk.every((f) => Number.isFinite(f.x) && Number.isFinite(f.y)));
+  }
+  A.snu(false);
+});
+test("Oss mot AI: folk går langs veiene, tar tårn, og møter maskinene på veien", () => {
+  const s = A.lagKamp(1), hjem = s.tarn.find((t) => t.eier === "oss"), mal = s.tarn[A.naboer(1, hjem.id)[0]];
+  s.tenkOm = 1e9;
+  assert.equal(A.send(s, mal.id, hjem.id, 5), 0, "bare fra egne tårn");
+  assert.equal(A.send(s, hjem.id, mal.id, 99), 20, "aldri flere enn det er");
+  assert.equal(A.send(s, hjem.id, mal.id, 1), 0, "alle er alt sendt");
+  for (let i = 0; i < 20 * 12 && mal.eier !== "oss"; i++) A.kampSteg(s, 1 / 20, () => 0.5);
+  assert.equal(mal.eier, "oss");
+  assert.ok(hjem.folk < 15);
+  const m = A.lagKamp(1);
+  m.tenkOm = 1e9;
+  const [a, b] = A.veier(1).find(([x, y]) => m.tarn[x].type !== "kjerne" && m.tarn[y].type !== "kjerne");
+  m.tarn[a].eier = "oss"; m.tarn[a].folk = 10; m.tarn[b].eier = "ai"; m.tarn[b].folk = 10;
+  assert.deepEqual(A.finnVei(m, a, b, "oss").vei, [a, b]);
+  A.send(m, a, b, 5); A.send(m, b, a, 5);
+  let mott = 0;
+  for (let i = 0; i < 20 * 6; i++) mott += A.kampSteg(m, 1 / 20, () => 0.5).filter((h) => h.type === "mote").length;
+  assert.ok(mott >= 4, `møttes ${mott} ganger`);
+  const gjennom = A.lagKamp(8);
+  for (const t of gjennom.tarn) if (t.id !== gjennom.tarn.length - 1) t.eier = "oss";
+  assert.ok(A.finnVei(gjennom, 0, 24, "oss").vei.length > 2);
+});
+test("Oss mot AI: oppgradering, ombygging, krefter, fast overføring og hackeren", () => {
+  const s = A.lagKamp(3), hjem = s.tarn[0];
+  s.tenkOm = 1e9; s.hackOm = 1e9;
+  assert.equal(A.oppgrader(s, 0), false, "ikke råd");
+  s.kr.oss = 1000;
+  const for_ = A.egen(hjem, "takt");
+  assert.ok(A.oppgrader(s, 0) && A.oppgrader(s, 0) && !A.oppgrader(s, 0));
+  assert.ok(A.egen(hjem, "takt") > for_);
+  assert.equal(A.byggOm(s, 0, "hus"), false, "rådhuset bygges ikke om");
+  const t = s.tarn[1];
+  assert.equal(A.byggOm(s, 1, "vakt"), false, "ikke vårt");
+  t.eier = "oss"; t.folk = 12;
+  assert.ok(A.byggOm(s, 1, "vakt"));
+  assert.equal(t.type, "vakt");
+  s.kr.oss = 1000;
+  assert.equal(A.brukKraft(s, "mur", 13), false, "ikke på maskinenes tårn");
+  assert.ok(A.brukKraft(s, "mur", 1) && !A.brukKraft(s, "mur", 1));
+  const inn = { id: 1, eier: "ai", rute: { vei: [2, 1], punkter: [[0, 0], [1, 0]], lang: [0, 1], merker: [0.5], lengde: 1 }, d: 0, del: 1, neste: 0, liv: 50, x: 0, y: 0, side: 0 };
+  s.folk.push({ ...inn });
+  A.kampSteg(s, 1 / 20);
+  assert.equal(t.eier, "oss", "brannmuren holdt");
+  t.mur = 0; s.folk.push({ ...inn });
+  A.kampSteg(s, 1 / 20);
+  assert.equal(t.eier, "ai");
+  assert.ok(A.brukKraft(s, "strom"));
+  const naa = t.folk;
+  A.kampSteg(s, 1 / 20);
+  assert.equal(t.folk, naa, "maskinene står stille");
+  hjem.folk = 30;
+  assert.ok(A.settFast(s, 0, 2));
+  for (let i = 0; i < 40; i++) A.kampSteg(s, 1 / 20);
+  assert.ok(s.folk.filter((f) => f.eier === "oss").length > 5);
+  assert.ok(A.settFast(s, 0, 2) && hjem.fast === null, "en gang til slår den av");
+  const h = A.lagKamp(3);
+  h.tenkOm = 1e9; h.hackOm = 0.01; h.tarn[1].eier = "oss"; h.tarn[1].folk = 10;
+  for (let i = 0; i < 20 * 4 && !h.tarn[1].hacket; i++) A.kampSteg(h, 1 / 20, () => 0);
+  assert.ok(h.tarn[1].hacket > 0 && A.send(h, 1, 0, 3) === 0);
+});
+test("Oss mot AI: uten innsats taper du, første nivå er greit, og de siste krever en god spiller", () => {
+  const treg = { hvert: 4, kilder: 1, feil: 0.5, forsvar: false, oppgrader: false }, god = { hvert: 1.3, kilder: 4, feil: 0.15, forsvar: true, oppgrader: true };
+  const andel = (niva, e, n = 5) => Array.from({ length: n }, (_, i) => kamp(niva, e, i + 1)).filter((x) => x === "vunnet").length / n;
+  assert.ok(andel(1, treg) >= 0.8);
+  for (let niva = 1; niva <= 8; niva++) { const ingen = kamp(niva, { ...treg, hvert: 1e9 }, 1); assert.ok(niva === 1 ? ingen !== "vunnet" : ingen === "tapt", `nivå ${niva} vinner ikke seg selv: ${ingen}`); assert.ok(andel(niva, god, 6) > 0, `nivå ${niva} kan vinnes`); }
+  assert.equal(andel(8, treg), 0);
+});
+test("minispill med flere nivåer: premien vokser hele veien, og lagringen tåler dem", () => {
+  let t = { ...nyTilstand(), forstekjop: AKSJER.map((a) => a.id), aksjer: { ...nyTilstand().aksjer, onkel: 50 } };
+  for (let n = 1; n <= 10; n++) { if (n > 1) assert.ok(minispillPremie(t, "grisevakta", n) > minispillPremie({ ...t, minispill: {} }, "grisevakta", n - 1)); t = klarteNiva(t, "grisevakta", n); assert.equal(t.minispill.grisevakta, n); }
+  assert.equal(apentNiva(t, "grisevakta"), 10);
+  assert.equal(apentNiva({ ...t, minispill: { grisetoget: 5 } }, "grisetoget"), 5);
+  assert.equal(fraLagring(JSON.parse(JSON.stringify(tilLagring(t, 1)))).tilstand.minispill.grisevakta, 10);
+  assert.equal(fraLagring({ ...tilLagring(t, 1), minispill: { grisetoget: 6, ossmotai: 8 } }).tilstand.minispill.grisetoget, undefined);
 });

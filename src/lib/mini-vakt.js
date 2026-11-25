@@ -1,5 +1,6 @@
 // Grisevakta: et tårnforsvar der regninger og gebyrer er på vei mot sparegrisen. Rene regler på et brett på 640 × 420.
 // Tårnene settes hvor som helst utenfor veien. Hvert tårn har tre veier å oppgradere, og du kan høyst ta én vei til 4 og én til 2.
+// Noen brett har flere innganger, og da går fiendene annenhver gang inn fra hver av dem.
 // Tilstanden endres på stedet for fart, siden det kan være mange på brettet samtidig.
 
 export const FLATE = Object.freeze({ b: 640, h: 420 });
@@ -17,8 +18,12 @@ export const FIENDER = frys({
   laan: { navn: "Forbrukslån", tekst: "Renten løper: får mer liv hele tiden.", liv: 70, fart: 30, lonn: 17, skade: 3, stor: 16, vekst: 0.055, pris: 4.6 },
   selger: { navn: "Telefonselger", tekst: "Gir de rundt seg nytt liv.", liv: 84, fart: 36, lonn: 18, skade: 2, stor: 14, helbred: 8, pris: 5.4 },
   svindler: { navn: "Svindler", tekst: "Kan ikke bremses, og spurter når den blir truffet.", liv: 64, fart: 46, lonn: 16, skade: 3, stor: 13, immun: true, spurt: 1.9, pris: 5 },
+  strom: { navn: "Strømregning", tekst: "Skjoldet tåler fire treff, og lades opp igjen når den får fred.", liv: 58, fart: 42, lonn: 13, skade: 2, stor: 13, skjold: [4, 3], pris: 4.2, fra: 6 },
+  hopp: { navn: "Rentehopp", tekst: "Hopper framover på veien med jevne mellomrom.", liv: 66, fart: 34, lonn: 15, skade: 2, stor: 13, hopper: [52, 3.6], pris: 4.8, fra: 6 },
+  inflasjon: { navn: "Inflasjon", tekst: "Gjør alt 12 % dyrere så lenge den er på brettet.", liv: 190, fart: 26, lonn: 26, skade: 3, stor: 18, dyrere: 0.12, pris: 9, fra: 6 },
   inkasso: { navn: "Inkasso", tekst: "Sjef: tykt panser, og sender ut gebyrer.", liv: 420, fart: 23, lonn: 110, skade: 6, stor: 24, panser: 3, sender: ["gebyr", 2, 4.5], sjef: true, pris: 40 },
   krakk: { navn: "Krakket", tekst: "Sjef: lammer tårnene i nærheten.", liv: 1500, fart: 19, lonn: 200, skade: 20, stor: 30, panser: 4, lammer: [130, 5.5, 1.8], sjef: true, pris: 110 },
+  spiral: { navn: "Gjeldsspiralen", tekst: "Sjef: slipper løs et forbrukslån for hver fjerdedel den mister, og får det mer travelt.", liv: 1900, fart: 17, lonn: 260, skade: 20, stor: 30, panser: 3, spiral: "laan", sjef: true, pris: 130, fra: 6 },
 });
 
 // ---------- Tårnene ----------
@@ -61,7 +66,27 @@ export const TARN = frys({
       { navn: "Sikte", trinn: [g("Lengre løp", "25 % lengre rekkevidde", 55, (s) => { s.rekke *= 1.25; }), g("Luftvern", "Når det som flyr, og ser skjulte", 110, (s) => { s.bakke = false; s.ser = true; }), g("Rekyl", "Dytter dem bakover", 280, (s) => { s.dytt = 20; }), g("Sjokkbølge", "Lammer alle som treffes", 600, (s) => { s.stopp = 0.7; })] },
     ],
   },
+  bue: {
+    navn: "Kronebue", tekst: "Skyter langt, og pilen går gjennom flere.", pris: 130, farge: ["#e7c27a", "#9a5b2c"], fra: 6,
+    basis: { skade: 21, rekke: 178, takt: 0.5, antall: 1, gjennom: 2 },
+    veier: [
+      { navn: "Spiss", trinn: [g("Slipt spiss", "+12 skade", 70, (s) => { s.skade += 12; }), g("Stålspiss", "+14 skade, bryter panser", 130, (s) => { s.skade += 14; s.bryter = true; }), g("Kroneskåret", "Dobbel skade", 340, (s) => { s.skade *= 2; }), g("Sjefsjeger", "Fire ganger skaden mot sjefer", 780, (s) => { s.sjefG = 4; s.skade *= 1.4; })] },
+      { navn: "Gjennom", trinn: [g("Lengre pil", "Går gjennom fire", 65, (s) => { s.gjennom = 4; }), g("Tung streng", "Går gjennom sju", 120, (s) => { s.gjennom = 7; }), g("Tre piler", "Skyter tre i vifte", 330, (s) => { s.vifte = 3; }), g("Pilregn", "Fem i vifte, 30 % raskere", 760, (s) => { s.vifte = 5; s.takt *= 1.3; })] },
+      { navn: "Falkeøye", trinn: [g("Falkeøye", "Ser skjulte avgifter", 50, (s) => { s.ser = true; }), g("Høy post", "30 % lengre rekkevidde", 95, (s) => { s.rekke *= 1.3; }), g("Svake punkt", "Hvert femte treff gjør fire ganger skaden", 290, (s) => { s.krit = 0.2; s.kritG = 4; }), g("Kald ro", "Dobbelt så raskt", 680, (s) => { s.takt *= 2; })] },
+    ],
+  },
+  fyr: {
+    navn: "Sparefyr", tekst: "Skyter ikke, men gjør tårnene rundt seg bedre.", pris: 140, farge: ["#f4f0e6", "#d1502c"], fra: 6,
+    basis: { skade: 0, rekke: 92, takt: 0, stotte: { skade: 1.1, takt: 1.08, rekke: 1 } },
+    veier: [
+      { navn: "Lys", trinn: [g("Klart lys", "20 % mer skade rundt seg", 80, (s) => { s.stotte = { ...s.stotte, skade: 1.2 }; }), g("Sterkt lys", "32 % mer skade", 150, (s) => { s.stotte = { ...s.stotte, skade: 1.32 }; }), g("Blendende", "50 % mer skade", 380, (s) => { s.stotte = { ...s.stotte, skade: 1.5 }; }), g("Ledestjerne", "80 % mer skade", 860, (s) => { s.stotte = { ...s.stotte, skade: 1.8 }; })] },
+      { navn: "Takt", trinn: [g("Klokke", "15 % raskere rundt seg", 75, (s) => { s.stotte = { ...s.stotte, takt: 1.15 }; }), g("Tromme", "24 % raskere", 140, (s) => { s.stotte = { ...s.stotte, takt: 1.24 }; }), g("Marsj", "38 % raskere", 360, (s) => { s.stotte = { ...s.stotte, takt: 1.38 }; }), g("Full fart", "60 % raskere", 820, (s) => { s.stotte = { ...s.stotte, takt: 1.6 }; })] },
+      { navn: "Utsyn", trinn: [g("Høyere tårn", "Lyser 25 % lenger", 60, (s) => { s.rekke *= 1.25; }), g("Lyskaster", "Alle rundt ser skjulte", 120, (s) => { s.stotte = { ...s.stotte, ser: true }; }), g("Speil", "Alle rundt rekker 20 % lenger", 300, (s) => { s.stotte = { ...s.stotte, rekke: 1.2 }; }), g("Avslørt", "Alle rundt bryter panser", 640, (s) => { s.stotte = { ...s.stotte, bryter: true }; s.rekke *= 1.2; })] },
+    ],
+  },
 });
+/** Tårnene du kan bygge på et nivå. */
+export const tarnPa = (niva) => Object.keys(TARN).filter((t) => (TARN[t].fra ?? 1) <= niva);
 export const SALG = 0.75;   // av det du har brukt på tårnet
 
 /** Kan veien tas ett trinn til? Høyst to veier i bruk, og bare én av dem forbi trinn 2. */
@@ -77,17 +102,43 @@ export function egenskaper(type, niva) {
   return s;
 }
 export const prisOpp = (t, vei) => (kanOppgradere(t, vei) ? TARN[t.type].veier[vei].trinn[t.niva[vei]].pris : Infinity);
+/** Inflasjon på brettet gjør alt dyrere, men aldri mer enn to ganger. */
+export const prisFaktor = (s) => 1 + Math.min(2, s.fiender.filter((f) => FIENDER[f.type].dyrere && f.liv > 0).length) * FIENDER.inflasjon.dyrere;
+export const tarnPris = (s, type) => Math.ceil(TARN[type].pris * prisFaktor(s));
+export const oppPris = (s, t, vei) => { const p = prisOpp(t, vei); return Number.isFinite(p) ? Math.ceil(p * prisFaktor(s)) : p; };
+/** Fyrene gir bort sitt beste: to fyr i nærheten legges ikke sammen. */
+function oppdater(s) {
+  const fyr = s.tarn.filter((t) => TARN[t.type].basis.stotte).map((t) => ({ t, e: egenskaper(t.type, t.niva) }));
+  for (const t of s.tarn) {
+    t.s = egenskaper(t.type, t.niva);
+    t.hjulpet = false;
+    if (t.s.stotte) continue;
+    const naer = fyr.filter(({ t: f, e }) => Math.hypot(f.x - t.x, f.y - t.y) <= e.rekke);
+    if (!naer.length) continue;
+    const best = (k) => Math.max(1, ...naer.map(({ e }) => e.stotte[k] ?? 1));
+    t.hjulpet = true;
+    t.s.skade *= best("skade"); t.s.takt *= best("takt"); t.s.rekke *= best("rekke");
+    if (naer.some(({ e }) => e.stotte.ser)) t.s.ser = true;
+    if (naer.some(({ e }) => e.stotte.bryter)) t.s.bryter = true;
+  }
+}
 export const salgspris = (t) => Math.floor(t.brukt * SALG);
 export const tarnSkade = (t) => t.s.skade * Math.pow(1 + (t.s.vekst ?? 0), Math.min(20, t.bolger));
 
 // ---------- Brettene ----------
 
+// Hvert brett har én eller flere veier som ender hos grisen. vann er ellipser [x, y, rx, ry], og elv er en linje med bredde.
 const BRETT = frys([
-  { sti: [[-20, 90], [170, 90], [170, 260], [330, 260], [330, 110], [490, 110], [490, 330], [590, 330]] },
-  { sti: [[-20, 340], [110, 340], [110, 110], [280, 110], [280, 310], [440, 310], [440, 90], [590, 90]] },
-  { sti: [[90, -20], [90, 190], [250, 190], [250, 70], [430, 70], [430, 230], [190, 330], [590, 350]] },
-  { sti: [[-20, 210], [130, 210], [130, 70], [510, 70], [510, 210], [300, 210], [300, 350], [590, 350]] },
-  { sti: [[-20, 70], [540, 70], [540, 170], [90, 170], [90, 270], [540, 270], [540, 365], [330, 365]] },
+  { navn: "Enga", stier: [[[-20, 90], [170, 90], [170, 260], [330, 260], [330, 110], [490, 110], [490, 330], [590, 330]]] },
+  { navn: "Sanddalen", stier: [[[-20, 340], [110, 340], [110, 110], [280, 110], [280, 310], [440, 310], [440, 90], [590, 90]]] },
+  { navn: "Steinbyen", stier: [[[90, -20], [90, 190], [250, 190], [250, 70], [430, 70], [430, 230], [190, 330], [590, 350]]] },
+  { navn: "Vinterveien", stier: [[[-20, 210], [130, 210], [130, 70], [510, 70], [510, 210], [300, 210], [300, 350], [590, 350]]] },
+  { navn: "Kveldsrunden", stier: [[[-20, 70], [540, 70], [540, 170], [90, 170], [90, 270], [540, 270], [540, 365], [330, 365]]] },
+  { navn: "To broer", elv: { bredde: 46, punkter: [[330, -30], [318, 90], [352, 210], [322, 330], [336, 450]] }, stier: [[[-20, 85], [210, 85], [210, 165], [440, 165], [440, 80], [570, 80], [570, 215]], [[-20, 345], [140, 345], [140, 255], [440, 255], [440, 350], [570, 350], [570, 215]]] },
+  { navn: "Åttetallet", vann: [[225, 205, 52, 30], [440, 205, 50, 28]], stier: [[[-20, 60], [90, 60], [330, 125], [530, 110], [560, 205], [530, 300], [330, 290], [130, 120], [90, 205], [130, 300], [330, 365], [590, 365]]] },
+  { navn: "Tre veier", stier: [[[-20, 70], [150, 70], [150, 190], [330, 190], [330, 95], [470, 95], [470, 215], [580, 215]], [[320, 440], [320, 300], [470, 300], [470, 215], [580, 215]], [[-20, 330], [90, 330], [90, 265], [230, 265], [230, 190], [330, 190], [330, 95], [470, 95], [470, 215], [580, 215]]] },
+  { navn: "Sneglehuset", vann: [[465, 310, 44, 24]], stier: [[[-20, 50], [585, 50], [585, 375], [55, 375], [55, 135], [490, 135], [490, 240], [140, 240], [140, 300], [370, 300]]] },
+  { navn: "Rundkjøringa", vann: [[320, 195, 74, 44]], stier: [[[-20, 60], [90, 60], [90, 285], [200, 350], [440, 350], [545, 285], [545, 110], [440, 60], [200, 60], [185, 130], [185, 260], [320, 285]], [[660, 365], [590, 365], [545, 285], [545, 110], [440, 60], [200, 60], [90, 130], [90, 285], [200, 350], [440, 350], [455, 260], [320, 285]]] },
 ]);
 export const VAKT_NIVA = frys([
   { bolger: 12, styrke: 0.85, penger: 300, liv: 15 },
@@ -95,38 +146,46 @@ export const VAKT_NIVA = frys([
   { bolger: 18, styrke: 1, penger: 330, liv: 10 },
   { bolger: 21, styrke: 1.03, penger: 360, liv: 10 },
   { bolger: 25, styrke: 0.96, penger: 420, liv: 10 },
+  { bolger: 22, styrke: 0.85, penger: 460, liv: 12 },
+  { bolger: 24, styrke: 1.05, penger: 480, liv: 10 },
+  { bolger: 25, styrke: 1.04, penger: 520, liv: 12 },
+  { bolger: 28, styrke: 0.92, penger: 540, liv: 10 },
+  { bolger: 30, styrke: 1.25, penger: 600, liv: 10 },
 ]);
 export const brett = (niva) => BRETT[niva - 1];
-const STREKK = BRETT.map(({ sti }) => {
+export const grisPa = (niva) => BRETT[niva - 1].stier[0].at(-1);
+const STREKK = BRETT.map(({ stier }) => stier.map((sti) => {
   let sum = 0;
   const deler = sti.slice(1).map((b, i) => { const a = sti[i], l = Math.hypot(b[0] - a[0], b[1] - a[1]); sum += l; return { a, b, l }; });
   return { deler, lengde: sum, rett: Math.hypot(sti.at(-1)[0] - sti[0][0], sti.at(-1)[1] - sti[0][1]) };
-});
-/** Punktet så langt ute på stien. Det som flyr, tar rett linje. */
-export function paaSti(niva, d, flyr = false) {
-  const { deler, rett } = STREKK[niva - 1], sti = BRETT[niva - 1].sti;
+}));
+/** Punktet så langt ute på veien. Det som flyr, tar rett linje. */
+export function paaSti(niva, d, flyr = false, vei = 0) {
+  const { deler, rett } = STREKK[niva - 1][vei], sti = BRETT[niva - 1].stier[vei];
   if (flyr) { const a = sti[0], b = sti.at(-1), k = Math.min(1, d / rett); return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k]; }
   for (const { a, b, l } of deler) { if (d <= l) return [a[0] + ((b[0] - a[0]) * d) / l, a[1] + ((b[1] - a[1]) * d) / l]; d -= l; }
   return deler.at(-1).b;
 }
-export const lengdeFor = (niva, type) => (FIENDER[type].flyr ? STREKK[niva - 1].rett : STREKK[niva - 1].lengde);
-function tilSti(niva, x, y) {
-  let best = Infinity;
-  for (const { a, b, l } of STREKK[niva - 1].deler) { const u = Math.max(0, Math.min(1, ((x - a[0]) * (b[0] - a[0]) + (y - a[1]) * (b[1] - a[1])) / (l * l))); best = Math.min(best, Math.hypot(x - a[0] - (b[0] - a[0]) * u, y - a[1] - (b[1] - a[1]) * u)); }
-  return best;
+export const lengdeFor = (niva, type, vei = 0) => (FIENDER[type].flyr ? STREKK[niva - 1][vei].rett : STREKK[niva - 1][vei].lengde);
+const tilLinje = (a, b, x, y) => { const l = (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2, u = Math.max(0, Math.min(1, ((x - a[0]) * (b[0] - a[0]) + (y - a[1]) * (b[1] - a[1])) / l)); return Math.hypot(x - a[0] - (b[0] - a[0]) * u, y - a[1] - (b[1] - a[1]) * u); };
+const tilSti = (niva, x, y) => Math.min(...STREKK[niva - 1].flatMap(({ deler }) => deler.map(({ a, b }) => tilLinje(a, b, x, y))));
+/** Er det vann her? */
+export function iVann(niva, x, y, kant = 0) {
+  const { vann = [], elv } = BRETT[niva - 1];
+  return vann.some(([vx, vy, rx, ry]) => ((x - vx) / (rx + kant)) ** 2 + ((y - vy) / (ry + kant)) ** 2 < 1) || (elv ? elv.punkter.slice(1).some((p, i) => tilLinje(elv.punkter[i], p, x, y) < elv.bredde / 2 + kant) : false);
 }
 export function kanStaa(s, x, y) {
-  const [gx, gy] = brett(s.niva).sti.at(-1);
-  return x > 20 && y > 24 && x < FLATE.b - 20 && y < FLATE.h - 16 && tilSti(s.niva, x, y) >= 37 && Math.hypot(x - gx, y - gy) > 52 && s.tarn.every((t) => Math.hypot(t.x - x, t.y - y) >= 36);
+  const [gx, gy] = grisPa(s.niva);
+  return x > 20 && y > 24 && x < FLATE.b - 20 && y < FLATE.h - 16 && tilSti(s.niva, x, y) >= 37 && !iVann(s.niva, x, y, 12) && Math.hypot(x - gx, y - gy) > 52 && s.tarn.every((t) => Math.hypot(t.x - x, t.y - y) >= 36);
 }
 
 // ---------- Bølgene ----------
 
-const APNES = frys({ regning: 1, gebyr: 2, purring: 4, abo: 5, skjult: 6, luft: 8, laan: 9, selger: 10, svindler: 11 });
+const APNES = frys({ regning: 1, gebyr: 2, purring: 4, abo: 5, skjult: 6, luft: 8, laan: 9, selger: 10, svindler: 11, strom: 5, hopp: 7, inflasjon: 11 });
 /** Hvem som kommer i en bølge, i grupper: { type, antall, mellom }. Lik hver gang, så du kan lære den. */
 export function bolge(niva, nr) {
   const { bolger } = VAKT_NIVA[niva - 1], tidlig = Math.floor(niva / 3);
-  const mulige = Object.keys(APNES).filter((t) => nr + tidlig >= APNES[t]);
+  const mulige = Object.keys(APNES).filter((t) => (FIENDER[t].fra ?? 1) <= niva && nr + tidlig >= APNES[t]);
   const budsjett = 5.5 + 1.8 * nr + 0.11 * nr * nr;
   let fro = (niva * 7919 + nr * 104729) % 2147483647;
   const rng = () => { fro = (fro * 16807) % 2147483647; return fro / 2147483647; };
@@ -134,12 +193,16 @@ export function bolge(niva, nr) {
     const antall = Math.max(1, Math.round((budsjett * del) / FIENDER[type].pris));
     ut.push({ type, antall, mellom: Math.max(0.24, (type === "gebyr" ? 0.42 : FIENDER[type].pris > 3 ? 1.1 : 0.8) * (1 - 0.018 * nr)) });
   };
-  const egne = mulige.slice(2), velg = () => egne[Math.floor(rng() * egne.length)], nyest = mulige.at(-1);
-  if (nr === bolger) ut.push({ type: niva >= 3 ? "krakk" : "inkasso", antall: niva === 2 ? 2 : 1, mellom: 9 });
+  const egne = mulige.slice(2), velg = () => egne[Math.floor(rng() * egne.length)], nye = egne.filter((t) => APNES[t] === nr + tidlig), nyest = nye.at(-1);
+  if (niva > 5) {   // de lange nivåene: sjefer underveis, og Gjeldsspiralen til slutt
+    if (nr === bolger) ut.push({ type: "spiral", antall: niva > 8 ? 2 : 1, mellom: 7 }, { type: "krakk", antall: 1, mellom: 6 });
+    else if (nr === Math.round(bolger * 0.72)) ut.push({ type: "krakk", antall: 1, mellom: 6 });
+    else if (nr % 7 === 0) ut.push({ type: "inkasso", antall: Math.max(1, Math.floor(nr / 9)), mellom: 6 });
+  } else if (nr === bolger) ut.push({ type: niva >= 3 ? "krakk" : "inkasso", antall: niva === 2 ? 2 : 1, mellom: 9 });
   if (nr === bolger && niva === 5) ut.push({ type: "inkasso", antall: 3, mellom: 4 });
-  else if (nr % 7 === 0) ut.push({ type: "inkasso", antall: Math.max(1, Math.floor(nr / 11)), mellom: 6 });
+  else if (niva <= 5 && nr % 7 === 0) ut.push({ type: "inkasso", antall: Math.max(1, Math.floor(nr / 11)), mellom: 6 });
   legg(rng() < 0.5 || nr < 2 ? "regning" : "gebyr", egne.length ? 0.35 : 0.6);
-  if (egne.length) { legg(APNES[nyest] === nr + tidlig ? nyest : velg(), 0.35); legg(velg(), 0.2); }
+  if (egne.length) { legg(nyest ?? velg(), 0.35); legg(velg(), 0.2); }
   legg(nr > 1 && rng() < 0.6 ? "gebyr" : "regning", egne.length ? 0.2 : 0.4);
   return ut;
 }
@@ -150,20 +213,22 @@ export const livFor = (niva, nr, type) => FIENDER[type].liv * VAKT_NIVA[niva - 1
 export const PAUSE = Object.freeze({ forst: 14, mellom: 4, lengst: 22 });
 export function lagVakt(niva) {
   const n = VAKT_NIVA[niva - 1];
-  return { niva, penger: n.penger, liv: n.liv, maksLiv: n.liv, bolge: 0, ko: [], nesteOm: 0, pause: PAUSE.forst, siden: 0, fiender: [], tarn: [], skudd: [], teller: 0, tid: 0, ferdig: null };
+  return { niva, penger: n.penger, liv: n.liv, maksLiv: n.liv, bolge: 0, ko: [], nesteOm: 0, pause: PAUSE.forst, siden: 0, fiender: [], tarn: [], skudd: [], teller: 0, sluppet: 0, tid: 0, ferdig: null };
 }
 export function byggTarn(s, type, x, y) {
-  const t = TARN[type];
-  if (!t || s.ferdig || s.penger < t.pris || !kanStaa(s, x, y)) return null;
-  s.penger -= t.pris;
-  const ny = { id: ++s.teller, type, x, y, niva: [0, 0, 0], s: egenskaper(type, [0, 0, 0]), brukt: t.pris, bolger: 0, klar: 0.2, lam: 0, vinkel: -Math.PI / 2, sikte: "forst", stoppet: 0 };
+  const t = TARN[type], pris = t ? tarnPris(s, type) : Infinity;
+  if (!t || (t.fra ?? 1) > s.niva || s.ferdig || s.penger < pris || !kanStaa(s, x, y)) return null;
+  s.penger -= pris;
+  const ny = { id: ++s.teller, type, x, y, niva: [0, 0, 0], s: egenskaper(type, [0, 0, 0]), brukt: pris, bolger: 0, klar: 0.2, lam: 0, vinkel: -Math.PI / 2, sikte: "forst", stoppet: 0 };
   s.tarn.push(ny);
+  oppdater(s);
   return ny;
 }
 export function oppgrader(s, id, vei) {
-  const t = s.tarn.find((x) => x.id === id), pris = t ? prisOpp(t, vei) : Infinity;
+  const t = s.tarn.find((x) => x.id === id), pris = t ? oppPris(s, t, vei) : Infinity;
   if (!t || s.ferdig || pris > s.penger) return false;
-  s.penger -= pris; t.brukt += pris; t.niva[vei]++; t.s = egenskaper(t.type, t.niva);
+  s.penger -= pris; t.brukt += pris; t.niva[vei]++;
+  oppdater(s);
   return true;
 }
 export function selg(s, id) {
@@ -172,6 +237,7 @@ export function selg(s, id) {
   const kr = salgspris(s.tarn[i]);
   s.penger += kr;
   s.tarn.splice(i, 1);
+  oppdater(s);
   return kr;
 }
 export const SIKTER = Object.freeze({ forst: "Første", sist: "Siste", sterkest: "Sterkeste" });
@@ -190,12 +256,14 @@ function start(s) {
   s.ko = bolge(s.niva, s.bolge).map((k) => ({ ...k }));
   for (const t of s.tarn) t.bolger++;
 }
-function fiende(s, type, d, nr = s.bolge) {
-  const maks = livFor(s.niva, nr, type);
-  s.fiender.push({ id: ++s.teller, type, liv: maks, maks, d, p: paaSti(s.niva, d, FIENDER[type].flyr), brems: 1, bremset: 0, stopp: 0, gift: 0, giftSek: 0, merke: 1, merket: 0, spurt: 0, ur: 0, tr: 0 });
+function fiende(s, type, d, vei = s.sluppet++ % BRETT[s.niva - 1].stier.length) {
+  const maks = livFor(s.niva, s.bolge, type);
+  s.fiender.push({ id: ++s.teller, type, vei, liv: maks, maks, d, p: paaSti(s.niva, d, FIENDER[type].flyr, vei), skjold: FIENDER[type].skjold?.[0] ?? 0, fred: 0, kvart: 3, brems: 1, bremset: 0, stopp: 0, gift: 0, giftSek: 0, merke: 1, merket: 0, spurt: 0, ur: 0, tr: 0 });
 }
 function skad(s, f, skade, e, hendelser) {
   const F = FIENDER[f.type];
+  f.fred = 0;
+  if (f.skjold > 0) { f.skjold--; f.tr = 0.12; hendelser.push({ type: "skjold", p: f.p }); return; }
   let k = skade * (f.merket > 0 ? f.merke : 1) * (F.sjef ? e.sjefG ?? 1 : 1), krit = false;
   if (e.krit && hendelser.rng() < e.krit) { k *= e.kritG; krit = true; }
   if (F.panser && !e.bryter) k = Math.max(k * 0.15, k - F.panser);
@@ -215,7 +283,7 @@ export function maal(s, t, rekke = t.s.rekke) {
     const F = FIENDER[f.type];
     if (f.liv <= 0 || (F.skjult && !t.s.ser) || (F.flyr && t.s.bakke)) continue;
     const a = Math.hypot(f.p[0] - t.x, f.p[1] - t.y);
-    if (a <= rekke) ut.push({ f, a, igjen: -(lengdeFor(s.niva, f.type) - f.d) });
+    if (a <= rekke) ut.push({ f, a, igjen: -(lengdeFor(s.niva, f.type, f.vei) - f.d) });
   }
   return ut.sort(sikt[t.sikte]);
 }
@@ -249,6 +317,7 @@ export function vaktSteg(s, dt, rng = Math.random) {
     if (s.pause <= 0) { start(s); ut.push({ type: "bolge", nr: s.bolge }); }
   }
   // Fiendene
+  const nye = [];
   for (const f of s.fiender) {
     const F = FIENDER[f.type];
     f.bremset -= dt; f.merket -= dt; f.spurt -= dt; f.tr -= dt;
@@ -256,17 +325,20 @@ export function vaktSteg(s, dt, rng = Math.random) {
     if (F.vekst) { const k = f.maks * F.vekst * dt; f.maks += k * 0.6; f.liv = Math.min(f.maks, f.liv + k); }
     f.ur += dt;
     if (F.helbred && f.ur > 1) { f.ur = 0; for (const n of s.fiender) if (n !== f && n.liv > 0 && Math.hypot(n.p[0] - f.p[0], n.p[1] - f.p[1]) < 70 && n.liv < n.maks) n.liv = Math.min(n.maks, n.liv + F.helbred * (f.maks / F.liv)); ut.push({ type: "helbred", p: f.p }); }
-    if (F.sender && f.ur > F.sender[2]) { f.ur = 0; for (let k = 0; k < F.sender[1]; k++) fiende(s, F.sender[0], Math.max(0, f.d - 14 * k)); }
+    if (F.sender && f.ur > F.sender[2]) { f.ur = 0; for (let k = 0; k < F.sender[1]; k++) fiende(s, F.sender[0], Math.max(0, f.d - 14 * k), f.vei); }
     if (F.lammer && f.ur > F.lammer[1]) { f.ur = 0; for (const t of s.tarn) if (Math.hypot(t.x - f.p[0], t.y - f.p[1]) < F.lammer[0]) t.lam = F.lammer[2]; ut.push({ type: "lammer", p: f.p, r: F.lammer[0] }); }
+    if (F.skjold && f.skjold < F.skjold[0]) { f.fred += dt; if (f.fred > F.skjold[1]) { f.fred = 0; f.skjold = F.skjold[0]; ut.push({ type: "ladet", p: f.p }); } }
+    if (F.spiral && f.liv > 0 && f.liv < (f.maks * f.kvart) / 4) { f.kvart--; nye.push([F.spiral, f.d, f.vei], [F.spiral, Math.max(0, f.d - 30), f.vei]); ut.push({ type: "spiral", p: f.p }); }
     if (f.stopp > 0) { f.stopp -= dt; continue; }
-    f.d += F.fart * (f.bremset > 0 ? f.brems : 1) * (f.spurt > 0 ? F.spurt : 1) * dt;
-    f.p = paaSti(s.niva, f.d, F.flyr);
+    if (F.hopper && f.ur > F.hopper[1]) { f.ur = 0; ut.push({ type: "hopp", p: f.p }); f.d += F.hopper[0]; }
+    f.d += F.fart * (f.bremset > 0 ? f.brems : 1) * (f.spurt > 0 ? F.spurt : 1) * (F.spiral ? 1 + 0.22 * (3 - f.kvart) : 1) * dt;
+    f.p = paaSti(s.niva, f.d, F.flyr, f.vei);
   }
   // Tårnene
   for (const t of s.tarn) {
     t.klar -= dt; t.stoppet -= dt;
     if (t.lam > 0) { t.lam -= dt; continue; }
-    if (t.klar > 0) continue;
+    if (t.klar > 0 || !t.s.takt) continue;
     const m = maal(s, t);
     if (!m.length) continue;
     t.klar = 1 / t.s.takt; t.stoppet = 0.16;
@@ -287,6 +359,23 @@ export function vaktSteg(s, dt, rng = Math.random) {
       ut.push({ type: "strale", punkter });
       continue;
     }
+    if (e.gjennom) {   // pilen går rett fram og tar de nærmeste den treffer
+      const n = e.vifte ?? 1, piler = [];
+      for (let k = 0; k < n; k++) {
+        const v = t.vinkel + (k - (n - 1) / 2) * 0.13, cx = Math.cos(v), cy = Math.sin(v), truffet = [];
+        for (const f of s.fiender) {
+          if (f.liv <= 0 || (FIENDER[f.type].skjult && !e.ser)) continue;
+          const dx = f.p[0] - t.x, dy = f.p[1] - t.y, langs = dx * cx + dy * cy;
+          if (langs > 0 && langs <= e.rekke && Math.abs(dx * cy - dy * cx) < FIENDER[f.type].stor + 4) truffet.push([langs, f]);
+        }
+        truffet.sort((a, b) => a[0] - b[0]);
+        for (const [, f] of truffet.slice(0, e.gjennom)) skad(s, f, skade, e, ut);
+        const ende = truffet.length >= e.gjennom ? truffet[e.gjennom - 1][0] : e.rekke;
+        piler.push([t.x + cx * ende, t.y + cy * ende]);
+      }
+      ut.push({ type: "pil", p: [t.x, t.y - 18], piler });
+      continue;
+    }
     for (const { f } of m.slice(0, e.antall)) s.skudd.push({ type: t.type, x: t.x, y: t.y - 20, mal: f, til: [...f.p], fart: e.sprut ? 300 : 430, skade, e, z: e.sprut ? 1 : 0, fra: [t.x, t.y - 20], stor: 1 + 0.25 * t.niva[0] });
   }
   // Skuddene er på vei
@@ -301,15 +390,15 @@ export function vaktSteg(s, dt, rng = Math.random) {
     return false;
   });
   // Hvem er ute?
-  const igjen = [], nye = [];
+  const igjen = [];
   for (const f of s.fiender) {
     const F = FIENDER[f.type];
-    if (f.liv <= 0) { s.penger += F.lonn; ut.push({ type: "dod", p: f.p, fiende: f.type, kr: F.lonn }); if (F.deler) for (let k = 0; k < F.deler[1]; k++) nye.push([F.deler[0], Math.max(0, f.d - 10 * k)]); }
-    else if (f.d >= lengdeFor(s.niva, f.type)) { s.liv -= F.skade; ut.push({ type: "slapp", skade: F.skade }); }
+    if (f.liv <= 0) { s.penger += F.lonn; ut.push({ type: "dod", p: f.p, fiende: f.type, kr: F.lonn }); if (F.deler) for (let k = 0; k < F.deler[1]; k++) nye.push([F.deler[0], Math.max(0, f.d - 10 * k), f.vei ?? 0]); }
+    else if (f.d >= lengdeFor(s.niva, f.type, f.vei)) { s.liv -= F.skade; ut.push({ type: "slapp", skade: F.skade }); }
     else igjen.push(f);
   }
   s.fiender = igjen;
-  for (const [type, d] of nye) fiende(s, type, d);
+  for (const [type, d, vei] of nye) fiende(s, type, d, vei ?? 0);
   if (s.liv <= 0) { s.liv = 0; s.ferdig = "tapt"; } else if (s.bolge >= bolger && !s.ko.length && !s.fiender.length) s.ferdig = "vunnet";
   return ut;
 }

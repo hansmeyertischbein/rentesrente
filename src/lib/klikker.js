@@ -60,12 +60,13 @@ export const REGLER = Object.freeze({
 // Minispillene åpnes ett for ett: hvert av dem når du har kjøpt i et bestemt selskap for første gang.
 // Premien er nesten ingenting til å begynne med, og vokser både med nivået og med hvor sent spillet åpnes.
 export const MINISPILL = Object.freeze({
-  spill: Object.freeze(["limonadeboden", "grisetoget", "grisevakta", "vekslebanken", "krakkfeltet", "meglerhuset", "regnskapet"]),
-  apnes: Object.freeze({ limonadeboden: "onkel", grisetoget: "geitan", grisevakta: "lilledalen", vekslebanken: "lokke", krakkfeltet: "blitzoe", meglerhuset: "mittelfart", regnskapet: "valmart" }),
+  spill: Object.freeze(["limonadeboden", "grisetoget", "grisevakta", "vekslebanken", "krakkfeltet", "ossmotai", "meglerhuset", "regnskapet"]),
+  apnes: Object.freeze({ limonadeboden: "onkel", grisetoget: "geitan", grisevakta: "lilledalen", vekslebanken: "lokke", krakkfeltet: "blitzoe", ossmotai: "sandresen", meglerhuset: "mittelfart", regnskapet: "valmart" }),
   nivaer: 5,
-  sek: Object.freeze([2, 5, 12, 28, 60]),          // premien i sekunder utbytte i det første spillet
+  flere: Object.freeze({ grisevakta: 10, ossmotai: 8 }),   // spill med flere enn fem nivåer
+  sek: Object.freeze([2, 5, 12, 28, 60, 75, 90, 105, 120, 150]),   // premien i sekunder utbytte i det første spillet
   trinn: 0.5,                                      // så mye mer for hvert spill som åpnes senere
-  minst: Object.freeze([50, 120, 300, 700, 1500]), // øre
+  minst: Object.freeze([50, 120, 300, 700, 1500, 2000, 2500, 3000, 4000, 5000]), // øre
   igjen: 0.1,
 });
 
@@ -499,6 +500,7 @@ export function fangSeddel(t, farge, rng = Math.random) {
 
 // ---------- Minispill ----------
 
+export const nivaerI = (spill) => MINISPILL.flere[spill] ?? MINISPILL.nivaer;
 /** Er spillet låst opp? Det du alt har klart et nivå i, forblir åpent. */
 export function spillApent(t, spill) {
   return MINISPILL.spill.includes(spill) && ((t.forstekjop ?? []).includes(MINISPILL.apnes[spill]) || (t.minispill?.[spill] ?? 0) > 0);
@@ -513,7 +515,7 @@ export function minispillPremie(t, spill, niva) {
 
 /** Det høyeste nivået du kan velge: ett over det du har klart. */
 export function apentNiva(t, spill) {
-  return Math.min(MINISPILL.nivaer, (t.minispill?.[spill] ?? 0) + 1);
+  return Math.min(nivaerI(spill), (t.minispill?.[spill] ?? 0) + 1);
 }
 
 /** Et nivå er klart. Premien kommer med en gang. */
@@ -749,8 +751,8 @@ const MAL = {
   "gf-10": (t) => AKSJER.reduce((s, a) => s + gfAntall(t, a.id), 0) >= 10,
   "kr-trilliard": (t) => t.totalt >= 1e23,
   "minispill-1": (t) => MINISPILL.spill.some((s) => (t.minispill?.[s] ?? 0) >= 1),
-  "minispill-5": (t) => MINISPILL.spill.some((s) => (t.minispill?.[s] ?? 0) >= MINISPILL.nivaer),
-  "minispill-alle": (t) => MINISPILL.spill.every((s) => (t.minispill?.[s] ?? 0) >= MINISPILL.nivaer),
+  "minispill-5": (t) => MINISPILL.spill.some((s) => (t.minispill?.[s] ?? 0) >= nivaerI(s)),
+  "minispill-alle": (t) => MINISPILL.spill.every((s) => (t.minispill?.[s] ?? 0) >= nivaerI(s)),
   "inntekt-mill": (t) => perSekund(t) >= 1e8, "inntekt-mrd": (t) => perSekund(t) >= 1e11,
   "obl-3": (t) => antallObl(t) >= OBL.maksSamtidig,
   "strategi-avers": (t) => t.strategi === "avers", "strategi-noytral": (t) => t.strategi === "noytral", "strategi-glad": (t) => t.strategi === "glad",
@@ -934,7 +936,7 @@ export function fraLagring(obj) {
   if (tall(obj.giring)) t.giring = Math.min(STRATEGI.giringMaks, Math.max(STRATEGI.giringMin, obj.giring));
   if (obj.prestisje !== undefined && !heltall(obj.prestisje, 100)) return null;
   t.prestisje = obj.prestisje ?? 0;
-  for (const s of MINISPILL.spill) if (heltall(obj.minispill?.[s], MINISPILL.nivaer) && obj.minispill[s] > 0) t.minispill[s] = obj.minispill[s];
+  for (const s of MINISPILL.spill) if (heltall(obj.minispill?.[s], nivaerI(s)) && obj.minispill[s] > 0) t.minispill[s] = obj.minispill[s];
   t.bod = lesBod(obj.bod);
   if (heltall(obj.bodNiva, MINISPILL.nivaer)) t.bodNiva = obj.bodNiva;
   if (Array.isArray(obj.prestasjoner)) t.prestasjoner = [...new Set(obj.prestasjoner.filter((id) => PRESTASJONER.some((p) => p.id === id)))];

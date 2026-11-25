@@ -1,19 +1,23 @@
 // Minispillene i «Overfør»: menyen, nivåene og premiene. Spillskjermene ligger i overfor-mini-brett.js, -bod.js, -vakt.js og -megler.js.
-import { MINISPILL, AKSJER, spillApent, minispillPremie, apentNiva, klarteNiva, bodFaktor } from "/lib/klikker.js";
+import { MINISPILL, AKSJER, nivaerI, spillApent, minispillPremie, apentNiva, klarteNiva, bodFaktor } from "/lib/klikker.js";
 import { MENYIKONER, MINIIKONER } from "./klikker-figurer.js";
 import { $, ore, ganger, settTekst, vis, lag, si, hopp, apne } from "./overfor-felles.js";
 import { spill as lyd } from "./lyd.js";
 import * as brett from "./overfor-mini-brett.js";
 import { limonadeboden, bodButikk } from "./overfor-mini-bod.js";
-import { grisevakta } from "./overfor-mini-vakt.js";
+import { grisevakta, vaktBilde } from "./overfor-mini-vakt.js";
+import { ossmotai, aiBilde } from "./overfor-mini-ai.js";
+import { brett as vaktBrett } from "/lib/mini-vakt.js";
+import { aiBrett } from "/lib/mini-ai.js";
 import { meglerhuset } from "./overfor-mini-megler.js";
 
 const SPILL = {
   limonadeboden: { navn: "Limonadeboden", tekst: "Press, hell, pynt og server. Hvert nivå gir bodene dine mer utbytte for godt.", start: limonadeboden },
   grisetoget: { navn: "Grisetoget", tekst: "Plukk mynter, og styr unna vognene og steinene.", start: brett.grisetoget },
-  grisevakta: { navn: "Grisevakta", tekst: "Bygg tårn, velg oppgraderinger, og stopp regningene før de når grisen.", start: grisevakta },
+  grisevakta: { navn: "Grisevakta", tekst: "Bygg tårn, velg oppgraderinger, og stopp regningene før de når grisen.", start: grisevakta, bilde: vaktBilde, navnPa: (n) => vaktBrett(n).navn },
   vekslebanken: { navn: "Vekslebanken", tekst: "Skyv like penger sammen før trekkene tar slutt.", start: brett.vekslebanken },
   krakkfeltet: { navn: "Krakkfeltet", tekst: "Finn de trygge rutene før tiden er ute.", start: brett.krakkfeltet },
+  ossmotai: { navn: "Oss mot AI", tekst: "Send folk langs veiene, ta tårnene tilbake, og slå av maskinene.", start: ossmotai, bilde: aiBilde, navnPa: (n) => aiBrett(n).navn },
   meglerhuset: { navn: "Meglerhuset", tekst: "Kjøp på bunn og selg på topp. Nyhetene stemmer ikke alltid.", start: meglerhuset },
   regnskapet: { navn: "Regnskapet", tekst: "Hvert tall én gang i hver rad, kolonne og boks.", start: brett.regnskapet },
 };
@@ -39,7 +43,7 @@ function visMeny() {
       return li;
     }
     const klart = t.minispill[id] ?? 0;
-    const li = lag(`<li><button type="button" class="mini-kort"><span class="mini-bilde">${flis(MINIIKONER[id])}</span><b></b><span class="mini-tekst"></span><span class="mini-prikker" aria-label="${klart} av ${MINISPILL.nivaer} nivåer klart">${Array.from({ length: MINISPILL.nivaer }, (_, i) => `<i class="${i < klart ? "pa" : ""}"></i>`).join("")}</span></button></li>`);
+    const li = lag(`<li><button type="button" class="mini-kort"><span class="mini-bilde">${flis(MINIIKONER[id])}</span><b></b><span class="mini-tekst"></span><span class="mini-prikker" aria-label="${klart} av ${nivaerI(id)} nivåer klart">${Array.from({ length: nivaerI(id) }, (_, i) => `<i class="${i < klart ? "pa" : ""}"></i>`).join("")}</span></button></li>`);
     li.querySelector("b").textContent = SPILL[id].navn;
     li.querySelector(".mini-tekst").textContent = SPILL[id].tekst;
     li.firstChild.addEventListener("click", () => { lyd("klikk"); visNivaer(id); });
@@ -56,9 +60,10 @@ function visNivaer(id) {
   const t = api.hent(), apent = apentNiva(t, id);
   const boks = lag(`<div class="mini-nivaer"><span class="mini-stor">${flis(MINIIKONER[id])}</span><p></p><ol></ol></div>`);
   boks.querySelector("p").textContent = SPILL[id].tekst + (id === "limonadeboden" && (t.bodNiva ?? 0) > 0 ? ` Bodene gir nå ${ganger(bodFaktor(t))}.` : "");
-  boks.querySelector("ol").append(...Array.from({ length: MINISPILL.nivaer }, (_, i) => {
+  boks.querySelector("ol").append(...Array.from({ length: nivaerI(id) }, (_, i) => {
     const niva = i + 1, klart = niva <= (t.minispill[id] ?? 0), last = niva > apent;
-    const li = lag(`<li><button type="button" class="mini-niva ${klart ? "klart" : ""}" ${last ? "disabled" : ""}><b>${last ? "🔒" : `Nivå ${niva}`}</b><span class="pris"></span></button></li>`);
+    const li = lag(`<li><button type="button" class="mini-niva ${klart ? "klart" : ""} ${SPILL[id].bilde ? "med-bilde" : ""}" ${last ? "disabled" : ""}>${SPILL[id].bilde?.(niva) ?? ""}<b>${last ? "🔒" : `Nivå ${niva}`}</b>${SPILL[id].navnPa ? "<small></small>" : ""}<span class="pris"></span></button></li>`);
+    if (SPILL[id].navnPa) li.querySelector("small").textContent = SPILL[id].navnPa(niva);
     li.querySelector(".pris").textContent = `+${ore(minispillPremie(t, id, niva))}`;
     li.firstChild.addEventListener("click", () => spillNiva(id, niva));
     return li;
@@ -70,7 +75,7 @@ function visNivaer(id) {
 function spillNiva(id, niva) {
   avslutt();
   lyd("apne");
-  settTekst(el.tittel, `${SPILL[id].navn}, nivå ${niva}`);
+  settTekst(el.tittel, `${SPILL[id].navn}, nivå ${niva}${SPILL[id].navnPa ? `: ${SPILL[id].navnPa(niva)}` : ""}`);
   const rot = lag(`<div class="mini-spill mini-${id}"></div>`);
   el.rot.replaceChildren(rot);
   let over = false;
@@ -84,7 +89,7 @@ function spillNiva(id, niva) {
       if (klart) api.sett(klarteNiva(for_, id, niva));
       const premie = api.hent().totalt - for_.totalt;
       lyd(klart ? "nivaKlart" : "nivaTapt");
-      const neste = klart && niva < MINISPILL.nivaer;
+      const neste = klart && niva < nivaerI(id);
       const slutt = lag('<div class="mini-slutt" role="status"><strong></strong><p></p><p class="mini-valg"><button type="button" class="oppgrader"><span class="oppgrader-navn"></span></button> <button type="button" class="lenkeknapp">Alle nivåene</button></p></div>');
       slutt.querySelector("strong").textContent = klart ? `Klart! +${ore(premie)}` : "Ikke denne gangen";
       slutt.querySelector("p").textContent = tekst;
